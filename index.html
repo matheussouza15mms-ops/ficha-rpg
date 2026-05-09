@@ -90,12 +90,13 @@
               <div class="attribute-table" id="attributeTable"></div>
             </article>
 
-            <article class="card panel panel-fill">
+            <article class="card panel">
               <div class="section-heading">
                 <h2>Aprimoramentos</h2>
               </div>
 
               <div id="upgradesGrid" class="upgrades-grid"></div>
+              <button type="button" id="addUpgradeRow" class="btn btn-add-row">+ Adicionar aprimoramento</button>
             </article>
           </div>
 
@@ -116,7 +117,7 @@
               <div id="statusGrid" class="grid three compact-grid"></div>
             </article>
 
-            <article class="card panel panel-fill">
+            <article class="card panel">
               <div class="panel-header">
                 <div class="section-heading">
                   <h2>Perícias</h2>
@@ -129,9 +130,84 @@
               </div>
 
               <div class="skills-table" id="skillsTable"></div>
+              <button type="button" id="addSkillRow" class="btn btn-add-row">+ Adicionar perícia</button>
             </article>
           </div>
         </section>
+
+        <button type="button" id="inventoryFab" class="inventory-fab" aria-label="Abrir pertences">
+          <span class="inventory-fab-label">Pertences</span>
+          <span class="inventory-fab-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="presentation" focusable="false">
+              <path d="M22 18c0-6 4-10 10-10s10 4 10 10h4c5 0 8 3 8 8v24c0 4-3 8-8 8H18c-5 0-8-4-8-8V26c0-5 3-8 8-8h4Zm6 0h8c0-3-1-5-4-5s-4 2-4 5Zm-8 9v22c0 2 1 3 3 3h18c2 0 3-1 3-3V27c0-2-1-3-3-3H23c-2 0-3 1-3 3Zm6 6h12v4H26v-4Zm0 9h12v4H26v-4Z" />
+            </svg>
+          </span>
+        </button>
+
+        <button type="button" id="notesFab" class="inventory-fab notes-fab" aria-label="Abrir anotações">
+          <span class="inventory-fab-label">Anotações</span>
+          <span class="inventory-fab-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="presentation" focusable="false">
+              <path d="M16 10h24l12 12v28c0 4-2 6-6 6H16c-4 0-6-2-6-6V16c0-4 2-6 6-6Zm0 8v30h30V26H34V18H16Zm8 10h16v4H24v-4Zm0 9h16v4H24v-4Zm0-18h8v4h-8v-4Z" />
+            </svg>
+          </span>
+        </button>
+
+        <button type="button" id="historyFab" class="inventory-fab history-fab" aria-label="Abrir história">
+          <span class="inventory-fab-label">História</span>
+          <span class="inventory-fab-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="presentation" focusable="false">
+              <path d="M18 10h28c5 0 8 3 8 8v28c0 5-3 8-8 8H18c-5 0-8-3-8-8V18c0-5 3-8 8-8Zm4 10v24h20V20H22Zm4 4h12v4H26v-4Zm0 8h12v4H26v-4Zm0 8h8v4h-8v-4Z" />
+            </svg>
+          </span>
+        </button>
+
+        <aside id="inventoryDrawer" class="inventory-drawer" aria-hidden="true">
+          <div class="inventory-drawer-header">
+            <div class="section-heading">
+              <h2>Pertences</h2>
+            </div>
+            <button type="button" id="closeInventoryDrawer" class="btn btn-secondary">Fechar</button>
+          </div>
+
+          <div class="inventory-table">
+            <div class="inventory-row inventory-row-header">
+              <span>Item</span>
+              <span>Quant.</span>
+              <span>Peso</span>
+              <span>Valor</span>
+            </div>
+            <div id="inventoryRows" class="inventory-rows"></div>
+          </div>
+
+          <button type="button" id="addInventoryItem" class="btn btn-add-row">+ Adicionar item</button>
+        </aside>
+
+        <aside id="notesDrawer" class="inventory-drawer notes-drawer" aria-hidden="true">
+          <div class="inventory-drawer-header">
+            <div class="section-heading">
+              <h2>Anotações</h2>
+            </div>
+            <button type="button" id="closeNotesDrawer" class="btn btn-secondary">Fechar</button>
+          </div>
+
+          <label class="field notes-field">
+            <textarea id="notesTextarea" rows="16" placeholder="Digite aqui suas anotações..."></textarea>
+          </label>
+        </aside>
+
+        <aside id="historyDrawer" class="inventory-drawer notes-drawer" aria-hidden="true">
+          <div class="inventory-drawer-header">
+            <div class="section-heading">
+              <h2>História</h2>
+            </div>
+            <button type="button" id="closeHistoryDrawer" class="btn btn-secondary">Fechar</button>
+          </div>
+
+          <label class="field notes-field">
+            <textarea id="historyTextarea" rows="16" placeholder="Digite aqui a história do personagem..."></textarea>
+          </label>
+        </aside>
       </section>
     </main>
   </div>
