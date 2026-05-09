@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ficha de Personagem</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand-copy">
+        <h1>Ficha de Personagem</h1>
+        <p>Documento ritualizado para criar, revisar e evoluir personagens com atmosfera de RPG de mesa.</p>
+      </div>
+
+      <aside id="sessionSummary" class="session-summary hidden" aria-live="polite"></aside>
+    </header>
+
+    <main>
+      <section id="loadingCard" class="card auth-card">
+        <p class="loading-text">Carregando aplicação...</p>
+      </section>
+
+      <section id="loginCard" class="card auth-card hidden">
+        <div class="section-heading">
+          <h2>Entrar</h2>
+        </div>
+
+        <form id="loginForm" class="stack-form">
+          <label class="field">
+            <span>Login</span>
+            <input id="loginInput" name="login" type="text" autocomplete="username" required>
+          </label>
+
+          <label class="field">
+            <span>Senha</span>
+            <input id="passwordInput" name="password" type="password" autocomplete="current-password" required>
+          </label>
+
+          <div class="auth-actions">
+            <button type="submit" class="btn btn-primary">Entrar</button>
+            <button type="button" id="openRegisterFromLogin" class="btn btn-secondary">Cadastrar novo jogador</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="appCard" class="hidden">
+        <div class="toolbar card">
+          <div id="gmTools" class="toolbar-group hidden">
+            <label class="inline-field inline-select">
+              <span>Selecionar ficha</span>
+              <select id="sheetSelector"></select>
+            </label>
+
+            <button type="button" id="openRegisterFromGm" class="btn btn-secondary">Nova Ficha</button>
+
+          </div>
+
+          <div class="toolbar-group toolbar-group-right">
+            <div id="saveStatus" class="save-status" aria-live="polite">Pronto</div>
+            <button type="button" id="logoutButton" class="btn btn-secondary">Sair</button>
+          </div>
+        </div>
+
+        <section class="sheet-layout">
+          <div class="sheet-column left-column">
+            <article class="card panel">
+              <div class="section-heading">
+                <h2>Retrato</h2>
+              </div>
+
+              <div id="portraitFrame" class="portrait-frame">
+                <img id="portraitImage" alt="Retrato do personagem">
+                <div id="portraitPlaceholder" class="portrait-placeholder">Sem imagem</div>
+              </div>
+
+              <input id="imageInput" type="file" accept=".png,.jpg,.jpeg,.webp" hidden>
+              <label for="imageInput" class="upload-link">Importar imagem</label>
+            </article>
+
+            <article class="card panel">
+              <div class="section-heading">
+                <h2>Atributos</h2>
+              </div>
+
+              <div class="attribute-table" id="attributeTable"></div>
+            </article>
+
+            <article class="card panel panel-fill">
+              <div class="section-heading">
+                <h2>Aprimoramentos</h2>
+              </div>
+
+              <div id="upgradesGrid" class="upgrades-grid"></div>
+            </article>
+          </div>
+
+          <div class="sheet-column right-column">
+            <article class="card panel">
+              <div class="section-heading">
+                <h2>Identificação</h2>
+              </div>
+
+              <div id="identificationGrid" class="grid three"></div>
+            </article>
+
+            <article class="card panel">
+              <div class="section-heading">
+                <h2>Status</h2>
+              </div>
+
+              <div id="statusGrid" class="grid three compact-grid"></div>
+            </article>
+
+            <article class="card panel panel-fill">
+              <div class="panel-header">
+                <div class="section-heading">
+                  <h2>Perícias</h2>
+                </div>
+
+                <label class="inline-field skill-points-field">
+                  <span>Pontos de Perícia</span>
+                  <input type="text" inputmode="numeric" data-field="periciasPontos">
+                </label>
+              </div>
+
+              <div class="skills-table" id="skillsTable"></div>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="registerDialog" class="register-dialog">
+    <form id="registerForm" method="dialog" class="stack-form">
+      <div class="section-heading">
+        <h2>Novo Jogador</h2>
+      </div>
+
+      <label class="field">
+        <span>Nome do jogador</span>
+        <input id="registerName" name="displayName" type="text" minlength="3" required>
+      </label>
+
+      <label class="field">
+        <span>Login</span>
+        <input id="registerLogin" name="login" type="text" pattern="[A-Za-z0-9._-]{3,30}" required>
+      </label>
+
+      <label class="field">
+        <span>Senha</span>
+        <input id="registerPassword" name="password" type="password" minlength="6" required>
+      </label>
+
+      <footer class="dialog-actions">
+        <button type="button" id="cancelRegister" class="btn btn-secondary">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Cadastrar</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script src="./script.js"></script>
+</body>
+</html>
