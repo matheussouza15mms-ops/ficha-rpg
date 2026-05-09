@@ -74,6 +74,7 @@
 
             <button type="button" id="openRegisterFromGm" class="btn btn-secondary">Nova Ficha</button>
             <button type="button" id="deleteCurrentSheet" class="btn btn-danger">Excluir Ficha</button>
+            <button type="button" id="saveSheetButton" class="btn btn-primary hidden">Salvar</button>
           </div>
 
           <div class="toolbar-group toolbar-group-right">
@@ -99,16 +100,33 @@
             </article>
 
             <article class="card panel">
-              <div class="section-heading">
-                <h2>Atributos</h2>
+              <div class="panel-header">
+                <div class="section-heading">
+                  <h2>Atributos</h2>
+                </div>
+                <span id="attributePointsBadge" class="attribute-points-badge hidden">
+                  <span class="attribute-points-label">Pontos</span>
+                  <span id="attributePointsValue" class="attribute-points-value">101</span>
+                </span>
               </div>
 
               <div id="attributeTable" class="attribute-table"></div>
             </article>
 
             <article class="card panel">
-              <div class="section-heading">
-                <h2>Aprimoramentos</h2>
+              <div class="panel-header">
+                <div class="section-heading">
+                  <h2>Aprimoramentos</h2>
+                </div>
+                <span id="upgradePointsPool" class="attribute-points-badge hidden">
+                  <span class="attribute-points-label">Pontos</span>
+                  <span id="upgradePointsPoolValue" class="attribute-points-value">5</span>
+                </span>
+                <span id="evolutionUpgradePointsBadge" class="attribute-points-badge hidden">
+                  <span class="attribute-points-label">Pontos</span>
+                  <span id="evolutionUpgradePointsValue" class="attribute-points-value">0</span>
+                </span>
+                <span id="upgradePointBadge" class="upgrade-point-badge hidden">+1</span>
               </div>
 
               <div id="upgradesGrid" class="upgrades-grid"></div>
@@ -126,8 +144,16 @@
             </article>
 
             <article class="card panel">
-              <div class="section-heading">
-                <h2>Status</h2>
+              <div class="panel-header">
+                <div class="section-heading">
+                  <h2>Status</h2>
+                </div>
+                <button type="button" id="evolveButton" class="btn btn-evolve">
+                  <svg class="btn-evolve-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 14l8-10 8 10h-5v6H9v-6H4z"/>
+                  </svg>
+                  Evoluir
+                </button>
               </div>
 
               <div id="statusGrid" class="grid three compact-grid"></div>
@@ -141,7 +167,7 @@
 
                 <label class="inline-field skill-points-field">
                   <span>Pontos de Perícia</span>
-                  <input type="text" inputmode="numeric" data-field="periciasPontos">
+                  <input type="text" inputmode="numeric" data-field="periciasPontos" readonly>
                 </label>
               </div>
 
@@ -263,6 +289,61 @@
       <footer class="dialog-actions">
         <button type="button" id="cancelRegister" class="btn btn-secondary">Cancelar</button>
         <button type="submit" class="btn btn-primary">Cadastrar</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="upgradeCatalogDialog" class="register-dialog skill-catalog-dialog">
+    <div class="skill-catalog-content">
+      <div class="section-heading">
+        <h2>Adicionar Aprimoramento</h2>
+      </div>
+
+      <input id="upgradeCatalogSearch" type="search" placeholder="Buscar aprimoramento..." class="skill-catalog-search" autocomplete="off">
+
+      <div class="skill-catalog-body">
+        <div id="upgradeCatalogList" class="skill-catalog-list" role="listbox" aria-label="Lista de aprimoramentos"></div>
+        <div id="upgradeCatalogDetail" class="skill-catalog-detail"></div>
+      </div>
+
+      <footer class="dialog-actions">
+        <button type="button" id="cancelUpgradeCatalog" class="btn btn-secondary">Cancelar</button>
+        <button type="button" id="confirmUpgradeCatalog" class="btn btn-primary" disabled>Adicionar</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <dialog id="skillCatalogDialog" class="register-dialog skill-catalog-dialog">
+    <div class="skill-catalog-content">
+      <div class="section-heading">
+        <h2>Adicionar Perícia</h2>
+      </div>
+
+      <input id="skillCatalogSearch" type="search" placeholder="Buscar perícia ou subgrupo..." class="skill-catalog-search" autocomplete="off">
+
+      <div class="skill-catalog-body">
+        <div id="skillCatalogList" class="skill-catalog-list" role="listbox" aria-label="Lista de perícias"></div>
+        <div id="skillCatalogDetail" class="skill-catalog-detail"></div>
+      </div>
+
+      <footer class="dialog-actions">
+        <button type="button" id="cancelSkillCatalog" class="btn btn-secondary">Cancelar</button>
+        <button type="button" id="confirmSkillCatalog" class="btn btn-primary" disabled>Adicionar</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <dialog id="saveSheetDialog" class="register-dialog">
+    <form method="dialog" class="stack-form">
+      <div class="section-heading">
+        <h2 id="saveSheetTitle">Confirmar criação da ficha</h2>
+      </div>
+
+      <p id="saveSheetMessage" class="dialog-copy">Deseja confirmar a criação da ficha? Após salvar, a ficha entrará em modo de Jogo.</p>
+
+      <footer class="dialog-actions">
+        <button type="button" id="cancelSaveSheet" class="btn btn-secondary">Cancelar</button>
+        <button type="button" id="confirmSaveSheet" class="btn btn-primary">Confirmar</button>
       </footer>
     </form>
   </dialog>

@@ -74,6 +74,8 @@ const STORAGE_KEYS = {
 const SAVE_IDLE = 1200;
 const AUTOSAVE_DELAY = 1800;
 
+const LEVEL_THRESHOLDS = [null, 0, 5, 15, 30, 50, 80, 120, 180, 250, 400];
+
 const attributeDefinitions = [
   { key: "con", label: "CON" },
   { key: "fr", label: "FR" },
@@ -83,6 +85,175 @@ const attributeDefinitions = [
   { key: "will", label: "WILL" },
   { key: "per", label: "PER" },
   { key: "car", label: "CAR" },
+];
+
+const ATTR_LABEL_TO_KEY = {
+  AGI: "agi", DEX: "dex", PER: "per", CAR: "car",
+  INT: "int", WILL: "will", CON: "con", FR: "fr",
+};
+
+const UPGRADES_CATALOG = [
+  {
+    name: "Ambidestria",
+    type: "positive",
+    cost: 2,
+    description: "O personagem pode manusear armas e instrumentos tanto com a mão direita quanto com a esquerda, com igual eficiência. Também pode usar duas armas brancas ao mesmo tempo, se forem pequenas o bastante para o uso com uma única mão. Estão fora dessa categoria: arcos, bestas, lanças, a maioria dos machados e martelos e as grandes espadas. A ambidestria afeta apenas Perícias baseadas em Destreza, não em Agilidade: boxe, artes marciais e outras não recebem benefícios pela ambidestria.",
+  },
+  {
+    name: "Sono Pesado",
+    type: "negative",
+    cost: 1,
+    description: "Sono pesado.",
+  },
+];
+
+const UPGRADE_BASE_POOL = 5;
+const UPGRADE_NEGATIVE_BONUS_CAP = 3;
+
+const SKILLS_CATALOG = [
+  { name: "Animais", attribute: null, subgroups: [
+    { name: "Treinamento de Animais", attribute: null },
+    { name: "Montaria", attribute: "AGI" },
+    { name: "Doma", attribute: null },
+    { name: "Veterinária", attribute: null },
+  ]},
+  { name: "Armadilhas", attribute: "PER", subgroups: [] },
+  { name: "Armas Brancas", attribute: "DEX", subgroups: [
+    "Facas", "Adagas", "Punhais", "Espadas", "Machados", "Chicotes",
+    "Manguais", "Maças", "Martelos", "Arcos", "Bestas", "Lanças",
+  ].map((n) => ({ name: n })) },
+  { name: "Armas de Fogo", attribute: "DEX", subgroups: [
+    "Revólveres", "Pistolas", "Armas Antigas", "Submetralhadoras", "Espingardas",
+    "Rifles de Caça", "Rifles Militares", "Metralhadoras", "Armas Pesadas",
+    "Granadas", "Armas Experimentais",
+  ].map((n) => ({ name: n })) },
+  { name: "Artes", attribute: null, subgroups: [
+    { name: "Arquitetura", attribute: "CAR" },
+    { name: "Atuação", attribute: "CAR" },
+    { name: "Canto", attribute: "CAR" },
+    { name: "Crítica de Arte", attribute: "PER" },
+    { name: "Culinária", attribute: "PER" },
+    { name: "Dança", attribute: "AGI" },
+    { name: "Desenho e Pintura", attribute: "DEX" },
+    { name: "Escapismo", attribute: "AGI" },
+    { name: "Escultura", attribute: "DEX" },
+    { name: "Fotografia", attribute: "PER" },
+    { name: "Ilusionismo", attribute: "DEX" },
+    { name: "Instrumentos Musicais", attribute: "DEX" },
+    { name: "Joalheria", attribute: "DEX" },
+    { name: "Prestidigitação", attribute: "DEX" },
+    { name: "Redação", attribute: "INT" },
+  ]},
+  { name: "Artífice", attribute: "DEX", subgroups: [] },
+  { name: "Avaliação de Objetos", attribute: "PER", subgroups: [
+    "Antiguidades", "Gemas", "Metais Valiosos (Ourivese)", "Obras de Arte",
+  ].map((n) => ({ name: n })) },
+  { name: "Camuflagem", attribute: "PER", subgroups: [] },
+  { name: "Ciências", attribute: "INT", subgroups: [
+    "Agricultura", "Anatomia", "Antropologia", "Arqueologia", "Astronomia", "Botânica",
+    "Direito", "Ecologia", "Filosofia", "Física", "Genética", "Geografia", "Geologia",
+    "Heráldica", "Herbalismo", "História", "Literatura", "Matemática", "Meteorologia",
+    "Pedagogia", "Psicologia", "Química", "Sociologia", "Teologia", "Ufologia", "Zoologia",
+  ].map((n) => ({ name: n })) },
+  { name: "Ciências Proibidas ou Alternativas", attribute: null, subgroups: [
+    "Alquimia", "Anjos", "Astrologia", "Búzios", "Demônios", "Oculto", "Psionicismo",
+    "Rituais", "Tarot", "Teoria da Magia", "Vampiros", "Viagem Astral",
+  ].map((n) => ({ name: n })) },
+  { name: "Condução", attribute: "AGI", subgroups: [
+    "Automóvel", "Ônibus", "Caminhão", "Empilhadeira", "Guindaste", "Carruagem",
+    "Motocicleta", "Carro de Corrida", "Helicóptero", "Avião Comercial", "Avião Militar",
+    "Ônibus Espacial", "Lancha", "Iate", "Veleiro", "Navio Cargueiro", "Ultraleve", "Asa Delta",
+  ].map((n) => ({ name: n })) },
+  { name: "Disfarce", attribute: "INT", subgroups: [] },
+  { name: "Eletrônica", attribute: null, subgroups: [] },
+  { name: "Engenharia", attribute: null, subgroups: [
+    "Aeronáutica", "Alimentos", "Civil", "Computação", "Demolições", "Elétrica",
+    "Eletrônica", "Materiais", "Mecânica", "Mecatrônica", "Naval", "Química",
+  ].map((n) => ({ name: n })) },
+  { name: "Escutar", attribute: "PER", subgroups: [] },
+  { name: "Esquiva", attribute: "AGI", subgroups: [] },
+  { name: "Esportes", attribute: null, subgroups: [
+    { name: "Acrobacia", attribute: "AGI" },
+    { name: "Alpinismo", attribute: "AGI" },
+    { name: "Arremesso", attribute: "DEX" },
+    { name: "Artes Marciais", attribute: "AGI" },
+    { name: "Basquete", attribute: "DEX" },
+    { name: "Boxe", attribute: "AGI" },
+    { name: "Caça", attribute: "PER" },
+    { name: "Canoagem", attribute: "CON" },
+    { name: "Corrida", attribute: "CON" },
+    { name: "Esqui", attribute: "AGI" },
+    { name: "Futebol", attribute: "AGI" },
+    { name: "Mergulho", attribute: "CON" },
+    { name: "Paraquedismo", attribute: "AGI" },
+    { name: "Pesca", attribute: "PER" },
+    { name: "Natação", attribute: "AGI" },
+    { name: "Salto", attribute: "AGI" },
+    { name: "Salto Ornamental", attribute: "AGI" },
+    { name: "Tênis", attribute: "DEX" },
+    { name: "Voleibol", attribute: "DEX" },
+  ]},
+  { name: "Etiqueta", attribute: "CAR", subgroups: [
+    "Clero", "Comercial", "Diplomacia", "Mercado Negro", "Nobreza", "Submundo",
+  ].map((n) => ({ name: n })) },
+  { name: "Explosivos", attribute: null, subgroups: [] },
+  { name: "Falsificação", attribute: "INT", subgroups: [
+    "Documentos", "Escultura", "Fotografia", "Joalheria", "Pinturas",
+  ].map((n) => ({ name: n })) },
+  { name: "Furtar", attribute: "DEX", subgroups: [] },
+  { name: "Furtividade", attribute: "AGI", subgroups: [] },
+  { name: "Idiomas / Línguas", attribute: null, subgroups: [
+    "Chinês", "Inglês", "Espanhol", "Hindu", "Russo", "Árabe", "Japonês", "Alemão", "Francês",
+    "Braille", "Código Morse", "Criptografia", "Linguagem de Sinais", "Leitura Labial",
+  ].map((n) => ({ name: n })) },
+  { name: "Informática", attribute: null, subgroups: [
+    "Computação", "Internet", "Hacker", "Manutenção", "Programação",
+  ].map((n) => ({ name: n })) },
+  { name: "Jogos", attribute: null, subgroups: [
+    { name: "Cartas", attribute: "PER" },
+    { name: "Tabuleiro", attribute: "INT" },
+    { name: "Videogames", attribute: "DEX" },
+    { name: "RPG", attribute: "INT" },
+  ]},
+  { name: "Manipulação", attribute: null, subgroups: [
+    { name: "Empatia", attribute: "CAR" },
+    { name: "Hipnose", attribute: null },
+    { name: "Impressionar", attribute: "CAR" },
+    { name: "Interrogatório", attribute: "INT" },
+    { name: "Intimidação", attribute: "WILL" },
+    { name: "Lábia", attribute: "CAR" },
+    { name: "Liderança", attribute: "CAR" },
+    { name: "Manha", attribute: "CAR" },
+    { name: "Sedução", attribute: "CAR" },
+    { name: "Tortura", attribute: "INT" },
+  ]},
+  { name: "Manuseio de Fechaduras", attribute: null, subgroups: [] },
+  { name: "Mecânica", attribute: "DEX", subgroups: [] },
+  { name: "Medicina", attribute: null, subgroups: [
+    { name: "Cirurgia", attribute: "DEX" },
+    { name: "Primeiros Socorros", attribute: "INT" },
+    { name: "Oftalmologia" }, { name: "Dermatologia" }, { name: "Psiquiatria" },
+    { name: "Cardiologia" }, { name: "Neurologia" }, { name: "Urologia" },
+    { name: "Ortopedia" }, { name: "Oncologia" }, { name: "Gastrologia" },
+    { name: "Otorrinolaringologia" }, { name: "Veterinária" },
+  ]},
+  { name: "Mineração", attribute: null, subgroups: [
+    "Cristais", "Gemas", "Metais",
+  ].map((n) => ({ name: n })) },
+  { name: "Negociação", attribute: null, subgroups: [
+    { name: "Barganha", attribute: "CAR" },
+    { name: "Burocracia", attribute: "INT" },
+    { name: "Contabilidade", attribute: "INT" },
+    { name: "Marketing", attribute: "INT" },
+  ]},
+  { name: "Pesquisa ou Investigação", attribute: "PER", subgroups: [] },
+  { name: "Procura", attribute: "PER", subgroups: [] },
+  { name: "Rastreio", attribute: "PER", subgroups: [
+    "Deserto", "Floresta", "Gelo", "Montanha", "Planície", "Selva",
+  ].map((n) => ({ name: n })) },
+  { name: "Sobrevivência", attribute: "PER", subgroups: [
+    "Deserto", "Floresta", "Gelo", "Montanha", "Planície", "Selva",
+  ].map((n) => ({ name: n })) },
 ];
 
 const identificationFields = [
@@ -123,6 +294,8 @@ const state = {
   uploadInFlight: false,
   unsubscribeCharacters: null,
   lastRenderedSignature: null,
+  skillCatalogSelection: null,
+  upgradeCatalogSelection: null,
 };
 
 const elements = {};
@@ -190,6 +363,33 @@ function cacheElements() {
   elements.historyDrawer = document.getElementById("historyDrawer");
   elements.closeHistoryDrawer = document.getElementById("closeHistoryDrawer");
   elements.historyTextarea = document.getElementById("historyTextarea");
+  elements.evolveButton = document.getElementById("evolveButton");
+  elements.upgradePointBadge = document.getElementById("upgradePointBadge");
+  elements.saveSheetButton = document.getElementById("saveSheetButton");
+  elements.attributePointsBadge = document.getElementById("attributePointsBadge");
+  elements.attributePointsValue = document.getElementById("attributePointsValue");
+  elements.upgradePointsPool = document.getElementById("upgradePointsPool");
+  elements.upgradePointsPoolValue = document.getElementById("upgradePointsPoolValue");
+  elements.evolutionUpgradePointsBadge = document.getElementById("evolutionUpgradePointsBadge");
+  elements.evolutionUpgradePointsValue = document.getElementById("evolutionUpgradePointsValue");
+  elements.upgradeCatalogDialog = document.getElementById("upgradeCatalogDialog");
+  elements.upgradeCatalogSearch = document.getElementById("upgradeCatalogSearch");
+  elements.upgradeCatalogList = document.getElementById("upgradeCatalogList");
+  elements.upgradeCatalogDetail = document.getElementById("upgradeCatalogDetail");
+  elements.cancelUpgradeCatalog = document.getElementById("cancelUpgradeCatalog");
+  elements.confirmUpgradeCatalog = document.getElementById("confirmUpgradeCatalog");
+  elements.skillPointsField = document.querySelector(".skill-points-field");
+  elements.saveSheetDialog = document.getElementById("saveSheetDialog");
+  elements.saveSheetTitle = document.getElementById("saveSheetTitle");
+  elements.saveSheetMessage = document.getElementById("saveSheetMessage");
+  elements.cancelSaveSheet = document.getElementById("cancelSaveSheet");
+  elements.confirmSaveSheet = document.getElementById("confirmSaveSheet");
+  elements.skillCatalogDialog = document.getElementById("skillCatalogDialog");
+  elements.skillCatalogSearch = document.getElementById("skillCatalogSearch");
+  elements.skillCatalogList = document.getElementById("skillCatalogList");
+  elements.skillCatalogDetail = document.getElementById("skillCatalogDetail");
+  elements.cancelSkillCatalog = document.getElementById("cancelSkillCatalog");
+  elements.confirmSkillCatalog = document.getElementById("confirmSkillCatalog");
   elements.deleteCharacterDialog = document.getElementById("deleteCharacterDialog");
   elements.deleteCharacterMessage = document.getElementById("deleteCharacterMessage");
   elements.cancelDeleteCharacter = document.getElementById("cancelDeleteCharacter");
@@ -198,6 +398,7 @@ function cacheElements() {
 
 function buildStaticForm() {
   buildAttributes();
+  bindAttrPointEvents();
   buildGridFields(document.getElementById("identificationGrid"), identificationFields);
   buildGridFields(document.getElementById("statusGrid"), statusFields, true);
   buildUpgrades();
@@ -215,6 +416,7 @@ function buildAttributes() {
     <span>Valor</span>
     <span>Modif.</span>
     <span>Teste (%)</span>
+    <span></span>
   `;
   table.appendChild(header);
 
@@ -226,6 +428,7 @@ function buildAttributes() {
       <input type="text" inputmode="numeric" data-field="${key}Valor">
       <input type="text" inputmode="numeric" data-field="${key}Mod">
       <input type="text" data-field="${key}Teste" readonly>
+      <button type="button" class="attr-point-btn hidden" data-attr-key="${key}" aria-label="Adicionar +1 em ${label}">+1</button>
     `;
     table.appendChild(row);
   });
@@ -378,14 +581,28 @@ function registerEvents() {
   elements.logoutButton.addEventListener("click", handleLogout);
   elements.sheetSelector.addEventListener("change", handleSheetSelection);
   elements.imageInput.addEventListener("change", handleImageUpload);
-  elements.addUpgradeRow.addEventListener("click", () => addDynamicRow("upgrade"));
-  elements.addSkillRow.addEventListener("click", () => addDynamicRow("skill"));
+  elements.addUpgradeRow.addEventListener("click", openUpgradeCatalogDialog);
+  elements.cancelUpgradeCatalog.addEventListener("click", () => elements.upgradeCatalogDialog.close());
+  elements.confirmUpgradeCatalog.addEventListener("click", confirmUpgradeCatalogSelection);
+  elements.upgradeCatalogSearch.addEventListener("input", (event) => {
+    renderUpgradeCatalogList(event.target.value);
+  });
+  elements.addSkillRow.addEventListener("click", openSkillCatalogDialog);
+  elements.cancelSkillCatalog.addEventListener("click", () => elements.skillCatalogDialog.close());
+  elements.confirmSkillCatalog.addEventListener("click", confirmSkillCatalogSelection);
+  elements.skillCatalogSearch.addEventListener("input", (event) => {
+    renderSkillCatalogList(event.target.value);
+  });
   elements.inventoryFab.addEventListener("click", openInventoryDrawer);
   elements.closeInventoryDrawer.addEventListener("click", closeInventoryDrawer);
   elements.addInventoryItem.addEventListener("click", addInventoryItemRow);
   elements.notesFab.addEventListener("click", openNotesDrawer);
   elements.closeNotesDrawer.addEventListener("click", closeNotesDrawer);
   elements.notesTextarea.addEventListener("input", handleNotesInput);
+  elements.evolveButton.addEventListener("click", handleEvolve);
+  elements.saveSheetButton.addEventListener("click", openSaveSheetDialog);
+  elements.cancelSaveSheet.addEventListener("click", () => elements.saveSheetDialog.close());
+  elements.confirmSaveSheet.addEventListener("click", confirmSaveSheet);
   elements.historyFab.addEventListener("click", openHistoryDrawer);
   elements.closeHistoryDrawer.addEventListener("click", closeHistoryDrawer);
   elements.historyTextarea.addEventListener("input", handleHistoryInput);
@@ -644,6 +861,15 @@ function handleFieldInput(field, isNumeric) {
   }
 
   const key = field.dataset.field;
+
+  if (getActiveCharacterMode() === "creation" && /^[a-z]+Valor$/.test(key)) {
+    field.value = clampAttributeValueAgainstPool(key, field.value);
+  }
+
+  if (key.startsWith("dynamicUpgrade:") && key.endsWith(":valor") && field.value === "1") {
+    consumeUpgradePendingPoint();
+  }
+
   applyFieldValueToCharacter(key, field.value);
   recalculateDerivedFields();
 
@@ -657,6 +883,10 @@ function handleFieldInput(field, isNumeric) {
   if (key === "nome") {
     renderSheetSelector();
     renderSessionSummary();
+  }
+
+  if (key === "nivel" || key === "xp") {
+    updateEvolveButtonVisibility();
   }
 
   updateSaveStatus("Salvando", "saving");
@@ -991,6 +1221,10 @@ function renderCharacterWorkspace() {
   recalculateDerivedFields();
   renderSheetSelector();
   renderSessionSummary();
+  renderAttributePendingPoints();
+  renderUpgradePendingPoints();
+  updateEvolveButtonVisibility();
+  applySheetMode();
   showApp();
   updateSaveStatus(state.saveInFlight || state.uploadInFlight || state.hasUnsavedChanges ? "Salvando" : "Salvo", state.saveInFlight || state.uploadInFlight || state.hasUnsavedChanges ? "saving" : "saved");
 }
@@ -1029,7 +1263,147 @@ function hydrateForm() {
 function recalculateDerivedFields() {
   recalculateAttributes();
   recalculateStatusFields();
+  recalculateSkillPoints();
   recalculateSkills();
+  updateAttributePointsDisplay();
+  updateUpgradePoolDisplay();
+}
+
+function getActiveCharacterMode() {
+  return getActiveCharacter()?.state || "play";
+}
+
+function isMasterUser() {
+  return MASTER_EMAILS.includes((state.profile?.email || "").toLowerCase());
+}
+
+function applySheetMode() {
+  const mode = getActiveCharacterMode();
+  const masterUser = isMasterUser();
+  const isPlay = mode === "play";
+  const isCreation = mode === "creation";
+  const isEvolution = mode === "evolution";
+  const hasCharacter = hasActiveCharacter();
+
+  elements.saveSheetButton.classList.toggle("hidden", !hasCharacter || isPlay);
+  elements.attributePointsBadge.classList.toggle("hidden", !isCreation);
+  elements.upgradePointsPool.classList.toggle("hidden", !isCreation);
+  if (elements.evolutionUpgradePointsBadge) {
+    elements.evolutionUpgradePointsBadge.classList.toggle("hidden", !isEvolution);
+  }
+  if (elements.skillPointsField) {
+    elements.skillPointsField.classList.toggle("hidden", isPlay);
+  }
+  elements.addSkillRow.classList.toggle("hidden", isPlay);
+  elements.addUpgradeRow.classList.toggle("hidden", isPlay);
+
+  attributeDefinitions.forEach(({ key }) => {
+    setFieldReadonly(`${key}Valor`, isPlay || isEvolution);
+  });
+
+  document.querySelectorAll('#skillsTable input[data-field]').forEach((input) => {
+    const f = input.dataset.field || "";
+    if (f.endsWith(":teste")) return;
+    input.toggleAttribute("readonly", isPlay);
+  });
+
+  document.querySelectorAll('#upgradesGrid input[data-field]').forEach((input) => {
+    input.toggleAttribute("readonly", isPlay || isEvolution);
+  });
+
+  setFieldReadonly("nivel", !isCreation);
+  setFieldReadonly("xp", !isCreation && !masterUser);
+
+  updateAttributePointsDisplay();
+  updateEvolutionUpgradePointsDisplay();
+}
+
+function updateEvolutionUpgradePointsDisplay() {
+  if (!elements.evolutionUpgradePointsValue) return;
+  const character = getActiveCharacter();
+  const pts = character?.evolutionUpgradePoints || 0;
+  elements.evolutionUpgradePointsValue.textContent = `+${pts}`;
+}
+
+function setFieldReadonly(key, readonly) {
+  const field = document.querySelector(`[data-field="${key}"]`);
+  if (!field) return;
+  field.toggleAttribute("readonly", Boolean(readonly));
+}
+
+function clampAttributeValueAgainstPool(key, rawValue) {
+  const newValue = parseInt(rawValue || "0", 10) || 0;
+  if (newValue <= 0) return rawValue;
+  const sumOthers = attributeDefinitions.reduce((acc, { key: k }) => {
+    if (k + "Valor" === key) return acc;
+    return acc + (parseInt(getFieldValue(`${k}Valor`) || "0", 10) || 0);
+  }, 0);
+  const maxAllowed = 101 - sumOthers;
+  if (newValue > maxAllowed) {
+    return String(Math.max(0, maxAllowed));
+  }
+  return rawValue;
+}
+
+function updateAttributePointsDisplay() {
+  if (!elements.attributePointsValue) return;
+  const sum = attributeDefinitions.reduce((acc, { key }) => {
+    return acc + (parseInt(getFieldValue(`${key}Valor`) || "0", 10) || 0);
+  }, 0);
+  const remaining = 101 - sum;
+  elements.attributePointsValue.textContent = String(remaining);
+  elements.attributePointsValue.classList.toggle("depleted", remaining < 0);
+}
+
+function openSaveSheetDialog() {
+  if (!hasActiveCharacter()) return;
+  const mode = getActiveCharacterMode();
+  if (mode === "creation") {
+    elements.saveSheetTitle.textContent = "Confirmar criação da ficha";
+    elements.saveSheetMessage.textContent = "Deseja confirmar a criação da ficha? Após salvar, a ficha entrará em modo de Jogo.";
+  } else if (mode === "evolution") {
+    elements.saveSheetTitle.textContent = "Confirmar evolução";
+    elements.saveSheetMessage.textContent = "Deseja salvar as alterações da evolução? Após confirmar, a ficha voltará ao modo de Jogo.";
+  } else {
+    return;
+  }
+  elements.saveSheetDialog.showModal();
+}
+
+async function confirmSaveSheet() {
+  if (!hasActiveCharacter()) {
+    elements.saveSheetDialog.close();
+    return;
+  }
+  mutateActiveCharacter((character) => {
+    character.state = "play";
+  });
+  markCharacterDirty();
+  elements.saveSheetDialog.close();
+  applySheetMode();
+  updateEvolveButtonVisibility();
+  await flushPendingChanges();
+}
+
+function recalculateSkillPoints() {
+  const idadeRaw = getFieldValue("idadeReal");
+  const intRaw = getFieldValue("intValor");
+  if ((idadeRaw === "" || idadeRaw === null || idadeRaw === undefined)
+    && (intRaw === "" || intRaw === null || intRaw === undefined)) {
+    setFieldValue("periciasPontos", "");
+    return;
+  }
+  const idade = parseInt(idadeRaw || "0", 10) || 0;
+  const intelligence = parseInt(intRaw || "0", 10) || 0;
+  const nivel = parseInt(getFieldValue("nivel") || "1", 10) || 1;
+  const levelBonus = Math.max(0, nivel - 1) * 25;
+  const base = (idade * 10) + (intelligence * 5) + levelBonus;
+
+  const character = getActiveCharacter();
+  const spent = (character?.dynamicSkills || [])
+    .reduce((sum, row) => sum + (parseInt(row.valor || "0", 10) || 0), 0);
+
+  setFieldValue("periciasPontos", String(base - spent));
 }
 
 function recalculateAttributes() {
@@ -1038,7 +1412,7 @@ function recalculateAttributes() {
   attributeDefinitions.forEach(({ key }) => {
     const value = parseInt(getFieldValue(`${key}Valor`) || "0", 10) || 0;
     const modifier = parseInt(getFieldValue(`${key}Mod`) || "0", 10) || 0;
-    const test = (value * 4) - modifier;
+    const test = (value - modifier) * 4;
 
     setFieldValue(`${key}Teste`, String(test));
     total += value;
@@ -1062,7 +1436,7 @@ function recalculateStatusFields() {
   const fr = parseInt(frRaw || "0", 10) || 0;
   const con = parseInt(conRaw || "0", 10) || 0;
   const nivel = parseInt(nivelRaw || "0", 10) || 0;
-  const pv = ((fr + con) / 2) + nivel;
+  const pv = Math.ceil((fr + con) / 2) + nivel;
   const damageMagnitude = Math.abs(parseInt(danoRaw || "0", 10) || 0);
   const pvAtual = pv - damageMagnitude;
 
@@ -1142,6 +1516,342 @@ function focusDynamicRow(type, rowId) {
   if (field) {
     field.focus();
   }
+}
+
+function openUpgradeCatalogDialog() {
+  if (!hasActiveCharacter()) return;
+
+  state.upgradeCatalogSelection = { upgrade: null };
+  elements.upgradeCatalogSearch.value = "";
+  renderUpgradeCatalogList("");
+  renderUpgradeCatalogDetail();
+  elements.confirmUpgradeCatalog.disabled = true;
+  elements.upgradeCatalogDialog.showModal();
+  setTimeout(() => elements.upgradeCatalogSearch.focus(), 50);
+}
+
+function renderUpgradeCatalogList(filter) {
+  const lower = (filter || "").trim().toLowerCase();
+  const isEvolution = getActiveCharacterMode() === "evolution";
+  const matches = UPGRADES_CATALOG.filter((entry) => {
+    if (isEvolution && entry.type !== "positive") return false;
+    if (!lower) return true;
+    if (entry.name.toLowerCase().includes(lower)) return true;
+    return (entry.description || "").toLowerCase().includes(lower);
+  });
+
+  elements.upgradeCatalogList.innerHTML = "";
+  if (matches.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "skill-catalog-empty";
+    empty.textContent = "Nenhum aprimoramento encontrado.";
+    elements.upgradeCatalogList.appendChild(empty);
+    return;
+  }
+
+  matches.forEach((entry) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "skill-catalog-item";
+    item.dataset.upgradeName = entry.name;
+    if (state.upgradeCatalogSelection?.upgrade?.name === entry.name) {
+      item.classList.add("selected");
+    }
+    const isPositive = entry.type === "positive";
+    const costLabel = `${isPositive ? "−" : "+"}${entry.cost}`;
+    const costClass = isPositive ? "cost-positive" : "cost-negative";
+    item.innerHTML = `
+      <span class="skill-catalog-item-name">${entry.name}</span>
+      <span class="skill-catalog-item-attr ${costClass}">${costLabel}</span>
+    `;
+    item.addEventListener("click", () => selectUpgradeFromCatalog(entry));
+    elements.upgradeCatalogList.appendChild(item);
+  });
+}
+
+function selectUpgradeFromCatalog(upgrade) {
+  state.upgradeCatalogSelection = { upgrade };
+  elements.upgradeCatalogList.querySelectorAll(".skill-catalog-item").forEach((el) => {
+    el.classList.toggle("selected", el.dataset.upgradeName === upgrade.name);
+  });
+  renderUpgradeCatalogDetail();
+}
+
+function renderUpgradeCatalogDetail() {
+  const sel = state.upgradeCatalogSelection;
+  const detail = elements.upgradeCatalogDetail;
+
+  if (!sel?.upgrade) {
+    detail.innerHTML = `<p class="skill-catalog-empty">Selecione um aprimoramento à esquerda</p>`;
+    elements.confirmUpgradeCatalog.disabled = true;
+    return;
+  }
+
+  const entry = sel.upgrade;
+  const isPositive = entry.type === "positive";
+  const signedCostLabel = `${isPositive ? "−" : "+"}${entry.cost}`;
+  const typeLabel = isPositive ? "Positivo (custa pontos)" : "Negativo (devolve pontos)";
+  const isEvolutionMode = getActiveCharacterMode() === "evolution";
+  const character = getActiveCharacter();
+  const evolutionPts = character?.evolutionUpgradePoints || 0;
+  const remaining = isEvolutionMode ? evolutionPts : computeUpgradePoolRemaining();
+  const canAfford = isEvolutionMode
+    ? (isPositive && evolutionPts >= entry.cost)
+    : (isPositive ? remaining >= entry.cost : true);
+
+  detail.innerHTML = `
+    <h3 class="skill-catalog-title">${entry.name}</h3>
+    <div class="skill-catalog-row">
+      <label class="field"><span>Tipo</span><input type="text" value="${typeLabel}" readonly></label>
+      <label class="field"><span>Custo</span><input type="text" value="${signedCostLabel}" readonly></label>
+    </div>
+    <label class="field">
+      <span>Descrição</span>
+      <div class="skill-catalog-description">${entry.description || ""}</div>
+    </label>
+  `;
+
+  elements.confirmUpgradeCatalog.disabled = !canAfford;
+  if (!canAfford) {
+    elements.confirmUpgradeCatalog.title = `Pontos insuficientes (necessário ${entry.cost}, disponível ${remaining}).`;
+  } else {
+    elements.confirmUpgradeCatalog.title = "";
+  }
+}
+
+function computeUpgradePoolRemaining() {
+  const character = getActiveCharacter();
+  const rows = (character?.dynamicUpgrades || []).filter((r) => !r.isPlaceholder);
+  let positiveSpent = 0;
+  let negativeBonusUncapped = 0;
+  rows.forEach((row) => {
+    const v = parseInt(row.valor || "0", 10) || 0;
+    if (v < 0) positiveSpent += -v;
+    else if (v > 0) negativeBonusUncapped += v;
+  });
+  const negativeBonus = Math.min(UPGRADE_NEGATIVE_BONUS_CAP, negativeBonusUncapped);
+  return UPGRADE_BASE_POOL + negativeBonus - positiveSpent;
+}
+
+function updateUpgradePoolDisplay() {
+  if (!elements.upgradePointsPoolValue) return;
+  const remaining = computeUpgradePoolRemaining();
+  elements.upgradePointsPoolValue.textContent = String(remaining);
+  elements.upgradePointsPoolValue.classList.toggle("depleted", remaining < 0);
+}
+
+function confirmUpgradeCatalogSelection() {
+  const sel = state.upgradeCatalogSelection;
+  if (!sel?.upgrade || !hasActiveCharacter()) return;
+
+  const entry = sel.upgrade;
+  const isPositive = entry.type === "positive";
+  const signedCost = isPositive ? -entry.cost : entry.cost;
+  const isEvolutionMode = getActiveCharacterMode() === "evolution";
+
+  if (isEvolutionMode) {
+    if (!isPositive) return;
+    const evPts = getActiveCharacter()?.evolutionUpgradePoints || 0;
+    if (evPts < entry.cost) return;
+  } else if (isPositive && computeUpgradePoolRemaining() < entry.cost) {
+    return;
+  }
+
+  const rowId = crypto.randomUUID();
+
+  mutateActiveCharacter((character) => {
+    character.dynamicUpgrades = (character.dynamicUpgrades || [])
+      .filter((entry) => !entry.isPlaceholder);
+    character.dynamicUpgrades.push({
+      id: rowId,
+      nome: entry.name,
+      valor: String(signedCost),
+      isPlaceholder: false,
+    });
+    if (isEvolutionMode) {
+      character.evolutionUpgradePoints = Math.max(0, (character.evolutionUpgradePoints || 0) - entry.cost);
+    }
+  });
+
+  markCharacterDirty();
+  rebuildDynamicSections();
+  hydrateForm();
+  recalculateDerivedFields();
+  applySheetMode();
+  elements.upgradeCatalogDialog.close();
+}
+
+function openSkillCatalogDialog() {
+  if (!hasActiveCharacter()) return;
+
+  state.skillCatalogSelection = { skill: null, subgroup: null, valor: "" };
+  elements.skillCatalogSearch.value = "";
+  renderSkillCatalogList("");
+  renderSkillCatalogDetail();
+  elements.confirmSkillCatalog.disabled = true;
+  elements.skillCatalogDialog.showModal();
+  setTimeout(() => elements.skillCatalogSearch.focus(), 50);
+}
+
+function renderSkillCatalogList(filter) {
+  const lower = (filter || "").trim().toLowerCase();
+  const matches = SKILLS_CATALOG.filter((skill) => {
+    if (!lower) return true;
+    if (skill.name.toLowerCase().includes(lower)) return true;
+    return skill.subgroups.some((sg) => sg.name.toLowerCase().includes(lower));
+  });
+
+  elements.skillCatalogList.innerHTML = "";
+  if (matches.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "skill-catalog-empty";
+    empty.textContent = "Nenhuma perícia encontrada.";
+    elements.skillCatalogList.appendChild(empty);
+    return;
+  }
+
+  matches.forEach((skill) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "skill-catalog-item";
+    item.dataset.skillName = skill.name;
+    if (state.skillCatalogSelection?.skill?.name === skill.name) {
+      item.classList.add("selected");
+    }
+    const attrLabel = skill.attribute || (skill.subgroups.length ? "varia" : "—");
+    item.innerHTML = `
+      <span class="skill-catalog-item-name">${skill.name}</span>
+      <span class="skill-catalog-item-attr">${attrLabel}</span>
+    `;
+    item.addEventListener("click", () => selectSkillFromCatalog(skill));
+    elements.skillCatalogList.appendChild(item);
+  });
+}
+
+function selectSkillFromCatalog(skill) {
+  state.skillCatalogSelection = {
+    skill,
+    subgroup: skill.subgroups[0] || null,
+    valor: "",
+  };
+  elements.skillCatalogList.querySelectorAll(".skill-catalog-item").forEach((el) => {
+    el.classList.toggle("selected", el.dataset.skillName === skill.name);
+  });
+  renderSkillCatalogDetail();
+  elements.confirmSkillCatalog.disabled = false;
+}
+
+function getAttributeTesteValue(attrLabel) {
+  if (!attrLabel) return 0;
+  const key = ATTR_LABEL_TO_KEY[attrLabel];
+  if (!key) return 0;
+  const raw = getFieldValue(`${key}Valor`);
+  return parseInt(raw || "0", 10) || 0;
+}
+
+function getEffectiveSkillAttribute(skill, subgroup) {
+  return (subgroup && subgroup.attribute) || skill.attribute || null;
+}
+
+function renderSkillCatalogDetail() {
+  const sel = state.skillCatalogSelection;
+  const detail = elements.skillCatalogDetail;
+
+  if (!sel?.skill) {
+    detail.innerHTML = `<p class="skill-catalog-empty">Selecione uma perícia à esquerda</p>`;
+    return;
+  }
+
+  const skill = sel.skill;
+  const hasSubgroups = skill.subgroups.length > 0;
+  const subgroup = sel.subgroup;
+  const effectiveAttr = getEffectiveSkillAttribute(skill, subgroup);
+  const attrValue = getAttributeTesteValue(effectiveAttr);
+  const valor = parseInt(sel.valor || "0", 10) || 0;
+  const teste = attrValue + valor;
+
+  let subgroupHTML = "";
+  if (hasSubgroups) {
+    const options = skill.subgroups.map((sg) => {
+      const selectedAttr = sg.name === subgroup?.name ? "selected" : "";
+      const attrSuffix = sg.attribute ? ` (${sg.attribute})` : "";
+      return `<option value="${sg.name}" ${selectedAttr}>${sg.name}${attrSuffix}</option>`;
+    }).join("");
+    subgroupHTML = `
+      <label class="field">
+        <span>Subgrupo</span>
+        <select id="skillCatalogSubgroup">${options}</select>
+      </label>
+    `;
+  }
+
+  detail.innerHTML = `
+    <h3 class="skill-catalog-title">${skill.name}</h3>
+    ${subgroupHTML}
+    <div class="skill-catalog-row">
+      <label class="field"><span>Atributo</span><input type="text" value="${effectiveAttr || "—"}" readonly></label>
+      <label class="field"><span>Base do atributo</span><input type="text" value="${attrValue}" readonly></label>
+    </div>
+    <label class="field">
+      <span>Valor (pontos)</span>
+      <input type="text" inputmode="numeric" id="skillCatalogValor" value="${sel.valor}" placeholder="0">
+    </label>
+    <div class="skill-catalog-row">
+      <label class="field"><span>Teste %</span><input type="text" id="skillCatalogTeste" value="${teste}" readonly></label>
+    </div>
+  `;
+
+  if (hasSubgroups) {
+    document.getElementById("skillCatalogSubgroup").addEventListener("change", (event) => {
+      const newSub = skill.subgroups.find((sg) => sg.name === event.target.value);
+      sel.subgroup = newSub || null;
+      renderSkillCatalogDetail();
+    });
+  }
+
+  const valorInput = document.getElementById("skillCatalogValor");
+  valorInput.addEventListener("input", (event) => {
+    sel.valor = event.target.value;
+    const v = parseInt(event.target.value || "0", 10) || 0;
+    const testeInput = document.getElementById("skillCatalogTeste");
+    if (testeInput) testeInput.value = String(attrValue + v);
+  });
+  valorInput.focus();
+}
+
+function confirmSkillCatalogSelection() {
+  const sel = state.skillCatalogSelection;
+  if (!sel?.skill || !hasActiveCharacter()) return;
+
+  const skill = sel.skill;
+  const subgroup = sel.subgroup;
+  const effectiveAttr = getEffectiveSkillAttribute(skill, subgroup);
+  const attrValue = getAttributeTesteValue(effectiveAttr);
+  const valorNum = parseInt(sel.valor || "0", 10) || 0;
+  const valorStr = String(valorNum);
+  const testeStr = String(attrValue + valorNum);
+  const displayName = subgroup ? `${skill.name} (${subgroup.name})` : skill.name;
+  const rowId = crypto.randomUUID();
+
+  mutateActiveCharacter((character) => {
+    character.dynamicSkills = (character.dynamicSkills || [])
+      .filter((entry) => !entry.isPlaceholder);
+    character.dynamicSkills.push({
+      id: rowId,
+      nome: displayName,
+      atributo: String(attrValue),
+      valor: valorStr,
+      teste: testeStr,
+      isPlaceholder: false,
+    });
+  });
+
+  markCharacterDirty();
+  rebuildDynamicSections();
+  hydrateForm();
+  recalculateDerivedFields();
+  updateEvolveButtonVisibility();
+  elements.skillCatalogDialog.close();
 }
 
 function convertPlaceholderRow(row) {
@@ -1583,15 +2293,19 @@ function createDefaultCharacter(ownerProfile, ordinal) {
     idadeReal: "",
     idiomas: "",
     religiao: "",
-    nivel: "",
-    xp: "",
-    ip: "",
+    nivel: "1",
+    xp: "0",
+    ip: "0",
     pv: "",
     dano: "",
     pvAtual: "",
     periciasPontos: "",
     notesText: "",
     historyText: "",
+    state: "creation",
+    pendingAttributePoint: 0,
+    pendingUpgradePoint: 0,
+    evolutionUpgradePoints: 0,
     inventoryItems: [],
     dynamicUpgrades: [createUpgradePlaceholder()],
     dynamicSkills: [createSkillPlaceholder()],
@@ -1629,6 +2343,9 @@ function normalizeCharacter(rawCharacter, characterId) {
   normalized.dynamicUpgrades = sanitizeUpgradeRows(rawCharacter.dynamicUpgrades || normalized.dynamicUpgrades);
   normalized.dynamicSkills = sanitizeSkillRows(rawCharacter.dynamicSkills || normalized.dynamicSkills);
   normalized.inventoryItems = sanitizeInventoryItems(rawCharacter.inventoryItems || normalized.inventoryItems);
+  if (!normalized.state || !["creation", "play", "evolution"].includes(normalized.state)) {
+    normalized.state = rawCharacter.state || "play";
+  }
 
   return normalized;
 }
@@ -1731,6 +2448,142 @@ function createSkillPlaceholder() {
     teste: "",
     isPlaceholder: true,
   };
+}
+
+function handleEvolve() {
+  if (!hasActiveCharacter()) return;
+
+  const character = getActiveCharacter();
+  if (character.state === "evolution") return;
+
+  const currentLevel = parseInt(character.nivel || "1", 10) || 1;
+  const currentXP = parseInt(character.xp || "0", 10) || 0;
+
+  if (!canLevelUp(currentLevel, currentXP)) return;
+
+  const newLevel = currentLevel + 1;
+
+  mutateActiveCharacter((char) => {
+    char.state = "evolution";
+    char.nivel = String(newLevel);
+    char.pendingAttributePoint = (char.pendingAttributePoint || 0) + 1;
+    char.evolutionUpgradePoints = (char.evolutionUpgradePoints || 0) + 1;
+  });
+
+  setFieldValue("nivel", String(newLevel));
+
+  recalculateDerivedFields();
+  renderAttributePendingPoints();
+  renderUpgradePendingPoints();
+  updateEvolveButtonVisibility();
+  applySheetMode();
+  markCharacterDirty();
+}
+
+function canLevelUp(level, xp) {
+  if (level >= 10 || level < 1) return false;
+  const nextThreshold = LEVEL_THRESHOLDS[level + 1];
+  return nextThreshold !== undefined && xp >= nextThreshold;
+}
+
+function updateEvolveButtonVisibility() {
+  if (!elements.evolveButton) return;
+
+  const character = getActiveCharacter();
+  if (!character) {
+    elements.evolveButton.classList.add("hidden");
+    return;
+  }
+
+  if (character.state === "creation" || character.state === "evolution") {
+    elements.evolveButton.classList.add("hidden");
+    return;
+  }
+
+  const level = parseInt(character.nivel || "1", 10) || 1;
+  const xp = parseInt(character.xp || "0", 10) || 0;
+  elements.evolveButton.classList.toggle("hidden", !canLevelUp(level, xp));
+}
+
+function renderAttributePendingPoints() {
+  const character = getActiveCharacter();
+  const hasPending = (character?.pendingAttributePoint || 0) > 0;
+
+  document.querySelectorAll(".attr-point-btn").forEach((btn) => {
+    btn.classList.toggle("hidden", !hasPending);
+  });
+}
+
+function bindAttrPointEvents() {
+  document.querySelectorAll(".attr-point-btn").forEach((btn) => {
+    if (btn.dataset.bound === "true") return;
+    btn.dataset.bound = "true";
+    btn.addEventListener("click", handleAttrPointClick);
+  });
+}
+
+function handleAttrPointClick(event) {
+  const btn = event.currentTarget;
+  const attrKey = btn.dataset.attrKey;
+  if (!attrKey || !hasActiveCharacter()) return;
+
+  const fieldName = `${attrKey}Valor`;
+  const currentValue = parseInt(getFieldValue(fieldName) || "0", 10) || 0;
+  const newValue = String(currentValue + 1);
+
+  setFieldValue(fieldName, newValue);
+  applyFieldValueToCharacter(fieldName, newValue);
+
+  mutateActiveCharacter((char) => {
+    char.pendingAttributePoint = Math.max(0, (char.pendingAttributePoint || 0) - 1);
+  });
+
+  recalculateDerivedFields();
+  renderAttributePendingPoints();
+  markCharacterDirty();
+}
+
+function renderUpgradePendingPoints() {
+  const character = getActiveCharacter();
+  const hasPending = (character?.pendingUpgradePoint || 0) > 0;
+
+  if (elements.upgradePointBadge) {
+    elements.upgradePointBadge.classList.toggle("hidden", !hasPending);
+  }
+}
+
+function consumeUpgradePendingPoint() {
+  const character = getActiveCharacter();
+  if (!character || (character.pendingUpgradePoint || 0) <= 0) return;
+
+  mutateActiveCharacter((char) => {
+    char.pendingUpgradePoint = Math.max(0, (char.pendingUpgradePoint || 0) - 1);
+  });
+
+  renderUpgradePendingPoints();
+}
+
+function deductSkillCostFromXP(skillValorKey, newValueStr) {
+  const character = getActiveCharacter();
+  if (!character) return;
+
+  const [, rowId] = skillValorKey.split(":");
+  const row = (character.dynamicSkills || []).find((r) => r.id === rowId);
+
+  const oldValue = parseInt(row?.valor || "0", 10) || 0;
+  const newValue = parseInt(newValueStr || "0", 10) || 0;
+  const delta = newValue - oldValue;
+
+  if (delta <= 0) return;
+
+  const currentXP = parseInt(getFieldValue("xp") || "0", 10) || 0;
+  const newXP = Math.max(0, currentXP - delta);
+  const newXPStr = String(newXP);
+
+  setFieldValue("xp", newXPStr);
+  applyFieldValueToCharacter("xp", newXPStr);
+  state.pendingChanges.add("xp");
+  state.dirtyMap.set("xp", newXPStr);
 }
 
 function hasActiveCharacter() {
