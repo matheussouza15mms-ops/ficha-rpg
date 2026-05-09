@@ -1,15 +1,78 @@
+import { initializeApp as initializeFirebaseApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import {
+  getAuth,
+  setPersistence,
+  browserLocalPersistence,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  updateProfile,
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import {
+  initializeFirestore,
+  getFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  collection,
+  query,
+  where,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  onSnapshot,
+  deleteDoc,
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDbdReMu6OxG3HMoLabFeWyaTIiWAoSehA",
+  authDomain: "ficha-rpg-d528a.firebaseapp.com",
+  projectId: "ficha-rpg-d528a",
+  storageBucket: "ficha-rpg-d528a.firebasestorage.app",
+  messagingSenderId: "769818718720",
+  appId: "1:769818718720:web:835bc87b372ceecf545ee5",
+};
+
+const MASTER_EMAILS = [
+  "matheus.souza15.mms@gmail.com",
+];
+
+const MASTER_DEFAULT_PROFILES = {
+  "matheus.souza15.mms@gmail.com": {
+    displayName: "Matheus",
+  },
+};
+
+const firebaseApp = initializeFirebaseApp(FIREBASE_CONFIG);
+
+let db;
+try {
+  db = initializeFirestore(firebaseApp, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+    }),
+  });
+} catch (error) {
+  db = getFirestore(firebaseApp);
+}
+
+const auth = getAuth(firebaseApp);
+const storage = getStorage(firebaseApp);
+
 const STORAGE_KEYS = {
-  users: "rpg-users",
-  sheets: "rpg-sheets",
-  session: "rpg-session",
+  selectedCharacterByUser: "rpg-selected-character-by-user",
+  rememberedLogin: "rpg-remembered-login",
 };
 
 const SAVE_IDLE = 1200;
-const FIELD_SAVED = 800;
 const AUTOSAVE_DELAY = 1800;
-const REFRESH_INTERVAL = 12000;
-const UPGRADE_BASE_COUNT = 0;
-const SKILL_BASE_COUNT = 0;
 
 const attributeDefinitions = [
   { key: "con", label: "CON" },
@@ -46,44 +109,62 @@ const statusFields = [
 ];
 
 const state = {
-  session: null,
-  selectedSheetUserId: null,
+  authUser: null,
+  profile: null,
+  charactersMap: {},
+  charactersOrder: [],
+  selectedCharacterId: null,
   saveTimer: null,
   saveResetTimer: null,
   pendingChanges: new Set(),
-  dirtyFields: new Set(),
   dirtyMap: new Map(),
-  refreshing: false,
-  lastSnapshotVersion: null,
-  registerMode: "public",
+  hasUnsavedChanges: false,
+  saveInFlight: false,
+  uploadInFlight: false,
+  unsubscribeCharacters: null,
+  lastRenderedSignature: null,
 };
 
 const elements = {};
 
-document.addEventListener("DOMContentLoaded", initializeApp);
+document.addEventListener("DOMContentLoaded", bootApplication);
 
-function initializeApp() {
+async function bootApplication() {
   cacheElements();
-  seedStorage();
   buildStaticForm();
   registerEvents();
+  showLoading("Carregando aplicação...");
 
-  setTimeout(() => {
-    showLogin();
-  }, 500);
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+  } catch (error) {
+    console.warn("Não foi possível ajustar a persistência do Auth.", error);
+  }
+
+  onAuthStateChanged(auth, async (user) => {
+    await handleAuthStateChange(user);
+  });
 }
 
 function cacheElements() {
   elements.loadingCard = document.getElementById("loadingCard");
+  elements.loadingText = elements.loadingCard.querySelector(".loading-text");
   elements.loginCard = document.getElementById("loginCard");
   elements.appCard = document.getElementById("appCard");
   elements.sessionSummary = document.getElementById("sessionSummary");
   elements.loginForm = document.getElementById("loginForm");
+  elements.loginInput = document.getElementById("loginInput");
+  elements.passwordInput = document.getElementById("passwordInput");
+  elements.rememberLogin = document.getElementById("rememberLogin");
+  elements.toggleLoginPassword = document.getElementById("toggleLoginPassword");
   elements.registerDialog = document.getElementById("registerDialog");
   elements.registerForm = document.getElementById("registerForm");
+  elements.registerPassword = document.getElementById("registerPassword");
+  elements.toggleRegisterPassword = document.getElementById("toggleRegisterPassword");
   elements.cancelRegister = document.getElementById("cancelRegister");
   elements.openRegisterFromLogin = document.getElementById("openRegisterFromLogin");
   elements.openRegisterFromGm = document.getElementById("openRegisterFromGm");
+  elements.deleteCurrentSheet = document.getElementById("deleteCurrentSheet");
   elements.logoutButton = document.getElementById("logoutButton");
   elements.saveStatus = document.getElementById("saveStatus");
   elements.gmTools = document.getElementById("gmTools");
@@ -109,6 +190,10 @@ function cacheElements() {
   elements.historyDrawer = document.getElementById("historyDrawer");
   elements.closeHistoryDrawer = document.getElementById("closeHistoryDrawer");
   elements.historyTextarea = document.getElementById("historyTextarea");
+  elements.deleteCharacterDialog = document.getElementById("deleteCharacterDialog");
+  elements.deleteCharacterMessage = document.getElementById("deleteCharacterMessage");
+  elements.cancelDeleteCharacter = document.getElementById("cancelDeleteCharacter");
+  elements.confirmDeleteCharacter = document.getElementById("confirmDeleteCharacter");
 }
 
 function buildStaticForm() {
@@ -161,14 +246,19 @@ function buildGridFields(container, fields, centered = false) {
 
   fields.forEach(([key, label]) => {
     const wrapper = document.createElement("label");
+    const isDerivedStatusField = key === "pv" || key === "pvAtual";
     wrapper.className = "grid-field";
     wrapper.innerHTML = `
       <span>${label}</span>
-      <input type="text" data-field="${key}">
+      <input type="text" data-field="${key}"${isDerivedStatusField ? " readonly" : ""}>
     `;
 
     if (centered) {
       wrapper.querySelector("input").classList.add("status-input");
+    }
+
+    if (key === "dano") {
+      wrapper.querySelector("input").classList.add("damage-input");
     }
 
     container.appendChild(wrapper);
@@ -176,31 +266,26 @@ function buildGridFields(container, fields, centered = false) {
 }
 
 function buildUpgrades() {
-  ensureDynamicPlaceholders();
+  const character = getActiveCharacter();
+  const rows = character?.dynamicUpgrades || [createUpgradePlaceholder()];
   elements.upgradesGrid.innerHTML = "";
 
-  for (let index = 1; index <= UPGRADE_BASE_COUNT; index += 1) {
-    elements.upgradesGrid.appendChild(createUpgradeRowElement({
-      nameField: `aprimoramento${index}Nome`,
-      valueField: `aprimoramento${index}Valor`,
-      ariaIndex: index,
-    }));
-  }
-
-  const dynamicUpgrades = getActiveSheet()?.dynamicUpgrades || [];
-  dynamicUpgrades.forEach((row) => {
+  rows.forEach((row) => {
     elements.upgradesGrid.appendChild(createUpgradeRowElement({
       id: row.id,
       nameField: `dynamicUpgrade:${row.id}:nome`,
       valueField: `dynamicUpgrade:${row.id}:valor`,
       ariaIndex: row.id,
       dynamicType: "upgrade",
+      isPlaceholder: Boolean(row.isPlaceholder),
     }));
   });
 }
 
 function buildSkillsTable() {
-  ensureDynamicPlaceholders();
+  const character = getActiveCharacter();
+  const rows = character?.dynamicSkills || [createSkillPlaceholder()];
+
   elements.skillsTable.innerHTML = "";
 
   const header = document.createElement("div");
@@ -213,18 +298,7 @@ function buildSkillsTable() {
   `;
   elements.skillsTable.appendChild(header);
 
-  for (let index = 1; index <= SKILL_BASE_COUNT; index += 1) {
-    elements.skillsTable.appendChild(createSkillRowElement({
-      nameField: `pericia${index}Nome`,
-      attributeField: `pericia${index}Atributo`,
-      valueField: `pericia${index}Valor`,
-      testField: `pericia${index}Teste`,
-      ariaIndex: index,
-    }));
-  }
-
-  const dynamicSkills = getActiveSheet()?.dynamicSkills || [];
-  dynamicSkills.forEach((row) => {
+  rows.forEach((row) => {
     elements.skillsTable.appendChild(createSkillRowElement({
       id: row.id,
       nameField: `dynamicSkill:${row.id}:nome`,
@@ -233,20 +307,17 @@ function buildSkillsTable() {
       testField: `dynamicSkill:${row.id}:teste`,
       ariaIndex: row.id,
       dynamicType: "skill",
+      isPlaceholder: Boolean(row.isPlaceholder),
     }));
   });
 }
 
-function createUpgradeRowElement({ id = "", nameField, valueField, ariaIndex, dynamicType = "" }) {
+function createUpgradeRowElement({ id, nameField, valueField, ariaIndex, dynamicType, isPlaceholder }) {
   const row = document.createElement("div");
-  row.className = `upgrade-row${dynamicType ? " dynamic-row" : ""}`;
-
-  if (dynamicType) {
-    row.dataset.dynamicType = dynamicType;
-    row.dataset.rowId = id;
-    row.dataset.placeholder = getDynamicRowMeta("upgrade", id)?.isPlaceholder ? "true" : "false";
-  }
-
+  row.className = "upgrade-row dynamic-row";
+  row.dataset.dynamicType = dynamicType;
+  row.dataset.rowId = id;
+  row.dataset.placeholder = isPlaceholder ? "true" : "false";
   row.innerHTML = `
     <input type="text" data-field="${nameField}" aria-label="Nome do aprimoramento ${ariaIndex}">
     <input type="text" inputmode="numeric" data-field="${valueField}" aria-label="Valor do aprimoramento ${ariaIndex}">
@@ -255,16 +326,21 @@ function createUpgradeRowElement({ id = "", nameField, valueField, ariaIndex, dy
   return row;
 }
 
-function createSkillRowElement({ id = "", nameField, attributeField, valueField, testField, ariaIndex, dynamicType = "" }) {
+function createSkillRowElement({
+  id,
+  nameField,
+  attributeField,
+  valueField,
+  testField,
+  ariaIndex,
+  dynamicType,
+  isPlaceholder,
+}) {
   const row = document.createElement("div");
-  row.className = `skills-row${dynamicType ? " dynamic-row" : ""}`;
-
-  if (dynamicType) {
-    row.dataset.dynamicType = dynamicType;
-    row.dataset.rowId = id;
-    row.dataset.placeholder = getDynamicRowMeta("skill", id)?.isPlaceholder ? "true" : "false";
-  }
-
+  row.className = "skills-row dynamic-row";
+  row.dataset.dynamicType = dynamicType;
+  row.dataset.rowId = id;
+  row.dataset.placeholder = isPlaceholder ? "true" : "false";
   row.innerHTML = `
     <label class="skill-cell skill-name">
       <input type="text" data-field="${nameField}" aria-label="Nome da perícia ${ariaIndex}">
@@ -288,10 +364,17 @@ function createSkillRowElement({ id = "", nameField, attributeField, valueField,
 
 function registerEvents() {
   elements.loginForm.addEventListener("submit", handleLogin);
-  elements.openRegisterFromLogin.addEventListener("click", () => openRegisterDialog("public"));
-  elements.openRegisterFromGm.addEventListener("click", () => openRegisterDialog("gm"));
+  elements.openRegisterFromLogin.addEventListener("click", openRegisterDialog);
+  elements.openRegisterFromGm.addEventListener("click", handleCreateCharacter);
+  elements.deleteCurrentSheet.addEventListener("click", openDeleteCharacterDialog);
   elements.cancelRegister.addEventListener("click", () => elements.registerDialog.close());
   elements.registerForm.addEventListener("submit", handleRegister);
+  elements.cancelDeleteCharacter.addEventListener("click", () => elements.deleteCharacterDialog.close());
+  elements.confirmDeleteCharacter.addEventListener("click", () => {
+    void handleDeleteCurrentCharacter();
+  });
+  elements.toggleLoginPassword.addEventListener("click", () => togglePasswordVisibility(elements.passwordInput, elements.toggleLoginPassword));
+  elements.toggleRegisterPassword.addEventListener("click", () => togglePasswordVisibility(elements.registerPassword, elements.toggleRegisterPassword));
   elements.logoutButton.addEventListener("click", handleLogout);
   elements.sheetSelector.addEventListener("change", handleSheetSelection);
   elements.imageInput.addEventListener("change", handleImageUpload);
@@ -312,19 +395,9 @@ function registerEvents() {
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
-      flushPendingChanges();
+      void flushPendingChanges();
     }
   });
-
-  window.addEventListener("storage", () => {
-    if (state.session && !state.dirtyFields.size) {
-      refreshIfNeeded();
-    }
-  });
-
-  setInterval(() => {
-    refreshIfNeeded();
-  }, REFRESH_INTERVAL);
 }
 
 function bindFieldEvents(scope) {
@@ -336,7 +409,9 @@ function bindFieldEvents(scope) {
     field.dataset.bound = "true";
     const isNumeric = field.hasAttribute("inputmode");
     field.addEventListener("input", () => handleFieldInput(field, isNumeric));
-    field.addEventListener("blur", flushPendingChanges);
+    field.addEventListener("blur", () => {
+      void flushPendingChanges();
+    });
   });
 }
 
@@ -351,90 +426,83 @@ function bindDynamicRowEvents(scope) {
   });
 }
 
-function seedStorage() {
-  if (readStorage(STORAGE_KEYS.users)) {
+async function handleAuthStateChange(user) {
+  closeAllDrawers();
+  clearCharacterListener();
+
+  if (!user) {
+    resetAppState();
+    showLogin();
     return;
   }
 
-  const users = [
-    {
-      id: crypto.randomUUID(),
-      displayName: "Mestre da Mesa",
-      login: "gm",
-      password: "gm123456",
-      role: "gm",
-    },
-    {
-      id: crypto.randomUUID(),
-      displayName: "Helena Voss",
-      login: "helena",
-      password: "jogador123",
-      role: "player",
-    },
-  ];
+  showLoading("Carregando sua ficha...");
+  state.authUser = user;
 
-  writeStorage(STORAGE_KEYS.users, users);
-
-  const sheets = {};
-  users.forEach((user, index) => {
-    if (user.role === "player") {
-      sheets[user.id] = createDefaultSheet(user, index);
-    }
-  });
-  writeStorage(STORAGE_KEYS.sheets, sheets);
-}
-
-function showLogin() {
-  elements.loadingCard.classList.add("hidden");
-  elements.loginCard.classList.remove("hidden");
-  elements.appCard.classList.add("hidden");
-  elements.sessionSummary.classList.add("hidden");
-
-  const existingSession = readStorage(STORAGE_KEYS.session);
-  if (!existingSession?.userId) {
-    return;
-  }
-
-  const user = getUsers().find((item) => item.id === existingSession.userId);
-  if (user) {
-    loginUser(user, existingSession.selectedSheetUserId || inferDefaultSheetUserId(user));
+  try {
+    const profile = await ensureUserProfile(user);
+    state.profile = profile;
+    await ensureOwnerHasAtLeastOneCharacter(profile);
+    subscribeToCharacters();
+  } catch (error) {
+    console.error(error);
+    alert(formatFirebaseError(error, "Não foi possível carregar a conta."));
+    await firebaseSignOut(auth);
   }
 }
 
-function handleLogin(event) {
+async function handleLogin(event) {
   event.preventDefault();
 
   const formData = new FormData(elements.loginForm);
-  const login = String(formData.get("login") || "").trim();
+  const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
+  const shouldRemember = elements.rememberLogin.checked;
 
-  const user = getUsers().find((item) => item.login === login && item.password === password);
-  if (!user) {
-    alert("Login ou senha inválidos.");
+  if (!email || !password) {
+    alert("Informe e-mail e senha.");
     return;
   }
 
-  loginUser(user, inferDefaultSheetUserId(user));
-  elements.loginForm.reset();
+  showLoading("Entrando...");
+
+  try {
+    persistRememberedLogin({ email, password, shouldRemember });
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (error) {
+    const autoCreated = await tryBootstrapMasterAccount(email, password, error);
+    if (autoCreated) {
+      return;
+    }
+
+    console.error(error);
+    restoreRememberedLogin();
+    showLogin();
+    alert(formatFirebaseError(error, "Não foi possível entrar."));
+  }
 }
 
-function handleLogout() {
-  writeStorage(STORAGE_KEYS.session, null);
-  location.reload();
+async function handleLogout() {
+  try {
+    await flushPendingChanges();
+  } catch (error) {
+    console.warn("Não foi possível concluir o último salvamento antes de sair.", error);
+  }
+
+  await firebaseSignOut(auth);
 }
 
-function openRegisterDialog(mode) {
-  state.registerMode = mode;
+function openRegisterDialog() {
   elements.registerForm.reset();
   elements.registerDialog.showModal();
 }
 
-function handleRegister(event) {
+async function handleRegister(event) {
   event.preventDefault();
 
   const formData = new FormData(elements.registerForm);
   const displayName = String(formData.get("displayName") || "").trim();
-  const login = String(formData.get("login") || "").trim();
+  const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
 
   if (displayName.length < 3) {
@@ -442,8 +510,8 @@ function handleRegister(event) {
     return;
   }
 
-  if (!/^[A-Za-z0-9._-]{3,30}$/.test(login)) {
-    alert("O login deve ter entre 3 e 30 caracteres e usar apenas letras, números, ponto, underscore ou hífen.");
+  if (!isValidEmail(email)) {
+    alert("Informe um e-mail válido.");
     return;
   }
 
@@ -452,160 +520,192 @@ function handleRegister(event) {
     return;
   }
 
-  const users = getUsers();
-  if (users.some((user) => user.login.toLowerCase() === login.toLowerCase())) {
-    alert("Já existe um usuário com esse login.");
-    return;
-  }
+  showLoading("Criando conta...");
 
-  const newUser = {
-    id: crypto.randomUUID(),
-    displayName,
-    login,
-    password,
-    role: "player",
-  };
+  try {
+    const role = await determineRoleForNewUser(email);
+    const credential = await createUserWithEmailAndPassword(auth, email, password);
 
-  users.push(newUser);
-  writeStorage(STORAGE_KEYS.users, users);
+    await updateProfile(credential.user, { displayName });
 
-  const sheets = getSheets();
-  sheets[newUser.id] = createDefaultSheet(newUser, users.length);
-  writeStorage(STORAGE_KEYS.sheets, sheets);
-
-  elements.registerDialog.close();
-
-  if (state.registerMode === "gm" && state.session?.role === "gm") {
-    state.selectedSheetUserId = newUser.id;
-    populateSheetSelector();
-    rebuildDynamicSections();
-    hydrateForm();
-    renderPortrait();
-    recalculateDerivedFields();
-    renderSessionSummary();
-    queueStatus("Salvo", "saved");
-    return;
-  }
-
-  loginUser(newUser, newUser.id);
-}
-
-function loginUser(user, selectedSheetUserId) {
-  state.session = user;
-  state.selectedSheetUserId = selectedSheetUserId;
-
-  writeStorage(STORAGE_KEYS.session, {
-    userId: user.id,
-    selectedSheetUserId,
-  });
-
-  elements.loginCard.classList.add("hidden");
-  elements.appCard.classList.remove("hidden");
-  renderApp();
-}
-
-function renderApp() {
-  renderSessionSummary();
-  toggleGmTools();
-  populateSheetSelector();
-  rebuildDynamicSections();
-  hydrateForm();
-  renderPortrait();
-  renderInventory();
-  renderNotes();
-  renderHistory();
-  recalculateDerivedFields();
-  updateSaveStatus("Salvo", "saved");
-}
-
-function renderSessionSummary() {
-  const activeSheet = getActiveSheet();
-  const roleLabel = state.session.role === "gm" ? "Mestre" : "Jogador";
-  const currentDate = new Date().toLocaleDateString("pt-BR");
-
-  elements.sessionSummary.innerHTML = `
-    <strong>${escapeHtml(state.session.displayName)}</strong>
-    <div>${roleLabel}</div>
-    <div>${escapeHtml(activeSheet?.nome || "Sem nome")}</div>
-    <div>${currentDate}</div>
-  `;
-  elements.sessionSummary.classList.remove("hidden");
-}
-
-function toggleGmTools() {
-  elements.gmTools.classList.toggle("hidden", state.session.role !== "gm");
-}
-
-function populateSheetSelector() {
-  if (state.session.role !== "gm") {
-    return;
-  }
-
-  const sheets = getSheets();
-  const players = getUsers().filter((user) => user.role === "player");
-
-  elements.sheetSelector.innerHTML = "";
-  players.forEach((player) => {
-    const option = document.createElement("option");
-    option.value = player.id;
-    option.textContent = sheets[player.id]?.nome || player.displayName;
-    elements.sheetSelector.appendChild(option);
-  });
-
-  if (!state.selectedSheetUserId && players[0]) {
-    state.selectedSheetUserId = players[0].id;
-  }
-
-  elements.sheetSelector.value = state.selectedSheetUserId || "";
-}
-
-function handleSheetSelection(event) {
-  state.selectedSheetUserId = event.target.value || null;
-  persistSessionSelection();
-  rebuildDynamicSections();
-  hydrateForm();
-  renderPortrait();
-  renderInventory();
-  renderNotes();
-  renderHistory();
-  recalculateDerivedFields();
-  renderSessionSummary();
-  updateSaveStatus("Salvo", "saved");
-}
-
-function rebuildDynamicSections() {
-  ensureDynamicPlaceholders();
-  buildUpgrades();
-  buildSkillsTable();
-  bindFieldEvents(elements.upgradesGrid);
-  bindFieldEvents(elements.skillsTable);
-  bindDynamicRowEvents(elements.upgradesGrid);
-  bindDynamicRowEvents(elements.skillsTable);
-}
-
-function hydrateForm() {
-  const sheet = getActiveSheet();
-  const fields = document.querySelectorAll("[data-field]");
-
-  if (!sheet) {
-    fields.forEach((field) => {
-      field.value = "";
+    const profile = createUserProfileRecord(credential.user, {
+      displayName,
+      email,
+      role,
     });
-    state.lastSnapshotVersion = null;
+
+    await setDoc(doc(db, "users", credential.user.uid), serializeProfileForWrite(profile), { merge: true });
+    elements.registerDialog.close();
+  } catch (error) {
+    console.error(error);
+    showLogin();
+    alert(formatFirebaseError(error, "Não foi possível cadastrar o usuário."));
+  }
+}
+
+async function handleSheetSelection(event) {
+  const nextCharacterId = event.target.value || null;
+  if (!nextCharacterId || nextCharacterId === state.selectedCharacterId) {
     return;
   }
 
-  fields.forEach((field) => {
-    field.value = resolveFieldValue(sheet, field.dataset.field);
-    field.classList.remove("saving", "saved");
-  });
+  await flushPendingChanges();
+  state.selectedCharacterId = nextCharacterId;
+  persistSelectedCharacter();
+  renderCharacterWorkspace();
+}
 
-  state.lastSnapshotVersion = sheet.version;
+async function handleCreateCharacter() {
+  if (!state.profile) {
+    return;
+  }
+
+  await flushPendingChanges();
+  updateSaveStatus("Salvando", "saving");
+
+  const ownerProfile = resolveCharacterOwnerProfile();
+  const ownerCount = Object.values(state.charactersMap)
+    .filter((character) => character.ownerId === ownerProfile.id && !character.deletedAtMs)
+    .length;
+
+  const character = createDefaultCharacter(ownerProfile, ownerCount + 1);
+  const characterRef = doc(collection(db, "characters"));
+  const optimisticCharacter = normalizeCharacter({ ...character, id: characterRef.id }, characterRef.id);
+
+  state.charactersMap[characterRef.id] = optimisticCharacter;
+  state.selectedCharacterId = characterRef.id;
+  rebuildCharacterOrder();
+  persistSelectedCharacter();
+  renderSheetSelector();
+  renderCharacterWorkspace();
+
+  try {
+    await setDoc(characterRef, serializeCharacterForWrite(optimisticCharacter));
+    queueStatus("Salvo", "saved");
+  } catch (error) {
+    console.error(error);
+    delete state.charactersMap[characterRef.id];
+    rebuildCharacterOrder();
+    syncSelectedCharacterId();
+    renderCharacterWorkspace();
+    updateSaveStatus("Salvo", "saved");
+    alert(formatFirebaseError(error, "Não foi possível criar a nova ficha."));
+  }
+}
+
+function openDeleteCharacterDialog() {
+  const activeCharacter = getActiveCharacter();
+  if (!activeCharacter) {
+    return;
+  }
+
+  const characterName = resolveSessionCharacterName(activeCharacter);
+  elements.deleteCharacterMessage.textContent = `Você irá excluir a ficha ${characterName}. Deseja continuar?`;
+  elements.deleteCharacterDialog.showModal();
+}
+
+async function handleDeleteCurrentCharacter() {
+  const activeCharacter = getActiveCharacter();
+  if (!activeCharacter) {
+    elements.deleteCharacterDialog.close();
+    return;
+  }
+
+  const currentCharacterId = activeCharacter.id;
+  elements.deleteCharacterDialog.close();
+
+  try {
+    await flushPendingChanges();
+    updateSaveStatus("Salvando", "saving");
+    await deleteDoc(doc(db, "characters", currentCharacterId));
+
+    delete state.charactersMap[currentCharacterId];
+    rebuildCharacterOrder();
+    syncSelectedCharacterId();
+    renderCharacterWorkspace();
+    queueStatus("Salvo", "saved");
+  } catch (error) {
+    console.error(error);
+    updateSaveStatus("Salvo", "saved");
+    alert(formatFirebaseError(error, "Não foi possível excluir a ficha."));
+  }
 }
 
 function handleFieldInput(field, isNumeric) {
-  if (!hasActiveSheet()) {
+  if (!hasActiveCharacter()) {
     updateSaveStatus("Salvo", "saved");
+    return;
+  }
+
+  if (field.dataset.field === "dano") {
+    field.value = sanitizeDamageInput(field.value);
+  } else if (isNumeric) {
+    field.value = sanitizeIntegerInput(field.value);
+  }
+
+  const key = field.dataset.field;
+  applyFieldValueToCharacter(key, field.value);
+  recalculateDerivedFields();
+
+  state.pendingChanges.add(key);
+  state.dirtyMap.set(key, field.value);
+  state.hasUnsavedChanges = true;
+
+  field.classList.add("saving");
+  field.classList.remove("saved");
+
+  if (key === "nome") {
+    renderSheetSelector();
+    renderSessionSummary();
+  }
+
+  updateSaveStatus("Salvando", "saving");
+  scheduleAutosave();
+}
+
+function handleDynamicRowFocusOut(event) {
+  const row = event.currentTarget;
+  const nextTarget = event.relatedTarget;
+
+  if (nextTarget && row.contains(nextTarget)) {
+    return;
+  }
+
+  const hasContent = Array.from(row.querySelectorAll("[data-field]:not([readonly])"))
+    .some((field) => String(field.value || "").trim() !== "");
+
+  if (hasContent) {
+    if (row.dataset.placeholder === "true") {
+      convertPlaceholderRow(row);
+    }
+    return;
+  }
+
+  if (row.dataset.placeholder === "true") {
+    return;
+  }
+
+  removeDynamicRow(row);
+}
+
+function handleInventoryRowFocusOut(event) {
+  const row = event.currentTarget;
+  const nextTarget = event.relatedTarget;
+
+  if (nextTarget && row.contains(nextTarget)) {
+    return;
+  }
+
+  const hasContent = Array.from(row.querySelectorAll("[data-inventory-id]"))
+    .some((field) => String(field.value || "").trim() !== "");
+
+  if (!hasContent) {
+    removeInventoryItemRow(row.dataset.inventoryRowId);
+  }
+}
+
+function handleInventoryInput(field, isNumeric) {
+  if (!hasActiveCharacter()) {
     return;
   }
 
@@ -613,77 +713,110 @@ function handleFieldInput(field, isNumeric) {
     field.value = sanitizeIntegerInput(field.value);
   }
 
-  const key = field.dataset.field;
-  syncDynamicFieldToSheet(key, field.value);
-  recalculateDerivedFields();
+  mutateActiveCharacter((character) => {
+    const item = (character.inventoryItems || []).find((entry) => entry.id === field.dataset.inventoryId);
+    if (!item) {
+      return;
+    }
 
-  state.pendingChanges.add(key);
-  state.dirtyFields.add(key);
-  state.dirtyMap.set(key, field.value);
+    item[field.dataset.inventoryField] = field.value;
+  });
 
-  field.classList.add("saving");
-  field.classList.remove("saved");
-
-  updateSaveStatus("Salvando", "saving");
-  scheduleAutosave();
+  markCharacterDirty();
 }
 
-function scheduleAutosave() {
-  clearTimeout(state.saveTimer);
-  state.saveTimer = setTimeout(() => {
-    flushPendingChanges();
-  }, AUTOSAVE_DELAY);
-}
-
-function flushPendingChanges() {
-  if (!state.pendingChanges.size || !hasActiveSheet()) {
+function handleNotesInput() {
+  if (!hasActiveCharacter()) {
     return;
   }
 
-  const fieldsToSave = Array.from(state.pendingChanges);
-  const sheets = getSheets();
-  const sheet = getActiveSheet();
+  mutateActiveCharacter((character) => {
+    character.notesText = elements.notesTextarea.value;
+  });
 
+  markCharacterDirty();
+}
+
+function handleHistoryInput() {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  mutateActiveCharacter((character) => {
+    character.historyText = elements.historyTextarea.value;
+  });
+
+  markCharacterDirty();
+}
+
+async function handleImageUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) {
+    return;
+  }
+
+  if (!hasActiveCharacter()) {
+    alert("Crie ou selecione uma ficha antes de enviar imagem.");
+    elements.imageInput.value = "";
+    return;
+  }
+
+  const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+  if (!allowedTypes.includes(file.type)) {
+    alert("Formato inválido. Use PNG, JPG/JPEG ou WEBP.");
+    elements.imageInput.value = "";
+    return;
+  }
+
+  const maxSize = 2 * 1024 * 1024;
+  if (file.size > maxSize) {
+    alert("A imagem deve ter no máximo 2 MB.");
+    elements.imageInput.value = "";
+    return;
+  }
+
+  const activeCharacter = getActiveCharacter();
+  if (!activeCharacter) {
+    elements.imageInput.value = "";
+    return;
+  }
+
+  state.uploadInFlight = true;
   updateSaveStatus("Salvando", "saving");
 
-  fieldsToSave.forEach((key) => {
-    if (isDynamicField(key)) {
-      return;
-    }
-    sheet[key] = state.dirtyMap.get(key) ?? "";
-  });
+  try {
+    const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+    const path = `portraits/${activeCharacter.ownerId}/${activeCharacter.id}/${Date.now()}-${cleanName}`;
+    const portraitRef = storageRef(storage, path);
+    const uploadTask = uploadBytesResumable(portraitRef, file, { contentType: file.type });
 
-  persistDerivedValues(sheet);
-  persistDynamicCollections(sheet);
-  sheet.updatedAt = new Date().toISOString();
-  sheet.version = (sheet.version || 0) + 1;
+    await new Promise((resolve, reject) => {
+      uploadTask.on("state_changed", null, reject, resolve);
+    });
 
-  sheets[state.selectedSheetUserId] = sheet;
-  writeStorage(STORAGE_KEYS.sheets, sheets);
+    const portraitUrl = await getDownloadURL(uploadTask.snapshot.ref);
 
-  state.lastSnapshotVersion = sheet.version;
-  state.pendingChanges.clear();
-  state.dirtyFields.clear();
-  state.dirtyMap.clear();
+    mutateActiveCharacter((character) => {
+      character.portraitDataUrl = portraitUrl;
+      character.portraitStoragePath = path;
+    });
 
-  fieldsToSave.forEach((key) => {
-    const field = document.querySelector(`[data-field="${key}"]`);
-    if (!field) {
-      return;
-    }
-
-    field.classList.remove("saving");
-    field.classList.add("saved");
-    setTimeout(() => field.classList.remove("saved"), FIELD_SAVED);
-  });
-
-  persistSessionSelection();
-  renderSessionSummary();
-  queueStatus("Salvo", "saved");
+    renderPortrait();
+    renderSessionSummary();
+    state.hasUnsavedChanges = true;
+    await flushPendingChanges();
+  } catch (error) {
+    console.error(error);
+    alert(formatFirebaseError(error, "Não foi possível enviar a imagem."));
+    updateSaveStatus("Salvo", "saved");
+  } finally {
+    state.uploadInFlight = false;
+    elements.imageInput.value = "";
+  }
 }
 
 function openInventoryDrawer() {
-  if (!hasActiveSheet()) {
+  if (!hasActiveCharacter()) {
     return;
   }
 
@@ -700,7 +833,7 @@ function closeInventoryDrawer() {
 }
 
 function openNotesDrawer() {
-  if (!hasActiveSheet()) {
+  if (!hasActiveCharacter()) {
     return;
   }
 
@@ -717,7 +850,7 @@ function closeNotesDrawer() {
 }
 
 function openHistoryDrawer() {
-  if (!hasActiveSheet()) {
+  if (!hasActiveCharacter()) {
     return;
   }
 
@@ -733,8 +866,14 @@ function closeHistoryDrawer() {
   elements.historyDrawer.setAttribute("aria-hidden", "true");
 }
 
+function closeAllDrawers() {
+  closeInventoryDrawer();
+  closeNotesDrawer();
+  closeHistoryDrawer();
+}
+
 function renderInventory() {
-  const items = getActiveSheet()?.inventoryItems || [];
+  const items = getActiveCharacter()?.inventoryItems || [];
   elements.inventoryRows.innerHTML = "";
 
   items.forEach((item) => {
@@ -754,11 +893,11 @@ function renderInventory() {
 }
 
 function renderNotes() {
-  elements.notesTextarea.value = getActiveSheet()?.notesText || "";
+  elements.notesTextarea.value = getActiveCharacter()?.notesText || "";
 }
 
 function renderHistory() {
-  elements.historyTextarea.value = getActiveSheet()?.historyText || "";
+  elements.historyTextarea.value = getActiveCharacter()?.historyText || "";
 }
 
 function bindInventoryEvents() {
@@ -782,140 +921,114 @@ function bindInventoryEvents() {
   });
 }
 
-function handleInventoryRowFocusOut(event) {
-  const row = event.currentTarget;
-  const nextTarget = event.relatedTarget;
+function renderSheetSelector() {
+  const characters = getOrderedCharacters();
+  elements.gmTools.classList.toggle("hidden", !state.profile);
+  elements.deleteCurrentSheet.disabled = !characters.length;
+  elements.sheetSelector.innerHTML = "";
 
-  if (nextTarget && row.contains(nextTarget)) {
+  if (!characters.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Sem fichas";
+    elements.sheetSelector.appendChild(option);
+    elements.sheetSelector.disabled = true;
     return;
   }
 
-  const hasContent = Array.from(row.querySelectorAll("[data-inventory-id]"))
-    .some((field) => String(field.value || "").trim() !== "");
+  elements.sheetSelector.disabled = false;
 
-  if (hasContent) {
-    return;
-  }
-
-  removeInventoryItemRow(row.dataset.inventoryRowId);
-}
-
-function handleInventoryInput(field, isNumeric) {
-  if (isNumeric) {
-    field.value = sanitizeIntegerInput(field.value);
-  }
-
-  updateSaveStatus("Salvando", "saving");
-
-  mutateActiveSheet((sheet) => {
-    sheet.inventoryItems = sheet.inventoryItems || [];
-    const item = sheet.inventoryItems.find((entry) => entry.id === field.dataset.inventoryId);
-    if (!item) {
-      return;
-    }
-
-    item[field.dataset.inventoryField] = field.value;
-    sheet.updatedAt = new Date().toISOString();
-    sheet.version = (sheet.version || 0) + 1;
+  characters.forEach((character) => {
+    const option = document.createElement("option");
+    option.value = character.id;
+    option.textContent = character.nome || "Sem nome";
+    elements.sheetSelector.appendChild(option);
   });
 
-  queueStatus("Salvo", "saved");
+  elements.sheetSelector.value = state.selectedCharacterId || characters[0].id;
 }
 
-function addInventoryItemRow() {
-  if (!hasActiveSheet()) {
+function renderSessionSummary() {
+  if (!state.profile) {
+    elements.sessionSummary.classList.add("hidden");
     return;
   }
 
-  const itemId = crypto.randomUUID();
-  mutateActiveSheet((sheet) => {
-    sheet.inventoryItems = sheet.inventoryItems || [];
-    sheet.inventoryItems.push({
-      id: itemId,
-      item: "",
-      quantidade: "",
-      peso: "",
-      valor: "",
+  const activeCharacter = getActiveCharacter();
+  const roleLabel = state.profile.role === "gm" ? "Mestre" : "Jogador";
+  const currentDate = new Date().toLocaleDateString("pt-BR");
+  const characterName = resolveSessionCharacterName(activeCharacter);
+
+  elements.sessionSummary.innerHTML = `
+    <strong>${escapeHtml(state.profile.displayName)}</strong>
+    <div>${roleLabel}</div>
+    <div>${escapeHtml(characterName)}</div>
+    <div>${currentDate}</div>
+  `;
+  elements.sessionSummary.classList.remove("hidden");
+}
+
+function renderPortrait() {
+  const character = getActiveCharacter();
+  const portrait = character?.portraitDataUrl || "";
+
+  if (portrait) {
+    elements.portraitImage.src = portrait;
+  } else {
+    elements.portraitImage.removeAttribute("src");
+  }
+
+  elements.portraitFrame.classList.toggle("has-image", Boolean(portrait));
+}
+
+function renderCharacterWorkspace() {
+  rebuildDynamicSections();
+  hydrateForm();
+  renderPortrait();
+  renderInventory();
+  renderNotes();
+  renderHistory();
+  recalculateDerivedFields();
+  renderSheetSelector();
+  renderSessionSummary();
+  showApp();
+  updateSaveStatus(state.saveInFlight || state.uploadInFlight || state.hasUnsavedChanges ? "Salvando" : "Salvo", state.saveInFlight || state.uploadInFlight || state.hasUnsavedChanges ? "saving" : "saved");
+}
+
+function rebuildDynamicSections() {
+  ensureDynamicRowsForActiveCharacter();
+  buildUpgrades();
+  buildSkillsTable();
+  bindFieldEvents(elements.upgradesGrid);
+  bindFieldEvents(elements.skillsTable);
+  bindDynamicRowEvents(elements.upgradesGrid);
+  bindDynamicRowEvents(elements.skillsTable);
+}
+
+function hydrateForm() {
+  const character = getActiveCharacter();
+  const fields = document.querySelectorAll("[data-field]");
+
+  if (!character) {
+    fields.forEach((field) => {
+      field.value = "";
+      field.classList.remove("saving", "saved");
     });
-    sheet.updatedAt = new Date().toISOString();
-    sheet.version = (sheet.version || 0) + 1;
-  });
-
-  renderInventory();
-  openInventoryDrawer();
-
-  const newField = elements.inventoryRows.querySelector(`[data-inventory-id="${itemId}"][data-inventory-field="item"]`);
-  if (newField) {
-    newField.focus();
-  }
-}
-
-function removeInventoryItemRow(itemId) {
-  mutateActiveSheet((sheet) => {
-    sheet.inventoryItems = (sheet.inventoryItems || []).filter((entry) => entry.id !== itemId);
-    sheet.updatedAt = new Date().toISOString();
-    sheet.version = (sheet.version || 0) + 1;
-  });
-
-  renderInventory();
-  queueStatus("Salvo", "saved");
-}
-
-function handleNotesInput() {
-  if (!hasActiveSheet()) {
+    state.lastRenderedSignature = null;
     return;
   }
 
-  updateSaveStatus("Salvando", "saving");
-
-  mutateActiveSheet((sheet) => {
-    sheet.notesText = elements.notesTextarea.value;
-    sheet.updatedAt = new Date().toISOString();
-    sheet.version = (sheet.version || 0) + 1;
+  fields.forEach((field) => {
+    field.value = resolveFieldValue(character, field.dataset.field);
+    field.classList.remove("saving", "saved");
   });
 
-  queueStatus("Salvo", "saved");
-}
-
-function handleHistoryInput() {
-  if (!hasActiveSheet()) {
-    return;
-  }
-
-  updateSaveStatus("Salvando", "saving");
-
-  mutateActiveSheet((sheet) => {
-    sheet.historyText = elements.historyTextarea.value;
-    sheet.updatedAt = new Date().toISOString();
-    sheet.version = (sheet.version || 0) + 1;
-  });
-
-  queueStatus("Salvo", "saved");
-}
-
-function persistDerivedValues(sheet) {
-  attributeDefinitions.forEach(({ key }) => {
-    sheet[`${key}Teste`] = getFieldValue(`${key}Teste`);
-  });
-
-  sheet.atributosTotal = getFieldValue("atributosTotal");
-
-  for (let index = 1; index <= SKILL_BASE_COUNT; index += 1) {
-    sheet[`pericia${index}Teste`] = getFieldValue(`pericia${index}Teste`);
-  }
-
-  (sheet.dynamicSkills || []).forEach((row) => {
-    row.teste = getFieldValue(`dynamicSkill:${row.id}:teste`);
-  });
-}
-
-function persistDynamicCollections(sheet) {
-  sheet.dynamicUpgrades = [...(sheet.dynamicUpgrades || [])];
-  sheet.dynamicSkills = [...(sheet.dynamicSkills || [])];
+  state.lastRenderedSignature = buildCharacterSignature(character);
 }
 
 function recalculateDerivedFields() {
   recalculateAttributes();
+  recalculateStatusFields();
   recalculateSkills();
 }
 
@@ -934,13 +1047,34 @@ function recalculateAttributes() {
   setFieldValue("atributosTotal", String(total));
 }
 
-function recalculateSkills() {
-  for (let index = 1; index <= SKILL_BASE_COUNT; index += 1) {
-    recalculateSkillFields(`pericia${index}Atributo`, `pericia${index}Valor`, `pericia${index}Teste`);
+function recalculateStatusFields() {
+  const frRaw = getFieldValue("frValor");
+  const conRaw = getFieldValue("conValor");
+  const nivelRaw = getFieldValue("nivel");
+  const danoRaw = getFieldValue("dano");
+
+  if (frRaw === "" && conRaw === "" && nivelRaw === "") {
+    setFieldValue("pv", "");
+    setFieldValue("pvAtual", "");
+    return;
   }
 
-  const dynamicSkills = getActiveSheet()?.dynamicSkills || [];
-  dynamicSkills.forEach((row) => {
+  const fr = parseInt(frRaw || "0", 10) || 0;
+  const con = parseInt(conRaw || "0", 10) || 0;
+  const nivel = parseInt(nivelRaw || "0", 10) || 0;
+  const pv = ((fr + con) / 2) + nivel;
+  const damageMagnitude = Math.abs(parseInt(danoRaw || "0", 10) || 0);
+  const pvAtual = pv - damageMagnitude;
+
+  setFieldValue("pv", formatDerivedNumber(pv));
+  setFieldValue("pvAtual", formatDerivedNumber(pvAtual));
+}
+
+function recalculateSkills() {
+  const character = getActiveCharacter();
+  const rows = character?.dynamicSkills || [];
+
+  rows.forEach((row) => {
     recalculateSkillFields(
       `dynamicSkill:${row.id}:atributo`,
       `dynamicSkill:${row.id}:valor`,
@@ -964,22 +1098,36 @@ function recalculateSkillFields(attributeField, valueField, testField) {
 }
 
 function addDynamicRow(type) {
-  if (!hasActiveSheet()) {
-    updateSaveStatus("Salvo", "saved");
+  if (!hasActiveCharacter()) {
     return;
   }
 
   const rowId = crypto.randomUUID();
-  mutateActiveSheet((sheet) => {
+
+  mutateActiveCharacter((character) => {
     if (type === "upgrade") {
-      sheet.dynamicUpgrades = sheet.dynamicUpgrades || [];
-      sheet.dynamicUpgrades.push({ id: rowId, nome: "", valor: "", isPlaceholder: false });
-    } else {
-      sheet.dynamicSkills = sheet.dynamicSkills || [];
-      sheet.dynamicSkills.push({ id: rowId, nome: "", atributo: "", valor: "", teste: "", isPlaceholder: false });
+      character.dynamicUpgrades = character.dynamicUpgrades || [];
+      character.dynamicUpgrades.push({
+        id: rowId,
+        nome: "",
+        valor: "",
+        isPlaceholder: false,
+      });
+      return;
     }
+
+    character.dynamicSkills = character.dynamicSkills || [];
+    character.dynamicSkills.push({
+      id: rowId,
+      nome: "",
+      atributo: "",
+      valor: "",
+      teste: "",
+      isPlaceholder: false,
+    });
   });
 
+  markCharacterDirty();
   rebuildDynamicSections();
   hydrateForm();
   recalculateDerivedFields();
@@ -996,41 +1144,41 @@ function focusDynamicRow(type, rowId) {
   }
 }
 
-function handleDynamicRowFocusOut(event) {
-  const row = event.currentTarget;
-  const nextTarget = event.relatedTarget;
+function convertPlaceholderRow(row) {
+  mutateActiveCharacter((character) => {
+    const collection = row.dataset.dynamicType === "upgrade"
+      ? (character.dynamicUpgrades || [])
+      : (character.dynamicSkills || []);
+    const item = collection.find((entry) => entry.id === row.dataset.rowId);
+    if (item) {
+      item.isPlaceholder = false;
+    }
+  });
 
-  if (nextTarget && row.contains(nextTarget)) {
-    return;
-  }
-
-  const hasContent = Array.from(row.querySelectorAll("[data-field]:not([readonly])"))
-    .some((field) => String(field.value || "").trim() !== "");
-
-  if (hasContent) {
-    convertPlaceholderRowIfNeeded(row);
-    return;
-  }
-
-  if (row.dataset.placeholder === "true") {
-    return;
-  }
-
-  removeDynamicRow(row);
+  row.dataset.placeholder = "false";
+  markCharacterDirty();
 }
 
 function removeDynamicRow(row) {
-  mutateActiveSheet((sheet) => {
+  mutateActiveCharacter((character) => {
     if (row.dataset.dynamicType === "upgrade") {
-      sheet.dynamicUpgrades = (sheet.dynamicUpgrades || []).filter((entry) => entry.id !== row.dataset.rowId);
+      character.dynamicUpgrades = (character.dynamicUpgrades || [])
+        .filter((entry) => entry.id !== row.dataset.rowId);
+      if (character.dynamicUpgrades.length === 0) {
+        character.dynamicUpgrades.push(createUpgradePlaceholder());
+      }
       return;
     }
 
-    sheet.dynamicSkills = (sheet.dynamicSkills || []).filter((entry) => entry.id !== row.dataset.rowId);
+    character.dynamicSkills = (character.dynamicSkills || [])
+      .filter((entry) => entry.id !== row.dataset.rowId);
+    if (character.dynamicSkills.length === 0) {
+      character.dynamicSkills.push(createSkillPlaceholder());
+    }
   });
 
   clearDynamicFieldState(row.dataset.dynamicType, row.dataset.rowId);
-  ensureDynamicPlaceholders();
+  markCharacterDirty();
   rebuildDynamicSections();
   hydrateForm();
   recalculateDerivedFields();
@@ -1051,95 +1199,668 @@ function clearDynamicFieldState(type, rowId) {
 
   fieldNames.forEach((key) => {
     state.pendingChanges.delete(key);
-    state.dirtyFields.delete(key);
     state.dirtyMap.delete(key);
   });
 }
 
-function renderPortrait() {
-  const sheet = getActiveSheet();
-  const portrait = sheet?.portraitDataUrl || "";
+function addInventoryItemRow() {
+  if (!hasActiveCharacter()) {
+    return;
+  }
 
-  elements.portraitImage.src = portrait;
-  elements.portraitFrame.classList.toggle("has-image", Boolean(portrait));
+  const itemId = crypto.randomUUID();
+
+  mutateActiveCharacter((character) => {
+    character.inventoryItems = character.inventoryItems || [];
+    character.inventoryItems.push({
+      id: itemId,
+      item: "",
+      quantidade: "",
+      peso: "",
+      valor: "",
+    });
+  });
+
+  markCharacterDirty();
+  renderInventory();
+  openInventoryDrawer();
+
+  const newField = elements.inventoryRows.querySelector(`[data-inventory-id="${itemId}"][data-inventory-field="item"]`);
+  if (newField) {
+    newField.focus();
+  }
 }
 
-function handleImageUpload(event) {
-  const file = event.target.files?.[0];
-  if (!file) {
+function removeInventoryItemRow(itemId) {
+  if (!hasActiveCharacter()) {
     return;
   }
 
-  if (!hasActiveSheet()) {
-    alert("Crie ou selecione uma ficha antes de enviar imagem.");
-    elements.imageInput.value = "";
+  mutateActiveCharacter((character) => {
+    character.inventoryItems = (character.inventoryItems || []).filter((entry) => entry.id !== itemId);
+  });
+
+  markCharacterDirty();
+  renderInventory();
+}
+
+function mutateActiveCharacter(mutator) {
+  const character = getActiveCharacter();
+  if (!character) {
     return;
   }
 
-  const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
-  if (!allowedTypes.includes(file.type)) {
-    alert("Formato inválido. Use PNG, JPG/JPEG ou WEBP.");
-    elements.imageInput.value = "";
+  mutator(character);
+  state.charactersMap[character.id] = character;
+}
+
+function markCharacterDirty() {
+  state.hasUnsavedChanges = true;
+  updateSaveStatus("Salvando", "saving");
+  scheduleAutosave();
+}
+
+function scheduleAutosave() {
+  clearTimeout(state.saveTimer);
+  state.saveTimer = setTimeout(() => {
+    void flushPendingChanges();
+  }, AUTOSAVE_DELAY);
+}
+
+async function flushPendingChanges() {
+  if (!hasActiveCharacter() || !state.hasUnsavedChanges || state.saveInFlight || state.uploadInFlight) {
     return;
   }
 
-  const maxSize = 2 * 1024 * 1024;
-  if (file.size > maxSize) {
-    alert("A imagem deve ter no máximo 2 MB.");
-    elements.imageInput.value = "";
+  const activeCharacter = getActiveCharacter();
+  if (!activeCharacter) {
     return;
   }
 
-  updateSaveStatus("Enviando imagem...", "saving");
+  state.saveInFlight = true;
+  updateSaveStatus("Salvando", "saving");
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    const sheets = getSheets();
-    const sheet = getActiveSheet();
-    sheet.portraitDataUrl = String(reader.result || "");
-    sheet.updatedAt = new Date().toISOString();
-    sheet.version = (sheet.version || 0) + 1;
-    sheets[state.selectedSheetUserId] = sheet;
-    writeStorage(STORAGE_KEYS.sheets, sheets);
+  const characterToSave = cloneCharacter(activeCharacter);
+  persistDerivedValues(characterToSave);
+  normalizeCharacterCollections(characterToSave);
+  characterToSave.updatedAtMs = Date.now();
+  characterToSave.updatedAtIso = new Date(characterToSave.updatedAtMs).toISOString();
+  characterToSave.revision = (characterToSave.revision || 0) + 1;
 
-    state.lastSnapshotVersion = sheet.version;
-    renderPortrait();
-    queueStatus("Salvo", "saved");
+  state.charactersMap[characterToSave.id] = characterToSave;
+
+  try {
+    await setDoc(doc(db, "characters", characterToSave.id), serializeCharacterForWrite(characterToSave), { merge: true });
+
+    state.pendingChanges.forEach((fieldName) => {
+      const field = document.querySelector(`[data-field="${fieldName}"]`);
+      if (field) {
+        field.classList.remove("saving");
+        field.classList.add("saved");
+      }
+    });
+
+    state.pendingChanges.clear();
+    state.dirtyMap.clear();
+    state.hasUnsavedChanges = false;
+    state.lastRenderedSignature = buildCharacterSignature(characterToSave);
+
+    renderSheetSelector();
     renderSessionSummary();
-    elements.imageInput.value = "";
-  };
-
-  reader.onerror = () => {
+    queueStatus("Salvo", "saved");
+  } catch (error) {
+    console.error(error);
     updateSaveStatus("Salvo", "saved");
-    alert("Erro ao salvar imagem.");
-    elements.imageInput.value = "";
-  };
-
-  reader.readAsDataURL(file);
+    alert(formatFirebaseError(error, "Não foi possível salvar a ficha."));
+  } finally {
+    state.saveInFlight = false;
+  }
 }
 
-function refreshIfNeeded() {
-  if (!state.session || !state.selectedSheetUserId || state.refreshing || state.pendingChanges.size || state.dirtyFields.size) {
+function persistDerivedValues(character) {
+  attributeDefinitions.forEach(({ key }) => {
+    character[`${key}Teste`] = getFieldValue(`${key}Teste`);
+  });
+
+  character.atributosTotal = getFieldValue("atributosTotal");
+  character.pv = getFieldValue("pv");
+  character.pvAtual = getFieldValue("pvAtual");
+
+  (character.dynamicSkills || []).forEach((row) => {
+    row.teste = getFieldValue(`dynamicSkill:${row.id}:teste`);
+  });
+}
+
+function normalizeCharacterCollections(character) {
+  character.dynamicUpgrades = sanitizeUpgradeRows(character.dynamicUpgrades || []);
+  character.dynamicSkills = sanitizeSkillRows(character.dynamicSkills || []);
+  character.inventoryItems = sanitizeInventoryItems(character.inventoryItems || []);
+}
+
+async function ensureUserProfile(user) {
+  const userRef = doc(db, "users", user.uid);
+  const snapshot = await getDoc(userRef);
+
+  if (snapshot.exists()) {
+    const existingProfile = normalizeProfile({ id: snapshot.id, ...snapshot.data() }, user);
+    const patch = {};
+    const normalizedEmail = String(user.email || existingProfile.email || "").trim().toLowerCase();
+    const shouldBeMaster = MASTER_EMAILS.includes(normalizedEmail);
+
+    if (existingProfile.displayName !== (user.displayName || existingProfile.displayName)) {
+      patch.displayName = user.displayName || existingProfile.displayName;
+      existingProfile.displayName = patch.displayName;
+    }
+
+    if (existingProfile.email !== (user.email || existingProfile.email)) {
+      patch.email = user.email || existingProfile.email;
+      existingProfile.email = patch.email;
+    }
+
+    if (shouldBeMaster && existingProfile.role !== "gm") {
+      patch.role = "gm";
+      existingProfile.role = "gm";
+    }
+
+    if (Object.keys(patch).length) {
+      patch.updatedAtMs = Date.now();
+      await setDoc(userRef, patch, { merge: true });
+    }
+
+    return existingProfile;
+  }
+
+  const role = await determineRoleForNewUser(user.email || "");
+  const profile = createUserProfileRecord(user, {
+    displayName: user.displayName || deriveDisplayNameFromEmail(user.email),
+    email: user.email || "",
+    role,
+  });
+
+  await setDoc(userRef, serializeProfileForWrite(profile), { merge: true });
+  return profile;
+}
+
+async function determineRoleForNewUser(email) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (MASTER_EMAILS.includes(normalizedEmail)) {
+    return "gm";
+  }
+
+  const usersSnapshot = await getDocs(collection(db, "users"));
+  const hasGm = usersSnapshot.docs.some((item) => item.data().role === "gm");
+  return hasGm ? "player" : "gm";
+}
+
+async function ensureOwnerHasAtLeastOneCharacter(profile) {
+  const existingCharacters = await getDocs(query(collection(db, "characters"), where("ownerId", "==", profile.id)));
+  if (!existingCharacters.empty) {
     return;
   }
 
-  const latestSheet = getSheets()[state.selectedSheetUserId];
-  if (!latestSheet) {
-    updateSaveStatus("Salvo", "saved");
+  const characterRef = doc(collection(db, "characters"));
+  const character = createDefaultCharacter(profile, 1);
+  await setDoc(characterRef, serializeCharacterForWrite({ ...character, id: characterRef.id }));
+}
+
+function subscribeToCharacters() {
+  clearCharacterListener();
+
+  const baseCollection = collection(db, "characters");
+  const source = state.profile?.role === "gm"
+    ? baseCollection
+    : query(baseCollection, where("ownerId", "==", state.profile.id));
+
+  state.unsubscribeCharacters = onSnapshot(
+    source,
+    (snapshot) => {
+      const nextMap = {};
+
+      snapshot.forEach((docSnapshot) => {
+        const incomingCharacter = normalizeCharacter({ id: docSnapshot.id, ...docSnapshot.data() }, docSnapshot.id);
+        const shouldKeepLocal = docSnapshot.id === state.selectedCharacterId
+          && (state.hasUnsavedChanges || state.saveInFlight || state.uploadInFlight);
+
+        nextMap[docSnapshot.id] = shouldKeepLocal && state.charactersMap[docSnapshot.id]
+          ? state.charactersMap[docSnapshot.id]
+          : incomingCharacter;
+      });
+
+      state.charactersMap = nextMap;
+      rebuildCharacterOrder();
+
+      const previousSelection = state.selectedCharacterId;
+      syncSelectedCharacterId();
+      const activeCharacter = getActiveCharacter();
+      const nextSignature = activeCharacter ? buildCharacterSignature(activeCharacter) : null;
+
+      renderSheetSelector();
+      renderSessionSummary();
+      showApp();
+
+      if (
+        previousSelection !== state.selectedCharacterId
+        || (!state.hasUnsavedChanges && !state.saveInFlight && state.lastRenderedSignature !== nextSignature)
+      ) {
+        renderCharacterWorkspace();
+      }
+    },
+    (error) => {
+      console.error(error);
+      alert(formatFirebaseError(error, "Não foi possível sincronizar as fichas."));
+    },
+  );
+}
+
+function clearCharacterListener() {
+  if (state.unsubscribeCharacters) {
+    state.unsubscribeCharacters();
+    state.unsubscribeCharacters = null;
+  }
+}
+
+function rebuildCharacterOrder() {
+  state.charactersOrder = Object.values(state.charactersMap)
+    .sort((left, right) => {
+      if (state.profile?.role === "gm") {
+        const ownerCompare = String(left.ownerDisplayName || "").localeCompare(String(right.ownerDisplayName || ""), "pt-BR");
+        if (ownerCompare !== 0) {
+          return ownerCompare;
+        }
+      }
+
+      return String(left.nome || "").localeCompare(String(right.nome || ""), "pt-BR");
+    })
+    .map((character) => character.id);
+}
+
+function syncSelectedCharacterId() {
+  if (!state.authUser) {
+    state.selectedCharacterId = null;
     return;
   }
 
-  if (latestSheet.version === state.lastSnapshotVersion) {
+  const orderedIds = state.charactersOrder;
+  if (!orderedIds.length) {
+    state.selectedCharacterId = null;
+    persistSelectedCharacter();
     return;
   }
 
-  state.refreshing = true;
-  rebuildDynamicSections();
+  if (state.selectedCharacterId && state.charactersMap[state.selectedCharacterId]) {
+    persistSelectedCharacter();
+    return;
+  }
+
+  const cache = readStorage(STORAGE_KEYS.selectedCharacterByUser) || {};
+  const cachedCharacterId = cache[state.authUser.uid];
+
+  if (cachedCharacterId && state.charactersMap[cachedCharacterId]) {
+    state.selectedCharacterId = cachedCharacterId;
+    persistSelectedCharacter();
+    return;
+  }
+
+  state.selectedCharacterId = orderedIds[0];
+  persistSelectedCharacter();
+}
+
+function persistSelectedCharacter() {
+  if (!state.authUser) {
+    return;
+  }
+
+  const cache = readStorage(STORAGE_KEYS.selectedCharacterByUser) || {};
+  cache[state.authUser.uid] = state.selectedCharacterId;
+  writeStorage(STORAGE_KEYS.selectedCharacterByUser, cache);
+}
+
+function resolveCharacterOwnerProfile() {
+  const activeCharacter = getActiveCharacter();
+
+  if (state.profile?.role === "gm" && activeCharacter) {
+    return {
+      id: activeCharacter.ownerId,
+      displayName: activeCharacter.ownerDisplayName || state.profile.displayName,
+      email: activeCharacter.ownerEmail || "",
+      role: "player",
+    };
+  }
+
+  return state.profile;
+}
+
+function createUserProfileRecord(user, { displayName, email, role }) {
+  const now = Date.now();
+  return {
+    id: user.uid,
+    displayName,
+    email,
+    role,
+    createdAtMs: now,
+    updatedAtMs: now,
+  };
+}
+
+function normalizeProfile(rawProfile, user) {
+  return {
+    id: rawProfile.id || user.uid,
+    displayName: rawProfile.displayName || user.displayName || deriveDisplayNameFromEmail(user.email),
+    email: rawProfile.email || user.email || "",
+    role: rawProfile.role || "player",
+    createdAtMs: rawProfile.createdAtMs || Date.now(),
+    updatedAtMs: rawProfile.updatedAtMs || Date.now(),
+  };
+}
+
+function serializeProfileForWrite(profile) {
+  return {
+    displayName: profile.displayName,
+    email: profile.email,
+    role: profile.role,
+    createdAtMs: profile.createdAtMs,
+    updatedAtMs: profile.updatedAtMs,
+  };
+}
+
+function createDefaultCharacter(ownerProfile, ordinal) {
+  const now = Date.now();
+
+  const character = {
+    ownerId: ownerProfile.id,
+    ownerDisplayName: ownerProfile.displayName,
+    ownerEmail: ownerProfile.email || "",
+    portraitDataUrl: "",
+    portraitStoragePath: "",
+    nome: "",
+    classeSocialProfissao: "",
+    nascimento: "",
+    local: "",
+    sexo: "",
+    altura: "",
+    peso: "",
+    idadeAparente: "",
+    idadeReal: "",
+    idiomas: "",
+    religiao: "",
+    nivel: "",
+    xp: "",
+    ip: "",
+    pv: "",
+    dano: "",
+    pvAtual: "",
+    periciasPontos: "",
+    notesText: "",
+    historyText: "",
+    inventoryItems: [],
+    dynamicUpgrades: [createUpgradePlaceholder()],
+    dynamicSkills: [createSkillPlaceholder()],
+    revision: 1,
+    createdAtMs: now,
+    updatedAtMs: now,
+    updatedAtIso: new Date(now).toISOString(),
+  };
+
+  attributeDefinitions.forEach(({ key }) => {
+    character[`${key}Valor`] = "";
+    character[`${key}Mod`] = "";
+    character[`${key}Teste`] = "";
+  });
+
+  character.atributosTotal = "";
+
+  return character;
+}
+
+function normalizeCharacter(rawCharacter, characterId) {
+  const ownerProfile = {
+    id: rawCharacter.ownerId || state.profile?.id || "",
+    displayName: rawCharacter.ownerDisplayName || state.profile?.displayName || "Jogador",
+    email: rawCharacter.ownerEmail || state.profile?.email || "",
+  };
+
+  const fallbackCharacter = createDefaultCharacter(ownerProfile, 1);
+  const normalized = {
+    ...fallbackCharacter,
+    ...rawCharacter,
+    id: characterId,
+  };
+
+  normalized.dynamicUpgrades = sanitizeUpgradeRows(rawCharacter.dynamicUpgrades || normalized.dynamicUpgrades);
+  normalized.dynamicSkills = sanitizeSkillRows(rawCharacter.dynamicSkills || normalized.dynamicSkills);
+  normalized.inventoryItems = sanitizeInventoryItems(rawCharacter.inventoryItems || normalized.inventoryItems);
+
+  return normalized;
+}
+
+function serializeCharacterForWrite(character) {
+  const { id, ...payload } = character;
+  return {
+    ...payload,
+    dynamicUpgrades: sanitizeUpgradeRows(payload.dynamicUpgrades || []),
+    dynamicSkills: sanitizeSkillRows(payload.dynamicSkills || []),
+    inventoryItems: sanitizeInventoryItems(payload.inventoryItems || []),
+  };
+}
+
+function sanitizeUpgradeRows(rows) {
+  const normalized = (Array.isArray(rows) ? rows : []).map((row) => ({
+    id: row.id || crypto.randomUUID(),
+    nome: row.nome ?? "",
+    valor: row.valor ?? "",
+    isPlaceholder: Boolean(row.isPlaceholder),
+  }));
+
+  if (!normalized.length) {
+    return [createUpgradePlaceholder()];
+  }
+
+  return keepOnlyFirstPlaceholder(normalized);
+}
+
+function sanitizeSkillRows(rows) {
+  const normalized = (Array.isArray(rows) ? rows : []).map((row) => ({
+    id: row.id || crypto.randomUUID(),
+    nome: row.nome ?? "",
+    atributo: row.atributo ?? "",
+    valor: row.valor ?? "",
+    teste: row.teste ?? "",
+    isPlaceholder: Boolean(row.isPlaceholder),
+  }));
+
+  if (!normalized.length) {
+    return [createSkillPlaceholder()];
+  }
+
+  return keepOnlyFirstPlaceholder(normalized);
+}
+
+function sanitizeInventoryItems(rows) {
+  return (Array.isArray(rows) ? rows : []).map((row) => ({
+    id: row.id || crypto.randomUUID(),
+    item: row.item ?? "",
+    quantidade: row.quantidade ?? "",
+    peso: row.peso ?? "",
+    valor: row.valor ?? "",
+  }));
+}
+
+function keepOnlyFirstPlaceholder(rows) {
+  let foundPlaceholder = false;
+
+  return rows.filter((row) => {
+    if (!row.isPlaceholder) {
+      return true;
+    }
+
+    if (foundPlaceholder) {
+      return false;
+    }
+
+    foundPlaceholder = true;
+    return true;
+  });
+}
+
+function ensureDynamicRowsForActiveCharacter() {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  mutateActiveCharacter((character) => {
+    character.dynamicUpgrades = sanitizeUpgradeRows(character.dynamicUpgrades || []);
+    character.dynamicSkills = sanitizeSkillRows(character.dynamicSkills || []);
+  });
+}
+
+function createUpgradePlaceholder() {
+  return {
+    id: crypto.randomUUID(),
+    nome: "",
+    valor: "",
+    isPlaceholder: true,
+  };
+}
+
+function createSkillPlaceholder() {
+  return {
+    id: crypto.randomUUID(),
+    nome: "",
+    atributo: "",
+    valor: "",
+    teste: "",
+    isPlaceholder: true,
+  };
+}
+
+function hasActiveCharacter() {
+  return Boolean(getActiveCharacter());
+}
+
+function getActiveCharacter() {
+  if (!state.selectedCharacterId) {
+    return null;
+  }
+
+  return state.charactersMap[state.selectedCharacterId] || null;
+}
+
+function getOrderedCharacters() {
+  return state.charactersOrder
+    .map((id) => state.charactersMap[id])
+    .filter(Boolean);
+}
+
+function resolveFieldValue(character, key) {
+  if (key.startsWith("dynamicUpgrade:")) {
+    const [, rowId, prop] = key.split(":");
+    const row = (character.dynamicUpgrades || []).find((entry) => entry.id === rowId);
+    return row?.[prop] ?? "";
+  }
+
+  if (key.startsWith("dynamicSkill:")) {
+    const [, rowId, prop] = key.split(":");
+    const row = (character.dynamicSkills || []).find((entry) => entry.id === rowId);
+    return row?.[prop] ?? "";
+  }
+
+  return character[key] ?? "";
+}
+
+function applyFieldValueToCharacter(key, value) {
+  mutateActiveCharacter((character) => {
+    if (key.startsWith("dynamicUpgrade:")) {
+      const [, rowId, prop] = key.split(":");
+      const row = (character.dynamicUpgrades || []).find((entry) => entry.id === rowId);
+      if (!row) {
+        return;
+      }
+
+      row[prop] = value;
+      return;
+    }
+
+    if (key.startsWith("dynamicSkill:")) {
+      const [, rowId, prop] = key.split(":");
+      const row = (character.dynamicSkills || []).find((entry) => entry.id === rowId);
+      if (!row) {
+        return;
+      }
+
+      row[prop] = value;
+      return;
+    }
+
+    character[key] = value;
+  });
+}
+
+function getFieldValue(fieldName) {
+  const field = document.querySelector(`[data-field="${fieldName}"]`);
+  return field ? field.value : "";
+}
+
+function setFieldValue(fieldName, value) {
+  const field = document.querySelector(`[data-field="${fieldName}"]`);
+  if (field) {
+    field.value = value;
+  }
+}
+
+function buildCharacterSignature(character) {
+  return `${character.id}:${character.revision || 0}:${character.updatedAtMs || 0}`;
+}
+
+function cloneCharacter(character) {
+  return JSON.parse(JSON.stringify(character));
+}
+
+function showLoading(text) {
+  elements.loadingText.textContent = text;
+  elements.loadingCard.classList.remove("hidden");
+  elements.loginCard.classList.add("hidden");
+  elements.appCard.classList.add("hidden");
+  elements.sessionSummary.classList.add("hidden");
+}
+
+function showLogin() {
+  elements.loadingCard.classList.add("hidden");
+  elements.loginCard.classList.remove("hidden");
+  elements.appCard.classList.add("hidden");
+  elements.sessionSummary.classList.add("hidden");
+  elements.gmTools.classList.add("hidden");
+  restoreRememberedLogin();
+  updateSaveStatus("Salvo", "saved");
+}
+
+function showApp() {
+  elements.loadingCard.classList.add("hidden");
+  elements.loginCard.classList.add("hidden");
+  elements.appCard.classList.remove("hidden");
+}
+
+function resetAppState() {
+  clearTimeout(state.saveTimer);
+  clearTimeout(state.saveResetTimer);
+
+  state.authUser = null;
+  state.profile = null;
+  state.charactersMap = {};
+  state.charactersOrder = [];
+  state.selectedCharacterId = null;
+  state.pendingChanges.clear();
+  state.dirtyMap.clear();
+  state.hasUnsavedChanges = false;
+  state.saveInFlight = false;
+  state.uploadInFlight = false;
+  state.lastRenderedSignature = null;
+
+  closeAllDrawers();
   hydrateForm();
   renderPortrait();
-  recalculateDerivedFields();
-  renderSessionSummary();
-  state.refreshing = false;
+  renderInventory();
+  renderNotes();
+  renderHistory();
 }
 
 function updateSaveStatus(text, variant = "") {
@@ -1161,98 +1882,34 @@ function queueStatus(text, variant) {
 
   if (variant === "saved") {
     state.saveResetTimer = setTimeout(() => {
+      clearFieldSavedStates();
       updateSaveStatus("Salvo", "saved");
     }, SAVE_IDLE);
   }
 }
 
-function persistSessionSelection() {
-  if (!state.session) {
-    return;
+function sanitizeIntegerInput(value) {
+  return String(value || "")
+    .replace(/[^\d-]/g, "")
+    .replace(/(?!^)-/g, "");
+}
+
+function sanitizeDamageInput(value) {
+  const digits = String(value || "").replace(/[^\d]/g, "");
+  if (!digits) {
+    return "";
   }
 
-  writeStorage(STORAGE_KEYS.session, {
-    userId: state.session.id,
-    selectedSheetUserId: state.selectedSheetUserId,
-  });
-}
-
-function createDefaultSheet(user, index) {
-  const baseAttributes = [12, 11, 13, 10, 14, 9, 8, 7];
-  const baseModifiers = [3, 1, 2, 0, 4, 1, 0, 2];
-
-  const sheet = {
-    ownerId: user.id,
-    portraitDataUrl: "",
-    nome: `${user.displayName} ${index > 1 ? "II" : ""}`.trim(),
-    classeSocialProfissao: "Mercenário urbano",
-    nascimento: "Outono de 1998",
-    local: "Distrito de Ferro",
-    sexo: "Não definido",
-    altura: "1,78 m",
-    peso: "78 kg",
-    idadeAparente: "28",
-    idadeReal: "32",
-    idiomas: "Português, Inglês",
-    religiao: "Culto das Cinzas",
-    nivel: "3",
-    xp: "1200",
-    ip: "4",
-    pv: "26",
-    dano: "3",
-    pvAtual: "23",
-    periciasPontos: "6",
-    notesText: "",
-    historyText: "",
-    inventoryItems: [],
-    dynamicUpgrades: [
-      { id: crypto.randomUUID(), nome: "", valor: "", isPlaceholder: true },
-    ],
-    dynamicSkills: [
-      { id: crypto.randomUUID(), nome: "", atributo: "", valor: "", teste: "", isPlaceholder: true },
-    ],
-    version: 1,
-    updatedAt: new Date().toISOString(),
-  };
-
-  attributeDefinitions.forEach(({ key }, itemIndex) => {
-    sheet[`${key}Valor`] = String(baseAttributes[itemIndex]);
-    sheet[`${key}Mod`] = String(baseModifiers[itemIndex]);
-    sheet[`${key}Teste`] = String((baseAttributes[itemIndex] * 4) - baseModifiers[itemIndex]);
-  });
-
-  sheet.atributosTotal = String(baseAttributes.reduce((sum, value) => sum + value, 0));
-
-  return sheet;
-}
-
-function getUsers() {
-  return readStorage(STORAGE_KEYS.users) || [];
-}
-
-function getSheets() {
-  return readStorage(STORAGE_KEYS.sheets) || {};
-}
-
-function getActiveSheet() {
-  if (!state.selectedSheetUserId) {
-    return null;
+  const numericValue = parseInt(digits, 10) || 0;
+  if (numericValue === 0) {
+    return "0";
   }
 
-  return getSheets()[state.selectedSheetUserId] || null;
+  return `-${numericValue}`;
 }
 
-function hasActiveSheet() {
-  return Boolean(getActiveSheet());
-}
-
-function inferDefaultSheetUserId(user) {
-  if (user.role === "gm") {
-    const player = getUsers().find((item) => item.role === "player");
-    return player?.id || null;
-  }
-
-  return user.id;
+function formatDerivedNumber(value) {
+  return Number.isInteger(value) ? String(value) : String(value).replace(".", ",");
 }
 
 function readStorage(key) {
@@ -1269,149 +1926,136 @@ function writeStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-function sanitizeIntegerInput(value) {
-  return value.replace(/[^\d-]/g, "").replace(/(?!^)-/g, "");
-}
-
-function getFieldValue(fieldName) {
-  const field = document.querySelector(`[data-field="${fieldName}"]`);
-  return field ? field.value : "";
-}
-
-function setFieldValue(fieldName, value) {
-  const field = document.querySelector(`[data-field="${fieldName}"]`);
-  if (field) {
-    field.value = value;
-  }
-}
-
-function resolveFieldValue(sheet, key) {
-  if (key.startsWith("dynamicUpgrade:")) {
-    const [, rowId, prop] = key.split(":");
-    const row = (sheet.dynamicUpgrades || []).find((entry) => entry.id === rowId);
-    return row?.[prop] ?? "";
-  }
-
-  if (key.startsWith("dynamicSkill:")) {
-    const [, rowId, prop] = key.split(":");
-    const row = (sheet.dynamicSkills || []).find((entry) => entry.id === rowId);
-    return row?.[prop] ?? "";
-  }
-
-  return sheet[key] ?? "";
-}
-
-function syncDynamicFieldToSheet(key, value) {
-  if (!isDynamicField(key)) {
+function persistRememberedLogin({ email, password, shouldRemember }) {
+  if (!shouldRemember) {
+    writeStorage(STORAGE_KEYS.rememberedLogin, null);
     return;
   }
 
-  mutateActiveSheet((sheet) => {
-    const [, rowId, prop] = key.split(":");
-    const collection = key.startsWith("dynamicUpgrade:") ? sheet.dynamicUpgrades : sheet.dynamicSkills;
-    const row = (collection || []).find((entry) => entry.id === rowId);
-    if (!row) {
-      return;
-    }
-
-    row[prop] = value;
-
-    if (String(value).trim() !== "" && row.isPlaceholder) {
-      row.isPlaceholder = false;
-      const rowElement = document.querySelector(`.dynamic-row[data-row-id="${rowId}"]`);
-      if (rowElement) {
-        rowElement.dataset.placeholder = "false";
-      }
-    }
-
+  writeStorage(STORAGE_KEYS.rememberedLogin, {
+    email,
+    password,
+    rememberLogin: true,
   });
 }
 
-function isDynamicField(key) {
-  return key.startsWith("dynamicUpgrade:") || key.startsWith("dynamicSkill:");
-}
+function restoreRememberedLogin() {
+  const remembered = readStorage(STORAGE_KEYS.rememberedLogin);
 
-function mutateActiveSheet(mutator) {
-  if (!state.selectedSheetUserId) {
+  if (!remembered?.rememberLogin) {
+    elements.loginForm.reset();
+    elements.loginInput.focus();
     return;
   }
 
-  const sheets = getSheets();
-  const sheet = sheets[state.selectedSheetUserId];
-  if (!sheet) {
+  elements.loginInput.value = remembered.email || "";
+  elements.passwordInput.value = remembered.password || "";
+  elements.rememberLogin.checked = true;
+
+  if (remembered.email && remembered.password) {
+    elements.passwordInput.focus();
+    elements.passwordInput.setSelectionRange(elements.passwordInput.value.length, elements.passwordInput.value.length);
     return;
   }
 
-  mutator(sheet);
-  sheets[state.selectedSheetUserId] = sheet;
-  writeStorage(STORAGE_KEYS.sheets, sheets);
-}
-
-function ensureDynamicPlaceholders() {
-  if (!state.selectedSheetUserId) {
+  if (remembered.email) {
+    elements.passwordInput.focus();
     return;
   }
 
-  mutateActiveSheet((sheet) => {
-    sheet.dynamicUpgrades = normalizeDynamicCollection(
-      sheet.dynamicUpgrades || [],
-      () => ({ id: crypto.randomUUID(), nome: "", valor: "", isPlaceholder: true }),
-    );
-
-    sheet.dynamicSkills = normalizeDynamicCollection(
-      sheet.dynamicSkills || [],
-      () => ({ id: crypto.randomUUID(), nome: "", atributo: "", valor: "", teste: "", isPlaceholder: true }),
-    );
-  });
+  elements.loginInput.focus();
 }
 
-function normalizeDynamicCollection(collection, createPlaceholder) {
-  const normalized = collection.map((item) => ({ ...item }));
-  if (normalized.length === 0) {
-    normalized.push(createPlaceholder());
-    return normalized;
-  }
-
-  const placeholderIndexes = normalized
-    .map((item, index) => item.isPlaceholder ? index : -1)
-    .filter((index) => index >= 0);
-
-  if (placeholderIndexes.length <= 1) {
-    return normalized;
-  }
-
-  const firstPlaceholder = placeholderIndexes[0];
-  return normalized.filter((item, index) => !item.isPlaceholder || index === firstPlaceholder);
+function deriveDisplayNameFromEmail(email) {
+  const prefix = String(email || "").split("@")[0] || "Jogador";
+  return prefix
+    .replace(/[._-]+/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-function getDynamicRowMeta(type, rowId) {
-  const sheet = getActiveSheet();
-  if (!sheet) {
-    return null;
+function resolveSessionCharacterName(character) {
+  if (!character) {
+    return "Sem ficha";
   }
 
-  const collection = type === "upgrade" ? (sheet.dynamicUpgrades || []) : (sheet.dynamicSkills || []);
-  return collection.find((item) => item.id === rowId) || null;
+  const name = String(character.nome || "").trim();
+  if (name) {
+    return name;
+  }
+
+  return "Sem nome";
 }
 
-function convertPlaceholderRowIfNeeded(row) {
-  if (row.dataset.placeholder !== "true") {
-    return;
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function formatFirebaseError(error, fallbackMessage) {
+  const code = String(error?.code || "");
+  const map = {
+    "auth/email-already-in-use": "Já existe uma conta com esse e-mail.",
+    "auth/invalid-email": "O e-mail informado é inválido.",
+    "auth/invalid-credential": "E-mail ou senha inválidos.",
+    "auth/weak-password": "A senha deve ter ao menos 6 caracteres.",
+    "auth/network-request-failed": "Falha de rede. Verifique sua conexão e tente novamente.",
+    "auth/too-many-requests": "Muitas tentativas. Aguarde um pouco e tente novamente.",
+    "storage/unauthorized": "Você não tem permissão para enviar essa imagem.",
+  };
+
+  return map[code] || fallbackMessage;
+}
+
+async function tryBootstrapMasterAccount(email, password, loginError) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!MASTER_EMAILS.includes(normalizedEmail) || !isCredentialMismatchError(loginError)) {
+    return false;
   }
 
-  mutateActiveSheet((sheet) => {
-    const collection = row.dataset.dynamicType === "upgrade" ? (sheet.dynamicUpgrades || []) : (sheet.dynamicSkills || []);
-    const item = collection.find((entry) => entry.id === row.dataset.rowId);
-    if (item) {
-      item.isPlaceholder = false;
-    }
-  });
+  showLoading("Criando acesso de mestre...");
 
-  row.dataset.placeholder = "false";
-  ensureDynamicPlaceholders();
-  rebuildDynamicSections();
-  hydrateForm();
-  recalculateDerivedFields();
+  try {
+    const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+    const masterProfile = MASTER_DEFAULT_PROFILES[normalizedEmail] || {
+      displayName: deriveDisplayNameFromEmail(normalizedEmail),
+    };
+
+    await updateProfile(credential.user, {
+      displayName: masterProfile.displayName,
+    });
+
+    return true;
+  } catch (creationError) {
+    console.error(creationError);
+    restoreRememberedLogin();
+    showLogin();
+    alert(formatFirebaseError(creationError, "Não foi possível preparar o acesso de mestre."));
+    return false;
+  }
+}
+
+function isCredentialMismatchError(error) {
+  const code = String(error?.code || "");
+  return [
+    "auth/invalid-credential",
+    "auth/user-not-found",
+    "auth/wrong-password",
+    "auth/invalid-login-credentials",
+  ].includes(code);
+}
+
+function togglePasswordVisibility(input, button) {
+  const isVisible = input.type === "text";
+  input.type = isVisible ? "password" : "text";
+  button.setAttribute("aria-label", isVisible ? "Mostrar senha" : "Ocultar senha");
+  button.setAttribute("aria-pressed", String(!isVisible));
+
+  const openIcon = button.querySelector(".eye-open");
+  const closedIcon = button.querySelector(".eye-closed");
+
+  if (openIcon && closedIcon) {
+    openIcon.classList.toggle("hidden", !isVisible);
+    closedIcon.classList.toggle("hidden", isVisible);
+  }
 }
 
 function escapeHtml(text) {
@@ -1429,4 +2073,10 @@ function escapeAttribute(text) {
     .replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+function clearFieldSavedStates() {
+  document.querySelectorAll("[data-field].saved, [data-field].saving").forEach((field) => {
+    field.classList.remove("saved", "saving");
+  });
 }

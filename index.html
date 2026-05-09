@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+  <div class="page-art page-art-top" aria-hidden="true"></div>
   <div class="shell">
     <header class="topbar">
       <div class="brand-copy">
@@ -32,13 +33,28 @@
 
         <form id="loginForm" class="stack-form">
           <label class="field">
-            <span>Login</span>
-            <input id="loginInput" name="login" type="text" autocomplete="username" required>
+            <span>E-mail</span>
+            <input id="loginInput" name="email" type="email" autocomplete="username" required>
           </label>
 
           <label class="field">
             <span>Senha</span>
-            <input id="passwordInput" name="password" type="password" autocomplete="current-password" required>
+            <div class="password-field">
+              <input id="passwordInput" name="password" type="password" autocomplete="current-password" required>
+              <button type="button" id="toggleLoginPassword" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false">
+                <svg class="password-toggle-icon eye-open" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 5C6.5 5 2.1 8.4 1 12c1.1 3.6 5.5 7 11 7s9.9-3.4 11-7c-1.1-3.6-5.5-7-11-7Zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2.2A1.8 1.8 0 1 0 12 10a1.8 1.8 0 0 0 0 3.8Z"/>
+                </svg>
+                <svg class="password-toggle-icon eye-closed hidden" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m3.3 2 18.7 18.7-1.4 1.4-3.2-3.2A12.7 12.7 0 0 1 12 20c-5.5 0-9.9-3.4-11-7 0-1.6 1.4-3.8 3.8-5.5L1.9 3.4 3.3 2Zm6.3 6.3 5.1 5.1A4 4 0 0 0 9.6 8.3Zm2.4-3.3c5.5 0 9.9 3.4 11 7-.4 1.3-1.4 2.9-3 4.2l-2-2A7.7 7.7 0 0 0 19.9 12c-1.1-2.1-4.1-5-7.9-5-.9 0-1.7.1-2.5.4L7.8 5.7A12.2 12.2 0 0 1 12 5Z"/>
+                </svg>
+              </button>
+            </div>
+          </label>
+
+          <label class="remember-field">
+            <input id="rememberLogin" name="rememberLogin" type="checkbox">
+            <span>Manter e-mail e senha salvos neste navegador</span>
           </label>
 
           <div class="auth-actions">
@@ -57,7 +73,7 @@
             </label>
 
             <button type="button" id="openRegisterFromGm" class="btn btn-secondary">Nova Ficha</button>
-
+            <button type="button" id="deleteCurrentSheet" class="btn btn-danger">Excluir Ficha</button>
           </div>
 
           <div class="toolbar-group toolbar-group-right">
@@ -87,7 +103,7 @@
                 <h2>Atributos</h2>
               </div>
 
-              <div class="attribute-table" id="attributeTable"></div>
+              <div id="attributeTable" class="attribute-table"></div>
             </article>
 
             <article class="card panel">
@@ -129,7 +145,7 @@
                 </label>
               </div>
 
-              <div class="skills-table" id="skillsTable"></div>
+              <div id="skillsTable" class="skills-table"></div>
               <button type="button" id="addSkillRow" class="btn btn-add-row">+ Adicionar perícia</button>
             </article>
           </div>
@@ -211,6 +227,7 @@
       </section>
     </main>
   </div>
+  <div class="page-art page-art-bottom" aria-hidden="true"></div>
 
   <dialog id="registerDialog" class="register-dialog">
     <form id="registerForm" method="dialog" class="stack-form">
@@ -224,13 +241,23 @@
       </label>
 
       <label class="field">
-        <span>Login</span>
-        <input id="registerLogin" name="login" type="text" pattern="[A-Za-z0-9._-]{3,30}" required>
+        <span>E-mail</span>
+        <input id="registerEmail" name="email" type="email" autocomplete="email" required>
       </label>
 
       <label class="field">
         <span>Senha</span>
-        <input id="registerPassword" name="password" type="password" minlength="6" required>
+        <div class="password-field">
+          <input id="registerPassword" name="password" type="password" minlength="6" required>
+          <button type="button" id="toggleRegisterPassword" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false">
+            <svg class="password-toggle-icon eye-open" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5C6.5 5 2.1 8.4 1 12c1.1 3.6 5.5 7 11 7s9.9-3.4 11-7c-1.1-3.6-5.5-7-11-7Zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2.2A1.8 1.8 0 1 0 12 10a1.8 1.8 0 0 0 0 3.8Z"/>
+            </svg>
+            <svg class="password-toggle-icon eye-closed hidden" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m3.3 2 18.7 18.7-1.4 1.4-3.2-3.2A12.7 12.7 0 0 1 12 20c-5.5 0-9.9-3.4-11-7 0-1.6 1.4-3.8 3.8-5.5L1.9 3.4 3.3 2Zm6.3 6.3 5.1 5.1A4 4 0 0 0 9.6 8.3Zm2.4-3.3c5.5 0 9.9 3.4 11 7-.4 1.3-1.4 2.9-3 4.2l-2-2A7.7 7.7 0 0 0 19.9 12c-1.1-2.1-4.1-5-7.9-5-.9 0-1.7.1-2.5.4L7.8 5.7A12.2 12.2 0 0 1 12 5Z"/>
+            </svg>
+          </button>
+        </div>
       </label>
 
       <footer class="dialog-actions">
@@ -240,6 +267,21 @@
     </form>
   </dialog>
 
-  <script src="./script.js"></script>
+  <dialog id="deleteCharacterDialog" class="register-dialog">
+    <form method="dialog" class="stack-form">
+      <div class="section-heading">
+        <h2>Excluir Ficha</h2>
+      </div>
+
+      <p id="deleteCharacterMessage" class="dialog-copy"></p>
+
+      <footer class="dialog-actions">
+        <button type="button" id="cancelDeleteCharacter" class="btn btn-secondary">Cancelar</button>
+        <button type="button" id="confirmDeleteCharacter" class="btn btn-primary">Confirmar</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script type="module" src="./script.js"></script>
 </body>
 </html>
