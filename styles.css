@@ -897,6 +897,37 @@ input[readonly] {
   box-shadow: 0 0 0 3px rgba(216, 167, 45, 0.18);
 }
 
+.catalog-tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.catalog-tab {
+  flex: 1;
+  padding: 7px 0;
+  background: var(--input-bg);
+  border: 1px solid rgba(141, 106, 29, 0.4);
+  border-radius: var(--radius-input) var(--radius-input) 0 0;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.catalog-tab:hover {
+  opacity: 0.8;
+}
+
+.catalog-tab.is-active {
+  opacity: 1;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .skill-catalog-body {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.2fr);

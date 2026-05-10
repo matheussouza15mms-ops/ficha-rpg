@@ -104,19 +104,19 @@ const UPGRADES_CATALOG = [
     name: "Armas de Fogo (Pistolas/Revólveres)",
     type: "positive",
     cost: 1,
-    description: "O personagem possui treinamento com revólveres ou pistolas. 1 ponto: revólveres ou pistolas; 2 pontos: submetralhadoras, carabinas calibre 12, armas pesadas; 3 pontos: metralhadoras pesadas, outras armas pesadas.",
+    description: "Não importa o quão rico ou poderoso seu Personagem possa ser, para carregar armas de fogo, uma destas duas condições deve ser satisfeita: ou seu Personagem as adquiriu legalmente, possui certificados e licença (o que não é uma desculpa para entrar em um tiroteio) ou as adquiriu no mercado negro (e portanto, pode ser indiciado criminalmente por porte ilegal de armas). Qualquer que seja a razão, ela deve estar explicada em Background. O personagem possui treinamento com revólveres ou pistolas.",
   },
   {
     name: "Armas de Fogo (Submetralhadoras/Carabinas)",
     type: "positive",
     cost: 2,
-    description: "O personagem possui treinamento com submetralhadoras, carabinas calibre 12 e armas pesadas. 1 ponto: revólveres ou pistolas; 2 pontos: submetralhadoras, carabinas calibre 12, armas pesadas; 3 pontos: metralhadoras pesadas, outras armas pesadas.",
+    description: "Não importa o quão rico ou poderoso seu Personagem possa ser, para carregar armas de fogo, uma destas duas condições deve ser satisfeita: ou seu Personagem as adquiriu legalmente, possui certificados e licença (o que não é uma desculpa para entrar em um tiroteio) ou as adquiriu no mercado negro (e portanto, pode ser indiciado criminalmente por porte ilegal de armas). Qualquer que seja a razão, ela deve estar explicada em Background.\n\nO personagem <b>possui</b> treinamento com submetralhadoras, carabinas calibre 12 e armas pesadas.",
   },
   {
     name: "Armas de Fogo (Metralhadoras Pesadas)",
     type: "positive",
     cost: 3,
-    description: "O personagem possui treinamento com metralhadoras pesadas e outras armas pesadas. 1 ponto: revólveres ou pistolas; 2 pontos: submetralhadoras, carabinas calibre 12, armas pesadas; 3 pontos: metralhadoras pesadas, outras armas pesadas.",
+    description: "Não importa o quão rico ou poderoso seu Personagem possa ser, para carregar armas de fogo, uma destas duas condições deve ser satisfeita: ou seu Personagem as adquiriu legalmente, possui certificados e licença (o que não é uma desculpa para entrar em um tiroteio) ou as adquiriu no mercado negro (e portanto, pode ser indiciado criminalmente por porte ilegal de armas). Qualquer que seja a razão, ela deve estar explicada em Background. O personagem possui treinamento com metralhadoras pesadas e outras armas pesadas.",
   },
   // CONHECIMENTO
   {
@@ -395,10 +395,448 @@ const UPGRADES_CATALOG = [
   },
   // NEGATIVOS
   {
+    name: "Alergia",
+    type: "negative",
+    cost: 1,
+    description: "O Personagem é alérgico a alguma coisa (poeira, pelo de animais, certos perfumes). Ao entrar em contato com essa substância, começa a espirrar sem parar, o que prejudica suas ações físicas (o Mestre pode impor penalidades conforme o tipo de ação que ele pretender realizar).",
+  },
+  {
+    name: "Alergia Grave",
+    type: "negative",
+    cost: 2,
+    description: "Idêntico ao anterior, porém os efeitos são bem mais graves. Uma rápida exposição pode gerar irritação nos olhos, e quanto mais tempo durar, maiores serão os males, tais como: irritação na pele, vômitos, parada respiratória, sendo que uma exposição prolongada pode levar à morte.",
+  },
+  {
+    name: "Alcoólatra",
+    type: "negative",
+    cost: 1,
+    description: "O personagem é viciado em álcool, ou uma bebida específica. Sempre que ele estiver próximo da bebida, o Mestre deve exigir um Teste de WILL caso ele queira evitá-la. Para um personagem bêbado, TODOS os Testes são Difíceis.",
+  },
+  {
+    name: "Alucinado",
+    type: "negative",
+    cost: 2,
+    description: "O personagem sofre constantes alucinações, tendo uma visão distorcida da realidade. Nem tudo que seu Personagem vê está mesmo ali, e nem tudo que está ali ele vê. O Mestre deve exigir constantes Testes de INT (e não de PER) para discernir a realidade das alucinações. Podem ser visões, sons misteriosos ou vultos que atraem sua atenção e o fazem esquecer do resto à sua volta.",
+  },
+  {
+    name: "Amnésia",
+    type: "negative",
+    cost: 1,
+    description: "O Personagem esquece facilmente as coisas, desde fatos recentes até sua própria identidade. Para se recordar de fatos passados, faça um Teste de INT (Fácil para fatos dos últimos dias, Normal para ocorrências das últimas semanas, e Difícil sobre meses ou anos atrás).",
+  },
+  {
+    name: "Assassino Serial",
+    type: "negative",
+    cost: 2,
+    description: "Já matou algumas pessoas, e tem algum tipo de marca registrada, ligada ao tipo de vítima (apenas crianças, ruivas, estrangeiros, pessoas religiosas), ou método de execução. Isso colocou o personagem na lista de caça das autoridades e dos caçadores de recompensas.",
+  },
+  {
+    name: "Assassino Serial (Compulsivo)",
+    type: "negative",
+    cost: 3,
+    description: "Igual ao anterior, mas ele já fez várias vítimas e tomou gosto pelo sangue. Tanto que quando está próximo a uma possível vítima, deve fazer um Teste de WILL para resistir à oportunidade.",
+  },
+  {
+    name: "Azarado",
+    type: "negative",
+    cost: 1,
+    description: "Em dado momento durante a seção de jogo, o Mestre declara que seu personagem teve uma falha crítica em um Teste. De preferência, isso vai ocorrer na pior situação possível (arma quebrar diante do inimigo, esquecer os materiais para o ritual, saltar sobre o penhasco, etc).",
+  },
+  {
+    name: "Casto",
+    type: "negative",
+    cost: 1,
+    description: "O Personagem fez um voto de castidade, negando a si mesmo os prazeres carnais. Quebrar este voto vai trazer problemas para o Personagem de proporções psicológicas (remorso, autopunição, tendência suicida) ou sociais (ser expulso de uma seita, por exemplo). As razões para isso devem ser explicadas no background do personagem.",
+  },
+  {
+    name: "Cleptomaníaco",
+    type: "negative",
+    cost: 2,
+    description: "Seu personagem PRECISA roubar alguma coisa de todos os lugares que visita. Pode ser algum tipo específico de objeto, coisas aleatórias, e até mesmo objetos de muito valor. Muitas vezes a cleptomania funciona de maneira inconsciente — o personagem não se lembra de ter roubado o objeto.",
+  },
+  {
+    name: "Código de Honra",
+    type: "negative",
+    cost: 1,
+    description: "O personagem segue algum rígido código de conduta e jamais poderá desobedecê-lo, nem mesmo que sua vida dependa disso. Exemplos: Código dos Cavalheiros (nunca atacar mulheres ou crianças), Código de Combate (nunca usar armas superiores ao adversário, nem atacar oponentes caídos), Código do Caçador (nunca matar filhotes ou fêmeas grávidas) e Código dos Heróis (sempre cumprir sua palavra e proteger quem é mais fraco). Cada código adicional custa -1 ponto extra.",
+  },
+  {
+    name: "Complexo de Culpa",
+    type: "negative",
+    cost: 1,
+    description: "Você se sente terrivelmente culpado por alguma coisa que fez no passado e julga-se responsável por todas as consequências disso. Em todas as situações que lembrem o motivo do complexo, deve fazer um Teste de WILL. Em caso de falha, o personagem ficará extremamente deprimido e todos os seus Testes se tornam Difíceis.",
+  },
+  {
+    name: "Complexo de Inferioridade",
+    type: "negative",
+    cost: 1,
+    description: "O Personagem se sente inferior aos outros, não importa o quão forte ou hábil ele seja. Isso o impede de se confrontar com qualquer um. Para entrar em um desafio ou realizar qualquer tipo de ação heroica, é preciso ser bem sucedido em um Teste Difícil de WILL. Mesmo que ele vença, o personagem ainda se julgará inferior, atribuindo a derrota do adversário à sorte.",
+  },
+  {
+    name: "Compulsão",
+    type: "negative",
+    cost: 1,
+    description: "O personagem sente uma necessidade incontrolável de fazer uma certa tarefa. Trata-se de algum tique nervoso que o personagem repete compulsivamente sem que ele próprio perceba (limpar a arma, lavar as mãos, piscar o olho, pronunciar ao final de cada frase a palavra 'né', chamar a todos por tio/tia, etc).",
+  },
+  {
+    name: "Coração Mole",
+    type: "negative",
+    cost: 1,
+    description: "O seu Personagem é muito sentimental e não é capaz de ver ninguém sofrer. Ele acredita que todos, sem distinção, merecem clemência e uma segunda chance. Por isso, ele NUNCA recusa nenhum pedido de ajuda e jamais irá matar ou ferir gravemente seu oponente durante uma batalha, preferindo deixá-lo inconsciente ou até mesmo perder a luta.",
+  },
+  {
+    name: "Covarde",
+    type: "negative",
+    cost: 1,
+    description: "Seu personagem tem um senso de sobrevivência muito aguçado, o que o leva a tomar atitudes extremas para se manter vivo, tais como fugir ou se esconder ao menor sinal de perigo. O Personagem nunca irá envolver-se em situações de grande risco. Mesmo que queira, só será capaz de deixar sua segurança de lado se for bem sucedido em um Teste de WILL.",
+  },
+  {
+    name: "Crédulo",
+    type: "negative",
+    cost: 1,
+    description: "O personagem é extremamente crédulo e ingênuo, inocente ao ponto de acreditar em qualquer coisa que digam a ele. Para ele, todas as pessoas são boas e confiáveis. Isso faz com que seja facilmente enganado, traído e iludido. Quando alguém quiser contar uma mentira para o Personagem crédulo, nem precisa fazer Teste de Lábia.",
+  },
+  {
+    name: "Curioso",
+    type: "negative",
+    cost: 1,
+    description: "Sua curiosidade é muito maior que o seu juízo, e toda vez que algo lhe chamar a atenção, o Personagem ficará compelido a investigá-lo o mais depressa possível. Deve realizar um Teste de WILL para não abandonar tudo o que estiver fazendo e seguir essa pista misteriosa.",
+  },
+  {
+    name: "Defeito de Ryoga",
+    type: "negative",
+    cost: 1,
+    description: "O personagem é completamente perdido no mundo. Não possui o menor senso de direção e distância; Norte, Sul, horizontal, vertical serão inúteis para ele, e até mesmo o tempo para transpô-las não lhe significa nada. Para ele não há diferença entre norte ou sul, ou entre um metro e um km.",
+  },
+  {
+    name: "Deficiente Físico (leve)",
+    type: "negative",
+    cost: 1,
+    description: "Você possui uma deficiência pequena, como ser cego de um olho, não ter uma mão ou até ser quase surdo. Todos os Testes Fáceis de Atributos relacionados à sua deficiência são considerados Normais, e os Normais considerados Difíceis.",
+  },
+  {
+    name: "Deficiente Físico (moderado)",
+    type: "negative",
+    cost: 2,
+    description: "Sua deficiência é um pouco mais grave, podendo ser completamente cego, não ter um braço, ser surdo ou não sentir cheiros. Todos os Testes de Atributos relacionados à sua deficiência são considerados Difíceis.",
+  },
+  {
+    name: "Deficiente Físico (grave)",
+    type: "negative",
+    cost: 3,
+    description: "Sua deficiência é grave e prejudica muito sua vida. Você pode ser um paraplégico, ser surdo-mudo ou não ter ambos os braços. Você não pode realizar certas proezas relacionadas à sua deficiência, como andar, escutar ou falar.",
+  },
+  {
+    name: "Dependência",
+    type: "negative",
+    cost: 2,
+    description: "Para se manter vivo o personagem precisa se alimentar de algo excêntrico que cause grande asco nos humanos, como carne de recém nascidos, sangue de unicórnio, ou outra coisa proibida. O personagem deve ingerir uma quantidade satisfatória desse alimento desumano todo dia. Senão o fizer, perderá 1 PV a cada dia, até morrer ou até que volte a se alimentar.",
+  },
+  {
+    name: "Dificuldade de Fala",
+    type: "negative",
+    cost: 1,
+    description: "O personagem é gago, tem a língua presa, ou qualquer outro problema de dicção que dificulta o entendimento do que ele fala pelas outras pessoas.",
+  },
+  {
+    name: "Distração",
+    type: "negative",
+    cost: 1,
+    description: "O personagem não consegue se concentrar em nada, vivendo no mundo das nuvens. Todos os Testes de WILL para se concentrar são Difíceis. Um personagem com Distração não pode comprar o Aprimoramento Concentração.",
+  },
+  {
+    name: "Dupla Personalidade",
+    type: "negative",
+    cost: 3,
+    description: "O Personagem possui duas ou mais personalidades diferentes habitando no mesmo corpo. Podem ser pessoas violentas, calmas, covardes, mentirosas, com afinidade ou ódio a alguma coisa. São personalidades totalmente diferentes, com suas próprias lembranças e consciência. A mudança de uma personalidade para outra não é controlada pelo jogador e sim pelo Mestre.",
+  },
+  {
+    name: "Estigma Social",
+    type: "negative",
+    cost: 1,
+    description: "Por algum motivo o personagem é considerado um pária da sociedade. Todos que vivem naquela região o rejeitam e até o temem. O personagem pode ser considerado um herege, um bárbaro, um leproso ou simplesmente ser evitado por ter hábitos muito estranhos (como só sair à noite, viver trancado em casa).",
+  },
+  {
+    name: "Esquizofrênico",
+    type: "negative",
+    cost: 2,
+    description: "O personagem vive em um mundo só seu. Pode ser perseguido por 'eles', ser o único que sabe a verdade, ter delírios de grandeza, achar que é uma figura histórica reencarnada. Costuma ter ideias absurdas e acreditar nelas como se fossem verdadeiras (pois para ele são).",
+  },
+  {
+    name: "Família ou Mentor Desonrado",
+    type: "negative",
+    cost: 1,
+    description: "Seus descendentes ou seu mestre cometeram crimes terríveis no passado, e hoje você paga por isso, sendo discriminado e condenado como culpado também. Embora não haja realmente culpa sua, o Personagem ainda carrega essa má fama consigo, recebendo um tratamento frio e desconfiado mesmo de quem antes o achava uma boa pessoa.",
+  },
+  {
+    name: "Fanático",
+    type: "negative",
+    cost: 2,
+    description: "Sua vida é devotada a algum objetivo específico. O Personagem persegue incessantemente esse objetivo e todos seus atos são guiados por ele. Nada o fará desistir, pois ele acredita que valha qualquer sacrifício. Pode ser fanatismo religioso, nacionalismo fervoroso, a busca incansável por um artefato lendário, uma vingança pessoal.",
+  },
+  {
+    name: "Fanfarronice",
+    type: "negative",
+    cost: 1,
+    description: "O personagem é um trovador. Sempre está contando vantagem de si mesmo. Conta histórias absurdas sobre coisas que fez (ou que os outros fizeram, dizendo que foi ele mesmo), se julga superior aos outros e não gosta que lhe olhem atravessado. Quer se demonstrar o maioral e isso geralmente incomoda os outros.",
+  },
+  {
+    name: "Ferro Frio",
+    type: "negative",
+    cost: 2,
+    description: "O ferro frio se opõe às coisas mágicas; seu personagem é altamente vulnerável ao toque do ferro frio, uma espécie de 'alergia mágica'. Basta um toque para que uma vermelhidão intensa apareça em sua pele. Exposição prolongada causa dores intensas. Usar armas ou armaduras metálicas é um problema.",
+  },
+  {
+    name: "Fobia",
+    type: "negative",
+    cost: 1,
+    description: "Você teme algo (lugares fechados ou altos, aranhas, espinhos, mortos, cobras, fogo, demônios). Quando se vê próximo ao objeto de seu temor, deve fazer um Teste de WILL. Caso falhe, todos os Testes seguintes que forem Fáceis passam a ser Normais, os Normais passam a ser Difíceis e os Difíceis são falhas automáticas. Em falha crítica, você entra em desespero e foge imediatamente.",
+  },
+  {
+    name: "Fobia Grave",
+    type: "negative",
+    cost: 2,
+    description: "Idêntico à Fobia, mas você sente um pavor indescritível. Ao se deparar com a causa desse medo irracional, deve fazer um Teste de WILL. Em caso de falha, o personagem foge em pânico. Se for uma falha crítica, fica paralisado e impedido de realizar qualquer ação por 3d6 rodadas.",
+  },
+  {
+    name: "Galante",
+    type: "negative",
+    cost: 1,
+    description: "Seu personagem é um sedutor nato (ou ao menos tenta ser um). Possui um fraco pelo sexo oposto, nunca deixando passar a chance de conquistar um novo 'troféu'. Faça um Teste de WILL para resistir à oportunidade de tentar conquistar um(a) amante.",
+  },
+  {
+    name: "Ganância",
+    type: "negative",
+    cost: 1,
+    description: "O Personagem possui inveja de tudo que os outros possuem e ele não. A cobiça sempre o leva a querer mais e mais. Nenhuma riqueza é suficiente para ele. Para obter tudo o que deseja, o Personagem não mede consequências e realizará qualquer ato para satisfazer sua ganância (desde roubar até fazer pactos com demônios).",
+  },
+  {
+    name: "Gula",
+    type: "negative",
+    cost: 1,
+    description: "O apetite do personagem é algo fora dos padrões normais; ele come o dobro ou o triplo do que uma pessoa comum. Além disso, o Personagem sempre encontra tempo para um lanchinho nas ocasiões mais inusitadas.",
+  },
+  {
+    name: "Hábitos Detestáveis",
+    type: "negative",
+    cost: 1,
+    description: "Você possui alguns atos involuntários que chocam e enojam as pessoas, tais como: cuspir o tempo todo, coçar as partes íntimas, não tomar banho com regularidade, arrotar em alta voz, entre outros.",
+  },
+  {
+    name: "Hipocondria",
+    type: "negative",
+    cost: 1,
+    description: "O personagem acredita fervorosamente que está doente, ou que irá pegar uma doença em breve. Mesmo estando completamente saudável, diz a todos que está adoentado. O Mestre deve exigir um Teste de WILL toda vez que algum tipo de contágio for perceptível, para que o personagem não entre em pânico e não comece a imaginar que está doente.",
+  },
+  {
+    name: "Inimigo",
+    type: "negative",
+    cost: 1,
+    description: "O personagem representa perigo para alguém, ou alguém o quer morto por algum motivo. Seu inimigo sempre será bem mais forte que você, e caso o vença, ele será substituído por outro ainda mais forte. O Mestre deve criar os inimigos e utilizá-los como NPCs durante as aventuras. Cada inimigo adicional custa -1 ponto extra.",
+  },
+  {
+    name: "Intolerância",
+    type: "negative",
+    cost: 1,
+    description: "Existe algo que você não tolera, seja uma situação, um animal ou alguma coisa. Quando o Personagem encontrar-se na circunstância que causa sua intolerância, ele imediatamente deixará tudo o que está fazendo de lado e irá tomar satisfações com o responsável. Pode chegar a agredi-lo caso tenha motivo para isso.",
+  },
+  {
+    name: "Má Fama (local)",
+    type: "negative",
+    cost: 1,
+    description: "Alguns bairros ou uma cidade pequena. Você é alguém famoso, mas devido aos seus crimes. Funciona como o Aprimoramento Fama, porém de maneira negativa, fazendo a sociedade considerá-lo uma 'má pessoa' ou um elemento perigoso, estando sempre sob suspeita e descrença.",
+  },
+  {
+    name: "Má Fama (regional)",
+    type: "negative",
+    cost: 2,
+    description: "Algumas cidades pequenas ou uma metrópole. Você é alguém famoso, mas devido aos seus crimes. Funciona como o Aprimoramento Fama, porém de maneira negativa, fazendo a sociedade considerá-lo uma 'má pessoa' ou um elemento perigoso, estando sempre sob suspeita e descrença.",
+  },
+  {
+    name: "Má Fama (ampla)",
+    type: "negative",
+    cost: 3,
+    description: "Algumas metrópoles, um estado ou região. Você é alguém famoso, mas devido aos seus crimes. Funciona como o Aprimoramento Fama, porém de maneira negativa, fazendo a sociedade considerá-lo uma 'má pessoa' ou um elemento perigoso, estando sempre sob suspeita e descrença.",
+  },
+  {
+    name: "Maníaco Depressivo",
+    type: "negative",
+    cost: 2,
+    description: "O personagem sofre mudanças drásticas de humor, indo do entusiasmo flamejante ao desejo de morrer e vice-versa. Já tentou o suicídio uma ou duas vezes. Preocupa-se com facilidade e constantemente pondera sobre a vida e a morte, tendendo mais para a morte.",
+  },
+  {
+    name: "Mau Humor",
+    type: "negative",
+    cost: 1,
+    description: "O personagem parece sempre acordar com o pé esquerdo, o que faz com que ele sempre esteja irritado, zangado, nervoso e de mau humor. Quando alguém fala com o personagem, ele só responde grosserias. Todos os Testes de CAR se tornam mais Difíceis.",
+  },
+  {
+    name: "Megalomaníaco",
+    type: "negative",
+    cost: 1,
+    description: "Você não se considera mais uma pessoa, e sim um deus! Sua motivação é poder total. Esse excesso de confiança pode variar de sentido, desde a compulsão por ser o garoto mais forte do bairro até a auto-elevação para um patamar de invulnerabilidade e invencibilidade. Um personagem com Megalomania precisa realizar um Teste de WILL para não se enfurecer toda vez que sua 'divindade' for posta à prova.",
+  },
+  {
+    name: "Mania",
+    type: "negative",
+    cost: 1,
+    description: "O personagem tem algum tipo de mania, um hábito, um modus operandi. Pode ser colecionar alguma coisa, agir de determinada maneira, ou ir a certos lugares. Ele se sente compelido a realizar essa mania com frequência (pelo menos uma vez por semana). O Mestre pode usar isto como uma maneira de atrair ou emboscar o personagem.",
+  },
+  {
+    name: "Mania de Perseguição",
+    type: "negative",
+    cost: 1,
+    description: "O Personagem é extremamente paranóico, acreditando fervorosamente que 'eles' estão atrás dele e que está sempre sendo vigiado ou perseguido onde quer que vá. O Personagem sempre irá desconfiar de todos, por mais amigos que sejam.",
+  },
+  {
+    name: "Mania de Perseguição (Real)",
+    type: "negative",
+    cost: 2,
+    description: "Igual ao anterior, mas nesse caso ele realmente está sendo perseguido por alguém (embora não tenha certeza absoluta disso). Pode ser algum espírito, demônio, caçadores ou outra entidade que está no seu encalço e ele teme se encontrar com ela.",
+  },
+  {
+    name: "Mentiroso Compulsivo",
+    type: "negative",
+    cost: 2,
+    description: "Dizem que o pior mentiroso é aquele que acredita nas próprias mentiras. O personagem mente por prazer e compulsão, acredita no que diz e pensa estar enganando a todos o tempo todo. Não consegue dizer meia dúzia de frases sem introduzir nelas uma mentira descarada.",
+  },
+  {
+    name: "Pacifista (misericordioso)",
+    type: "negative",
+    cost: 1,
+    description: "O personagem é misericordioso com seus oponentes, permitindo que vivam depois de derrotá-los. Existe algum forte motivo, explicado no background, que o leva a evitar situações de combate. Pode ser algum fator cultural, religioso ou ético.",
+  },
+  {
+    name: "Pacifista (evita luta)",
+    type: "negative",
+    cost: 2,
+    description: "O personagem só irá lutar se for a última saída, preferindo sempre encontrar um meio de fugir ou contornar a situação. Existe algum forte motivo, explicado no background, que o leva a evitar situações de combate. Pode ser algum fator cultural, religioso ou ético.",
+  },
+  {
+    name: "Pacifista (não ataca)",
+    type: "negative",
+    cost: 3,
+    description: "O personagem jamais luta. Pode defender-se dos golpes dos oponentes, mas em hipótese alguma irá atacar. Existe algum forte motivo, explicado no background, que o leva a evitar situações de combate. Pode ser algum fator cultural, religioso ou ético.",
+  },
+  {
+    name: "Perda Terrível",
+    type: "negative",
+    cost: 1,
+    description: "O personagem perdeu alguém que amava muito, como seus pais, um cônjuge, um filho ou mesmo toda a família. Ele presenciou sua morte ou foi o primeiro a encontrar seus corpos. Isso despedaçou sua sanidade, deixando sequelas profundas. Quando a pessoa perdida é mencionada, o personagem deve fazer um Teste de WILL para não ficar catatônico por 3d6 rodadas.",
+  },
+  {
+    name: "Perversão Sexual (leve)",
+    type: "negative",
+    cost: 1,
+    description: "Fantasias inofensivas, como filmar ou fotografar o ato, vestir roupas do sexo oposto ou fazer amor em locais públicos. O personagem sofre de distúrbios mentais que o levam a fazer sexo de maneira não-convencional.",
+  },
+  {
+    name: "Perversão Sexual (moderada)",
+    type: "negative",
+    cost: 2,
+    description: "Sadomasoquismo, sexo com animais. O personagem sofre de sérios distúrbios mentais que o levam a fazer sexo de maneira não-convencional.",
+  },
+  {
+    name: "Perversão Sexual (grave)",
+    type: "negative",
+    cost: 3,
+    description: "As perversões mais grotescas e bizarras, consideradas criminosas. O personagem sofre de sérios distúrbios mentais que o levam a fazer sexo de maneira não-convencional e ilegal.",
+  },
+  {
+    name: "Pesadelos",
+    type: "negative",
+    cost: 1,
+    description: "O sono do Personagem é frequentemente afetado por pesadelos indescritíveis. Situações de horror total consomem os sonhos do personagem e começam a incomodá-lo quando está acordado também. Sempre que se depara com algo que recorde um de seus pesadelos, deve fazer um Teste de WILL para não entrar em pânico, desmaiar ou sofrer algum tormento que o deixa incapaz de agir por 3d6 rodadas.",
+  },
+  {
+    name: "Pupilo",
+    type: "negative",
+    cost: 1,
+    description: "Um pupilo é alguém indefeso a quem o Personagem está ensinando seu ofício. É dever do Personagem protegê-lo, sendo o responsável legal por ele, estando encarregado de pagar suas contas, tanto financeiras quanto legais. Acima de tudo, o personagem deve zelar pela integridade e bem estar de seu aprendiz.",
+  },
+  {
+    name: "Sangramento",
+    type: "negative",
+    cost: 2,
+    description: "O corpo do personagem apresenta uma estranha 'alergia' à magia. Quando entra em contato com qualquer manifestação mística, o Personagem começa a sangrar pela boca e/ou pelo nariz. Se o efeito for muito forte, ou repetir-se muitas vezes, isto pode gerar danos.",
+  },
+  {
+    name: "Sanguinário",
+    type: "negative",
+    cost: 1,
+    description: "Quando o personagem entra em uma batalha, esta será até o fim. Não existe misericórdia ou rendição: um dos dois lados deve perder obrigatoriamente. A luta se prolongará até que ele reduza seus inimigos a poças de sangue. Assim como não aceita rendições, o próprio personagem nega-se a desistir, preferindo morrer em combate a entregar-se.",
+  },
+  {
+    name: "Sarcasmo",
+    type: "negative",
+    cost: 1,
+    description: "O personagem é extremamente sarcástico (irônico), não perdendo a oportunidade de zombar ou fazer observações maldosas a respeito dos outros o tempo todo. Se o jogador não interpretar esta desvantagem, o Mestre pode usá-la para colocar o personagem em enrascadas.",
+  },
+  {
     name: "Sono Pesado",
     type: "negative",
     cost: 1,
-    description: "Sono pesado.",
+    description: "O personagem dorme como uma pedra, ficando completamente fora de prontidão. Sempre perde o horário, dificilmente será acordado por ruídos (mesmo os mais altos) e facilmente dorme se estiver cansado. Testes de PER para verificar se o personagem desperta serão sempre Difíceis.",
+  },
+  {
+    name: "Supersticioso",
+    type: "negative",
+    cost: 1,
+    description: "Acredita em todo tipo de superstição. Carrega trevos-de-quatro-folhas, pés-de-coelho e outros talismãs. Caso passe por baixo de escadas, quebre um espelho ou coisa parecida, o Personagem deverá fazer um Teste de INT e, em caso de falha, receberá o Aprimoramento Azarado por 3d10 dias. Em caso de falha crítica, o Aprimoramento será permanente.",
+  },
+  {
+    name: "Suspeito (leve)",
+    type: "negative",
+    cost: 1,
+    description: "Tudo o que acontece, as pessoas acham que o responsável foi você. Se uma loja foi roubada, um assassinato cometido, sempre há alguns vizinhos que acham seu comportamento estranho.",
+  },
+  {
+    name: "Suspeito (grave)",
+    type: "negative",
+    cost: 2,
+    description: "O personagem realmente inspira medo nas pessoas. Elas não confiam em você. Sempre que a polícia vê você próximo à cena de um crime, para para interrogá-lo. Já acordou várias vezes à noite com a polícia à sua porta. E o pior: as evidências apontam para você. Basta uma mínima ligação com o caso que tentam acusá-lo de ser o culpado.",
+  },
+  {
+    name: "Teimosia",
+    type: "negative",
+    cost: 1,
+    description: "Você é teimoso como uma mula. Não importa o que os outros digam, o personagem acredita fielmente que só ele está certo. Nunca irá concordar com ninguém. Isso pode levar o Personagem a enfrentar problemas, principalmente em situações que um grupo deve tomar uma decisão em conjunto.",
+  },
+  {
+    name: "Timidez",
+    type: "negative",
+    cost: 1,
+    description: "O Personagem é extremamente tímido, receando falar e até se aproximar das outras pessoas. Raramente irá emitir suas opiniões (a não ser que seja questionado), sempre hesita ao máximo falar diante de desconhecidos e tem sérias dificuldades para relacionar-se com o sexo oposto. Para um personagem com Timidez, todos os Testes de CAR são considerados Difíceis.",
+  },
+  {
+    name: "Traumatizado",
+    type: "negative",
+    cost: 2,
+    description: "Este personagem sofreu um severo trauma durante a infância, algo que nenhuma criança, nem a maioria dos adultos, está preparada para enfrentar. Qualquer menção aos fatos que traumatizaram o Personagem o obrigam a fazer um Teste de WILL. Se falhar, todos os seus Testes se tornam Difíceis pelos próximos 3d6 turnos.",
+  },
+  {
+    name: "Viciado em Drogas",
+    type: "negative",
+    cost: 1,
+    description: "O personagem é dependente ou viciado por algum tipo de substância química (cocaína, heroína, anfetaminas, LSD, soníferos, éter, etc). Sempre que o Personagem permanecer mais de 6 horas privado do vício, deve fazer um Teste Difícil de WILL para resistir à vontade de consumi-lo novamente. Para um personagem sob os efeitos das drogas, todos os Testes são considerados Difíceis.",
+  },
+  {
+    name: "Viciado em Jogos",
+    type: "negative",
+    cost: 1,
+    description: "Seu personagem perde muito dinheiro em jogos de azar. Para resistir à chance de apostar, faça um Teste Difícil de WILL.",
+  },
+  {
+    name: "Visão Monocromática",
+    type: "negative",
+    cost: 1,
+    description: "Seu personagem enxerga apenas em preto, branco e tons de cinza.",
+  },
+  {
+    name: "Vontade Fraca",
+    type: "negative",
+    cost: 1,
+    description: "O Personagem é extremamente suscetível à desistência e passividade. Sempre que uma tarefa parecer muito difícil, ele logo a abandonará (ou nem tentará realizá-la). Também é facilmente manipulado e controlado pelos outros. Acrescente uma penalidade de, pelo menos, -25% em qualquer Teste envolvendo Resistência mental (WILL).",
   },
 ];
 
@@ -591,6 +1029,7 @@ const state = {
   lastRenderedSignature: null,
   skillCatalogSelection: null,
   upgradeCatalogSelection: null,
+  upgradeCatalogTab: "positive",
 };
 
 const elements = {};
@@ -669,6 +1108,7 @@ function cacheElements() {
   elements.evolutionUpgradePointsValue = document.getElementById("evolutionUpgradePointsValue");
   elements.upgradeCatalogDialog = document.getElementById("upgradeCatalogDialog");
   elements.upgradeCatalogSearch = document.getElementById("upgradeCatalogSearch");
+  elements.upgradeCatalogTabBar = document.getElementById("upgradeCatalogTabBar");
   elements.upgradeCatalogList = document.getElementById("upgradeCatalogList");
   elements.upgradeCatalogDetail = document.getElementById("upgradeCatalogDetail");
   elements.cancelUpgradeCatalog = document.getElementById("cancelUpgradeCatalog");
@@ -881,6 +1321,17 @@ function registerEvents() {
   elements.confirmUpgradeCatalog.addEventListener("click", confirmUpgradeCatalogSelection);
   elements.upgradeCatalogSearch.addEventListener("input", (event) => {
     renderUpgradeCatalogList(event.target.value);
+  });
+  elements.upgradeCatalogTabBar.addEventListener("click", (event) => {
+    const btn = event.target.closest(".catalog-tab");
+    if (!btn) return;
+    state.upgradeCatalogTab = btn.dataset.tab;
+    elements.upgradeCatalogTabBar.querySelectorAll(".catalog-tab").forEach((t) => {
+      t.classList.toggle("is-active", t.dataset.tab === state.upgradeCatalogTab);
+    });
+    state.upgradeCatalogSelection = { upgrade: null };
+    renderUpgradeCatalogList(elements.upgradeCatalogSearch.value);
+    renderUpgradeCatalogDetail();
   });
   elements.addSkillRow.addEventListener("click", openSkillCatalogDialog);
   elements.cancelSkillCatalog.addEventListener("click", () => elements.skillCatalogDialog.close());
@@ -1817,6 +2268,10 @@ function openUpgradeCatalogDialog() {
   if (!hasActiveCharacter()) return;
 
   state.upgradeCatalogSelection = { upgrade: null };
+  state.upgradeCatalogTab = "positive";
+  elements.upgradeCatalogTabBar.querySelectorAll(".catalog-tab").forEach((t) => {
+    t.classList.toggle("is-active", t.dataset.tab === "positive");
+  });
   elements.upgradeCatalogSearch.value = "";
   renderUpgradeCatalogList("");
   renderUpgradeCatalogDetail();
@@ -1828,8 +2283,9 @@ function openUpgradeCatalogDialog() {
 function renderUpgradeCatalogList(filter) {
   const lower = (filter || "").trim().toLowerCase();
   const isEvolution = getActiveCharacterMode() === "evolution";
+  const activeTab = isEvolution ? "positive" : state.upgradeCatalogTab;
   const matches = UPGRADES_CATALOG.filter((entry) => {
-    if (isEvolution && entry.type !== "positive") return false;
+    if (entry.type !== activeTab) return false;
     if (!lower) return true;
     if (entry.name.toLowerCase().includes(lower)) return true;
     return (entry.description || "").toLowerCase().includes(lower);
@@ -1885,7 +2341,7 @@ function renderUpgradeCatalogDetail() {
   const entry = sel.upgrade;
   const isPositive = entry.type === "positive";
   const signedCostLabel = `${isPositive ? "−" : "+"}${entry.cost}`;
-  const typeLabel = isPositive ? "Positivo (custa pontos)" : "Negativo (devolve pontos)";
+  const typeLabel = isPositive ? "Positivo" : "Negativo";
   const isEvolutionMode = getActiveCharacterMode() === "evolution";
   const character = getActiveCharacter();
   const evolutionPts = character?.evolutionUpgradePoints || 0;
