@@ -93,12 +93,307 @@ const ATTR_LABEL_TO_KEY = {
 };
 
 const UPGRADES_CATALOG = [
+  // COMBATE
   {
     name: "Ambidestria",
     type: "positive",
     cost: 2,
-    description: "O personagem pode manusear armas e instrumentos tanto com a mão direita quanto com a esquerda, com igual eficiência. Também pode usar duas armas brancas ao mesmo tempo, se forem pequenas o bastante para o uso com uma única mão. Estão fora dessa categoria: arcos, bestas, lanças, a maioria dos machados e martelos e as grandes espadas. A ambidestria afeta apenas Perícias baseadas em Destreza, não em Agilidade: boxe, artes marciais e outras não recebem benefícios pela ambidestria.",
+    description: "Use armas/instrumentos com ambas as mãos, direita e esquerda, com igual eficiência. Pode usar duas armas brancas ou armas de fogo ao mesmo tempo (uma em cada mão). Escolha para entrar em um braceio.",
   },
+  {
+    name: "Armas de Fogo (Pistolas/Revólveres)",
+    type: "positive",
+    cost: 1,
+    description: "O personagem possui treinamento com revólveres ou pistolas. 1 ponto: revólveres ou pistolas; 2 pontos: submetralhadoras, carabinas calibre 12, armas pesadas; 3 pontos: metralhadoras pesadas, outras armas pesadas.",
+  },
+  {
+    name: "Armas de Fogo (Submetralhadoras/Carabinas)",
+    type: "positive",
+    cost: 2,
+    description: "O personagem possui treinamento com submetralhadoras, carabinas calibre 12 e armas pesadas. 1 ponto: revólveres ou pistolas; 2 pontos: submetralhadoras, carabinas calibre 12, armas pesadas; 3 pontos: metralhadoras pesadas, outras armas pesadas.",
+  },
+  {
+    name: "Armas de Fogo (Metralhadoras Pesadas)",
+    type: "positive",
+    cost: 3,
+    description: "O personagem possui treinamento com metralhadoras pesadas e outras armas pesadas. 1 ponto: revólveres ou pistolas; 2 pontos: submetralhadoras, carabinas calibre 12, armas pesadas; 3 pontos: metralhadoras pesadas, outras armas pesadas.",
+  },
+  // CONHECIMENTO
+  {
+    name: "Biblioteca (2 subgrupos)",
+    type: "positive",
+    cost: 1,
+    description: "Possui uma vasta biblioteca em seu refúgio. Se estiver em condições de consultá-la, conhecimento ensinado em livros é duplicado. 1 ponto: 2 subgrupos de Perícias; 2 pontos: 5 subgrupos; 3 pontos: 10 subgrupos; 4 pontos: 14 subgrupos.",
+  },
+  {
+    name: "Biblioteca (5 subgrupos)",
+    type: "positive",
+    cost: 2,
+    description: "Possui uma vasta biblioteca em seu refúgio. Se estiver em condições de consultá-la, conhecimento ensinado em livros é duplicado. 1 ponto: 2 subgrupos de Perícias; 2 pontos: 5 subgrupos; 3 pontos: 10 subgrupos; 4 pontos: 14 subgrupos.",
+  },
+  {
+    name: "Biblioteca (10 subgrupos)",
+    type: "positive",
+    cost: 3,
+    description: "Possui uma vasta biblioteca em seu refúgio. Se estiver em condições de consultá-la, conhecimento ensinado em livros é duplicado. 1 ponto: 2 subgrupos de Perícias; 2 pontos: 5 subgrupos; 3 pontos: 10 subgrupos; 4 pontos: 14 subgrupos.",
+  },
+  {
+    name: "Biblioteca (14 subgrupos)",
+    type: "positive",
+    cost: 4,
+    description: "Possui uma vasta biblioteca em seu refúgio. Se estiver em condições de consultá-la, conhecimento ensinado em livros é duplicado. 1 ponto: 2 subgrupos de Perícias; 2 pontos: 5 subgrupos; 3 pontos: 10 subgrupos; 4 pontos: 14 subgrupos.",
+  },
+  {
+    name: "Memória Fotográfica",
+    type: "positive",
+    cost: 2,
+    description: "Você se lembra, com todos os detalhes, de coisas que viu ou ouviu. Textos, figuras, rostos, conversas, etc., podem ser guardados na memória com um mínimo de esforço. Sob condições de tensão que envolvam numerosas distrações, o Personagem precisa ser bem sucedido num Teste de PER para conseguir concentrar-se o suficiente para absorver o que seus sentidos detectam.",
+  },
+  {
+    name: "Sábio",
+    type: "positive",
+    cost: 1,
+    description: "Existe uma Perícia (exceto Perícias de combate) na qual seu Personagem conhece absolutamente tudo o que existe a respeito. Considere que ele tenha 90% nessa Perícia, além de experiência, contatos e conhecimentos relacionados a essa área. Cada Personagem pode escolher este Aprimoramento relacionado a uma Perícia UMA vez; no máximo dois Personagens de cada grupo podem escolhê-lo.",
+  },
+  // SOCIAL
+  {
+    name: "Contatos e Aliados (1 aliado)",
+    type: "positive",
+    cost: 1,
+    description: "Um aliado importante. Os aliados têm seus próprios problemas, não estando sempre à disposição, e ocasionalmente cobrarão favores. 1 ponto: um aliado importante; 2 pontos: dois aliados; 3 pontos: quatro aliados; 4 pontos: oito aliados. Cada subgrupo deve ser comprado separadamente.",
+  },
+  {
+    name: "Contatos e Aliados (2 aliados)",
+    type: "positive",
+    cost: 2,
+    description: "Dois aliados importantes. Os aliados têm seus próprios problemas, não estando sempre à disposição, e ocasionalmente cobrarão favores. 1 ponto: um aliado importante; 2 pontos: dois aliados; 3 pontos: quatro aliados; 4 pontos: oito aliados. Cada subgrupo deve ser comprado separadamente.",
+  },
+  {
+    name: "Contatos e Aliados (4 aliados)",
+    type: "positive",
+    cost: 3,
+    description: "Quatro aliados importantes. Os aliados têm seus próprios problemas, não estando sempre à disposição, e ocasionalmente cobrarão favores. 1 ponto: um aliado importante; 2 pontos: dois aliados; 3 pontos: quatro aliados; 4 pontos: oito aliados. Cada subgrupo deve ser comprado separadamente.",
+  },
+  {
+    name: "Contatos e Aliados (8 aliados)",
+    type: "positive",
+    cost: 4,
+    description: "Oito aliados importantes. Os aliados têm seus próprios problemas, não estando sempre à disposição, e ocasionalmente cobrarão favores. 1 ponto: um aliado importante; 2 pontos: dois aliados; 3 pontos: quatro aliados; 4 pontos: oito aliados. Cada subgrupo deve ser comprado separadamente.",
+  },
+  {
+    name: "Controle de Multidões",
+    type: "positive",
+    cost: 2,
+    description: "Você tem o Dom da Palavra, uma aura que desperta a confiança das multidões. O personagem sabe atrair a atenção dos ouvintes e pode manipulá-los a seguirem ordens (com um Teste de Liderança). Permite incitar revoltas, espalhar desconfianças, vender produtos ou discursar em público com uma margem de sucesso muito maior do que qualquer oratória.",
+  },
+  {
+    name: "Eloquente",
+    type: "positive",
+    cost: 1,
+    description: "Você fala bem, com força ou doçura, conforme a ocasião exige, trazendo outras pessoas para o seu lado com discursos audaciosos. Você recebe um bônus igual a +25% em qualquer Teste envolvendo Etiqueta, Impressionar, Lábia e Liderança.",
+  },
+  {
+    name: "Fama (bairro)",
+    type: "positive",
+    cost: 1,
+    description: "Líder reconhecido de um bairro. Você é famoso por seus feitos, sendo figura de destaque na mídia, política ou submundo. Reflete melhor tratamento por NPCs, convites para eventos e assédio de fãs. 1 ponto: bairro; 2 pontos: cidade pequena; 3 pontos: metrópole; 4 pontos: estado/região.",
+  },
+  {
+    name: "Fama (cidade pequena)",
+    type: "positive",
+    cost: 2,
+    description: "Famoso em alguns bairros ou numa cidade pequena. Você é famoso por seus feitos, sendo figura de destaque na mídia, política ou submundo. Reflete melhor tratamento por NPCs, convites para eventos e assédio de fãs. 1 ponto: bairro; 2 pontos: cidade pequena; 3 pontos: metrópole; 4 pontos: estado/região.",
+  },
+  {
+    name: "Fama (metrópole)",
+    type: "positive",
+    cost: 3,
+    description: "Famoso em algumas cidades pequenas ou numa metrópole. Você é famoso por seus feitos, sendo figura de destaque na mídia, política ou submundo. Reflete melhor tratamento por NPCs, convites para eventos e assédio de fãs. 1 ponto: bairro; 2 pontos: cidade pequena; 3 pontos: metrópole; 4 pontos: estado/região.",
+  },
+  {
+    name: "Fama (estado/região)",
+    type: "positive",
+    cost: 4,
+    description: "Famoso em algumas metrópoles, num estado ou região. Você é famoso por seus feitos, sendo figura de destaque na mídia, política ou submundo. Reflete melhor tratamento por NPCs, convites para eventos e assédio de fãs. 1 ponto: bairro; 2 pontos: cidade pequena; 3 pontos: metrópole; 4 pontos: estado/região.",
+  },
+  {
+    name: "Patrono",
+    type: "positive",
+    cost: 2,
+    description: "Um patrono é alguém ou uma organização para qual o Personagem trabalha (governador, vampiro, ordem militar religiosa, clube de caça, etc.). O patrono fornece, dentro de certos limites, equipamento, armamento e financiamento que o personagem precisar, mas em troca ele deve realizar todas as missões, cumprir ordens e obter todos os resultados solicitados.",
+  },
+  // ATRIBUTOS
+  {
+    name: "Bom Senso",
+    type: "positive",
+    cost: 1,
+    description: "Todas as vezes que fizer alguma coisa obviamente estúpida, o Mestre pode dar a dica de que 'aquilo não é uma boa ideia'. Muito útil para iniciantes. O Mestre também pode obrigar um jogador a pegar 'táticas ruins'.",
+  },
+  {
+    name: "Concentração",
+    type: "positive",
+    cost: 2,
+    description: "O Personagem é capaz de concentrar-se em seus afazeres com extrema facilidade. Faça um Teste de WILL e, se for bem sucedido, tornará a dificuldade do ato que esteja realizando mais fácil (um Teste Difícil torna-se um Teste Normal).",
+  },
+  {
+    name: "Coragem",
+    type: "positive",
+    cost: 2,
+    description: "Você é totalmente desprovido do medo convencional. Em situações críticas, onde a maioria das pessoas fugiriam apavoradas, você continua firme. No caso de uma aventura de horror, ou em Testes de Resistência contra magias que gerem esse efeito, dobre a porcentagem dos Testes de WILL.",
+  },
+  {
+    name: "Prontidão",
+    type: "positive",
+    cost: 2,
+    description: "O personagem está sempre atento ao menor sinal de perigo. Ele ganha +5 em iniciativas e nunca recebe nenhuma penalidade quando for atacado pelas costas e/ou sofrer ataques surpresa.",
+  },
+  {
+    name: "Temperamento Calmo",
+    type: "positive",
+    cost: 2,
+    description: "O Personagem tem grande conhecimento e controle sobre suas emoções. Isso impede que ele fique agitado ou bravo facilmente, bem como manter tranquilidade frente a um inimigo e não demonstrar medo (embora esteja realmente apavorado). Dobre o valor de um Teste quando a situação estiver relacionada à dissimulação ou autocontrole (Força de Vontade, Carisma, Lábia, Intimidação e outros).",
+  },
+  // RIQUEZA
+  {
+    name: "Dívida de Gratidão",
+    type: "positive",
+    cost: 1,
+    description: "Você fez algo a alguém e acabou caindo nas suas graças. O Personagem pode se valer desta dívida para obter certos favores ou benefícios. 1 ponto: alguém lhe deve favores menores (desconto em armas, autorização jurídica, testemunho falso) e os atenderá somente se não vier a prejudicá-lo sob circunstância nenhuma.",
+  },
+  {
+    name: "Recursos e Dinheiro (US$2.000/mês)",
+    type: "positive",
+    cost: 1,
+    description: "Renda de até US$ 2.000 mensais. 1 ponto: US$2.000/mês; 2 pontos: US$4.000/mês; 3 pontos: US$8.000/mês; 4 pontos: US$16.000/mês; 5 pontos: US$32.000+/mês. Valores devem ser convertidos de acordo com a época e local da Campanha.",
+  },
+  {
+    name: "Recursos e Dinheiro (US$4.000/mês)",
+    type: "positive",
+    cost: 2,
+    description: "Renda de até US$ 4.000 mensais. 1 ponto: US$2.000/mês; 2 pontos: US$4.000/mês; 3 pontos: US$8.000/mês; 4 pontos: US$16.000/mês; 5 pontos: US$32.000+/mês. Valores devem ser convertidos de acordo com a época e local da Campanha.",
+  },
+  {
+    name: "Recursos e Dinheiro (US$8.000/mês)",
+    type: "positive",
+    cost: 3,
+    description: "Renda de até US$ 8.000 mensais. 1 ponto: US$2.000/mês; 2 pontos: US$4.000/mês; 3 pontos: US$8.000/mês; 4 pontos: US$16.000/mês; 5 pontos: US$32.000+/mês. Valores devem ser convertidos de acordo com a época e local da Campanha.",
+  },
+  {
+    name: "Recursos e Dinheiro (US$16.000/mês)",
+    type: "positive",
+    cost: 4,
+    description: "Renda de até US$ 16.000 mensais. 1 ponto: US$2.000/mês; 2 pontos: US$4.000/mês; 3 pontos: US$8.000/mês; 4 pontos: US$16.000/mês; 5 pontos: US$32.000+/mês. Valores devem ser convertidos de acordo com a época e local da Campanha.",
+  },
+  {
+    name: "Recursos e Dinheiro (US$32.000+/mês)",
+    type: "positive",
+    cost: 5,
+    description: "Renda de até US$ 32.000+ mensais. 1 ponto: US$2.000/mês; 2 pontos: US$4.000/mês; 3 pontos: US$8.000/mês; 4 pontos: US$16.000/mês; 5 pontos: US$32.000+/mês. Valores devem ser convertidos de acordo com a época e local da Campanha.",
+  },
+  // HABILIDADES ESPECIAIS
+  {
+    name: "Improvisador (nível 1)",
+    type: "positive",
+    cost: 1,
+    description: "É capaz de arquitetar pequenas experiências ciente dos resultados que elas podem causar. 1 ponto: pequenas improvisações básicas; 2 pontos: pode resolver problemas que exijam material específico que não possui, utilizando algo que adaptou (requer aprovação do Mestre e Teste de INT).",
+  },
+  {
+    name: "Improvisador (nível 2)",
+    type: "positive",
+    cost: 2,
+    description: "O Personagem pode resolver problemas que exijam material específico que não possui, utilizando algo que ele adaptou. Deve descrever ao Mestre como deseja fazer a improvisação e, se aprovado, fazer um Teste de INT para ver se o improviso deu certo.",
+  },
+  {
+    name: "Inocência (nível 1)",
+    type: "positive",
+    cost: 1,
+    description: "Tem uma habilidade quase sobrenatural de passar a impressão de inocente. Qualquer acusação sem testemunhas ou provas sólidas não cola. 2 pontos: até mesmo uma testemunha pode se convencer de que estava enganada (Teste Normal de Lábia).",
+  },
+  {
+    name: "Inocência (nível 2)",
+    type: "positive",
+    cost: 2,
+    description: "Mesmo uma testemunha pode se convencer de que estava enganada, mediante um Teste Normal de Manipulação (Lábia).",
+  },
+  {
+    name: "Noção Exata do Tempo",
+    type: "positive",
+    cost: 1,
+    description: "Seu relógio biológico é extremamente regular. O personagem é capaz de adivinhar o horário sem precisar consultar relógio, ver a posição do sol ou qualquer outro método. Permite calcular o tempo desde que ficou inconsciente, há quanto tempo está viajando e memorizar o timer de uma bomba.",
+  },
+  {
+    name: "Presença Invisível",
+    type: "positive",
+    cost: 2,
+    description: "Você tem a habilidade de não ser notado; as pessoas só percebem sua presença quando você se anuncia. O personagem não está realmente invisível, mas parece tão insignificante que as pessoas não prestam atenção nele, a menos que venha a se expor abertamente.",
+  },
+  {
+    name: "Saúde de Ferro",
+    type: "positive",
+    cost: 1,
+    description: "Seu personagem recupera 3 Pontos de Vida a cada dois dias, ao invés dos dois normais. Pontos Heroicos são restaurados à taxa de um por dia, ao invés de dois dias. Quando doente ou incapacitado, tem uma resistência natural a doenças.",
+  },
+  {
+    name: "Sedutor",
+    type: "positive",
+    cost: 1,
+    description: "Seu personagem recebe +25% em qualquer Teste de sedução, com sedução natural em qualquer membro do sexo oposto (e até mesmo pessoas do mesmo sexo).",
+  },
+  {
+    name: "Senso de Direção (nível 1)",
+    type: "positive",
+    cost: 1,
+    description: "Seu Personagem sabe se orientar mesmo sem bases visuais. Não precisa de bússola, Sol, estrelas ou outros pontos de referência para saber onde ficam os pontos cardeais. Sempre será capaz de lembrar-se de um caminho que tenha percorrido.",
+  },
+  {
+    name: "Senso de Direção (nível 2)",
+    type: "positive",
+    cost: 2,
+    description: "Igual ao nível 1, mas funciona em qualquer plano de existência em que o Personagem esteja, mesmo em Arcádia ou Spiritum.",
+  },
+  {
+    name: "Senso Numérico",
+    type: "positive",
+    cost: 1,
+    description: "O personagem é capaz de contar imediatamente grande quantidade de objetos, com mínima precisão. Pode contar cabeças de gado, cartas de baralho e coisas semelhantes apenas olhando.",
+  },
+  {
+    name: "Sentidos Aguçados",
+    type: "positive",
+    cost: 1,
+    description: "1 ponto por sentido (visão, audição, tato, olfato ou paladar). Em Testes de Percepção com esses sentidos, o Teste é efetuado com dificuldade reduzida (Difícil → Normal; Normal → Fácil; Fácil → sem rolar dados). Compre uma vez para cada sentido desejado.",
+  },
+  {
+    name: "Sono Leve",
+    type: "positive",
+    cost: 1,
+    description: "Seu personagem possui sono leve e pode acordar com qualquer barulho, movimento brusco ou agitação (e até dormindo). Muito bom para os que não querem ser pegos de surpresa durante o sono.",
+  },
+  {
+    name: "Sortudo",
+    type: "positive",
+    cost: 2,
+    description: "Este personagem é portador de uma sorte incrível. Uma vez por sessão de jogo, o jogador pode rolar novamente um dado que tenha falhado em um Teste (qualquer tipo de rolagem de dados).",
+  },
+  {
+    name: "Talento",
+    type: "positive",
+    cost: 1,
+    description: "1 ponto por Arte: todos os Testes Normais ligados a uma determinada Arte (Perícia) são feitos como Testes Fáceis; Testes Difíceis são feitos como Testes Normais. Atividades que sejam Perícias de Combate não se aplicam. Compre uma vez para cada Arte desejada.",
+  },
+  {
+    name: "Talento Matemático",
+    type: "positive",
+    cost: 1,
+    description: "O personagem tem extrema facilidade em lidar com números, conseguindo fazer cálculos complexos instantaneamente. Pode medir distâncias, contar pessoas em uma multidão, dizer o valor exato de uma maleta cheia de notas e fazer outros cálculos complexos com raciocínio rápido e preciso.",
+  },
+  {
+    name: "Voz de Comando",
+    type: "positive",
+    cost: 4,
+    description: "O personagem é dotado de uma inigualável capacidade de comando. Basta exclamar em voz alta a ordem para conduzir um grupo a desempenhar qualquer tarefa. Faz um Teste de Liderança (sem disputar contra a WILL dos demais); o Mestre define se será Fácil, Normal ou Difícil. Sucesso: TODOS seguem o mandato. Falha: revoltas e desacato das ordens.",
+  },
+  // NEGATIVOS
   {
     name: "Sono Pesado",
     type: "negative",
