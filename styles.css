@@ -30,6 +30,11 @@ body {
   min-height: 100%;
 }
 
+:root:has(dialog[open]),
+:root:has(dialog[open]) body {
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   position: relative;
@@ -846,26 +851,33 @@ input[readonly] {
 
 .register-dialog {
   width: min(420px, calc(100% - 24px));
+  max-height: min(90vh, 640px);
   padding: 0;
   border: none;
   background: transparent;
+  overscroll-behavior: contain;
 }
 
 .register-dialog::backdrop {
   background: rgba(0, 0, 0, 0.72);
 }
 
-.register-dialog form {
+.register-dialog form,
+.register-dialog .stack-form {
   padding: 22px;
   background:
     linear-gradient(180deg, rgba(48, 18, 18, 0.92), rgba(10, 10, 10, 0.98));
   border: 1px solid rgba(141, 106, 29, 0.56);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-heavy);
+  max-height: min(90vh, 640px);
+  overflow-y: auto;
 }
 
 .skill-catalog-dialog {
   width: min(820px, calc(100% - 24px));
+  max-height: min(90vh, 720px);
+  overscroll-behavior: contain;
 }
 
 .skill-catalog-content {
@@ -878,6 +890,8 @@ input[readonly] {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  height: min(90vh, 720px);
+  overflow: hidden;
 }
 
 .skill-catalog-search {
@@ -895,6 +909,129 @@ input[readonly] {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(216, 167, 45, 0.18);
+}
+
+.pericias-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-kit {
+  padding: 4px 14px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-input);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-kit:hover {
+  background: rgba(216, 167, 45, 0.12);
+}
+
+.kit-catalog-dialog .skill-catalog-body {
+  min-height: 0;
+  height: 55vh;
+}
+
+.kit-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.kit-description {
+  font-size: 13px;
+  color: rgba(243, 231, 204, 0.75);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.kit-cost-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  background: rgba(8, 8, 8, 0.45);
+  border: 1px solid rgba(141, 106, 29, 0.35);
+  border-radius: var(--radius-input);
+  padding: 10px 14px;
+}
+
+.kit-cost-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kit-cost-label {
+  font-size: 11px;
+  color: rgba(243, 231, 204, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kit-cost-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.kit-cost-value.kit-savings {
+  color: #6fcf6f;
+}
+
+.kit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kit-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  margin: 0 0 4px 0;
+}
+
+.kit-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(99, 82, 61, 0.2);
+}
+
+.kit-row:last-child {
+  border-bottom: none;
+}
+
+.kit-valor {
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.kit-warning {
+  font-size: 12px;
+  color: #e07070;
+  margin: 0;
+  padding: 6px 10px;
+  background: rgba(200, 80, 80, 0.1);
+  border: 1px solid rgba(200, 80, 80, 0.3);
+  border-radius: var(--radius-input);
 }
 
 .catalog-tab-bar {
@@ -932,11 +1069,14 @@ input[readonly] {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.2fr);
   gap: 14px;
-  min-height: 360px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .skill-catalog-list {
-  max-height: 50vh;
+  height: 100%;
+  max-height: none;
   overflow-y: auto;
   border: 1px solid rgba(99, 82, 61, 0.55);
   border-radius: var(--radius-input);
@@ -994,6 +1134,7 @@ input[readonly] {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
 }
 
 .skill-catalog-empty {
@@ -1075,8 +1216,63 @@ input[readonly] {
     grid-template-columns: 1fr;
   }
   .skill-catalog-list {
-    max-height: 30vh;
+    height: 30vh;
+    max-height: none;
   }
+}
+
+.combat-split-header {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  justify-content: center;
+}
+
+.combat-split-header span {
+  flex: 1;
+}
+
+.combat-split-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.combat-split-inputs {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.combat-split-inputs input {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  padding: 8px 4px;
+}
+
+.split-sep {
+  color: var(--muted);
+  flex-shrink: 0;
+  user-select: none;
+  font-weight: bold;
+  padding: 0 1px;
+}
+
+
+.combat-skills-group-header {
+  grid-column: 1 / -1;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid rgba(99, 82, 61, 0.35);
+  margin-top: 6px;
+}
+
+.combat-skills-group-header:first-child {
+  margin-top: 0;
 }
 
 .saving {
@@ -1234,6 +1430,10 @@ input[readonly] {
   .upgrade-row,
   .inventory-row {
     grid-template-columns: 1fr;
+  }
+
+  .combat-split-inputs {
+    justify-content: center;
   }
 
   .skill-points-field {

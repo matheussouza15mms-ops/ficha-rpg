@@ -1,0 +1,524 @@
+[
+  {
+    "id": "medico",
+    "name": "Médico",
+    "description": "Profissional de saúde com vasto conhecimento em anatomia, procedimentos médicos e primeiros socorros. Indispensável em situações críticas.",
+    "skillCost": 80,
+    "upgradeCost": 1,
+    "skills": [
+      { "nome": "Medicina (Primeiros Socorros)", "attributeKey": "INT", "valor": 40 },
+      { "nome": "Medicina (Cirurgia)",           "attributeKey": "DEX", "valor": 25 },
+      { "nome": "Ciências (Anatomia)",           "attributeKey": "INT", "valor": 15 },
+      { "nome": "Ciências (Psicologia)",         "attributeKey": "INT", "valor": 15 }
+    ],
+    "upgrades": [
+      { "nome": "Sábio",                  "type": "positive", "cost": 1 },
+      { "nome": "Biblioteca (2 subgrupos)", "type": "positive", "cost": 1 }
+    ]
+  },
+  {
+    "id": "advogado",
+    "name": "Advogado",
+    "description": "Especialista em direito e retórica, com amplo conhecimento em legislação e habilidade para negociar e convencer em qualquer situação.",
+    "skillCost": 75,
+    "upgradeCost": 0,
+    "skills": [
+      { "nome": "Ciências (Direito)",         "attributeKey": "INT", "valor": 40 },
+      { "nome": "Manipulação (Lábia)",        "attributeKey": "CAR", "valor": 20 },
+      { "nome": "Negociação (Burocracia)",    "attributeKey": "INT", "valor": 20 },
+      { "nome": "Manipulação (Impressionar)", "attributeKey": "CAR", "valor": 10 }
+    ],
+    "upgrades": [
+      { "nome": "Contatos e Aliados (1 aliado)", "type": "positive", "cost": 1 }
+    ]
+  },
+  {
+    "id": "bombeiro",
+    "name": "Bombeiro",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 },
+      { "nome": "Armas de Fogo (escolher uma)",       "attributeKey": "DEX",  "valor": 30 },
+      { "nome": "Mecânica",       "attributeKey": "DEX",  "valor": 30 },
+      { "nome": "Elétrica",       "attributeKey": "DEX",  "valor": 30 },
+      { "nome": "Condução (carro)",       "attributeKey": "AGI",  "valor": 30 },
+      { "nome": "Esportes (Natação)",       "attributeKey": "AGI",  "valor": 30 },
+      { "nome": "Esportes (Escalada)",       "attributeKey": "FR",  "valor": 30 },
+      { "nome": "Manipulação (Empatia)",       "attributeKey": "CAR",  "valor": 30 },
+      { "nome": "Medicina (Primeiros Socorros)",       "attributeKey": "INT",  "valor": 40 },
+      { "nome": "Ciências (Anatomia)",       "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciências (Química)",       "attributeKey": "INT",  "valor": 20 }
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "policial",
+    "name": "Policial",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Cassetete)",        "attributeKey": "DEX",  "valor": 30 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "ladrao",
+    "name": "Ladrão",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "cozinheiro",
+    "name": "Chefe de Cozinha",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "tecnico",
+    "name": "Assistente Técnico",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "enfermeiro",
+    "name": "Enfermeiro",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "socorrista",
+    "name": "Socorrista",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "veterinario",
+    "name": "Veterinário",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "engenheiro",
+    "name": "Engenheiro",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "policial",
+    "name": "Policial",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "segurança",
+    "name": "Segurança",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "programador",
+    "name": "Programador",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "professor",
+    "name": "Professor",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "politico",
+    "name": "Político",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "atleta",
+    "name": "Atleta",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "educador_fisico",
+    "name": "Educador Físico",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "construtor",
+    "name": "Construtor Civil",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "militar",
+    "name": "Militar",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "forca_especiais",
+    "name": "Forças Especiais",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "policial",
+    "name": "Policial",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "artista",
+    "name": "Artista",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "cientista",
+    "name": "Cientista",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "detetive",
+    "name": "Detetive",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "jornalista",
+    "name": "Jornalista",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "estudante",
+    "name": "Estudante",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "musico",
+    "name": "Músico",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "teologo",
+    "name": "Teólogo",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "policial",
+    "name": "Policial",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+    
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "fazendeiro",
+    "name": "Fazendeiro",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "vendedor",
+    "name": "Vendedor",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "motorista",
+    "name": "Motorista",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  },
+  {
+    "id": "empresario",
+    "name": "Empresário",
+    "description": "",
+    "skillCost": 220,
+    "upgradeCost": 3,
+    "skills": [
+      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
+     
+    ],
+    "upgrades": [
+      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+    ]
+  }
+]

@@ -15,7 +15,7 @@
     <header class="topbar">
       <div class="brand-copy">
         <h1>Ficha de Personagem</h1>
-        <p>Ficha de Personagem de RPG para o Sitema Deamon</p>
+        <p>Ficha de Personagem de RPG para o Sitema Daemon</p>
       </div>
 
       <aside id="sessionSummary" class="session-summary hidden" aria-live="polite"></aside>
@@ -161,8 +161,11 @@
 
             <article class="card panel">
               <div class="panel-header">
-                <div class="section-heading">
-                  <h2>Perícias</h2>
+                <div class="pericias-header-left">
+                  <div class="section-heading">
+                    <h2>Perícias</h2>
+                  </div>
+                  <button type="button" id="openKitCatalog" class="btn btn-kit hidden">Kits</button>
                 </div>
 
                 <label class="inline-field skill-points-field">
@@ -173,6 +176,17 @@
 
               <div id="skillsTable" class="skills-table"></div>
               <button type="button" id="addSkillRow" class="btn btn-add-row">+ Adicionar perícia</button>
+            </article>
+
+            <article class="card panel">
+              <div class="panel-header">
+                <div class="section-heading">
+                  <h2>Perícias de Combate</h2>
+                </div>
+              </div>
+
+              <div id="combatSkillsTable" class="skills-table combat-skills-table"></div>
+              <button type="button" id="addCombatSkillRow" class="btn btn-add-row">+ Adicionar perícia de combate</button>
             </article>
           </div>
         </section>
@@ -318,6 +332,24 @@
     </div>
   </dialog>
 
+  <dialog id="kitCatalogDialog" class="register-dialog skill-catalog-dialog kit-catalog-dialog">
+    <div class="skill-catalog-content">
+      <div class="section-heading">
+        <h2>Selecionar Kit de Profissão</h2>
+      </div>
+
+      <div class="skill-catalog-body">
+        <div id="kitCatalogList" class="skill-catalog-list" role="listbox" aria-label="Lista de kits"></div>
+        <div id="kitCatalogDetail" class="skill-catalog-detail kit-detail"></div>
+      </div>
+
+      <footer class="dialog-actions">
+        <button type="button" id="cancelKitCatalog" class="btn btn-secondary">Cancelar</button>
+        <button type="button" id="confirmKitCatalog" class="btn btn-primary" disabled>Aplicar Kit</button>
+      </footer>
+    </div>
+  </dialog>
+
   <dialog id="skillCatalogDialog" class="register-dialog skill-catalog-dialog">
     <div class="skill-catalog-content">
       <div class="section-heading">
@@ -334,6 +366,26 @@
       <footer class="dialog-actions">
         <button type="button" id="cancelSkillCatalog" class="btn btn-secondary">Cancelar</button>
         <button type="button" id="confirmSkillCatalog" class="btn btn-primary" disabled>Adicionar</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <dialog id="combatSkillCatalogDialog" class="register-dialog skill-catalog-dialog">
+    <div class="skill-catalog-content">
+      <div class="section-heading">
+        <h2>Adicionar Perícia de Combate</h2>
+      </div>
+
+      <input id="combatSkillCatalogSearch" type="search" placeholder="Buscar perícia de combate..." class="skill-catalog-search" autocomplete="off">
+
+      <div class="skill-catalog-body">
+        <div id="combatSkillCatalogList" class="skill-catalog-list" role="listbox" aria-label="Lista de perícias de combate"></div>
+        <div id="combatSkillCatalogDetail" class="skill-catalog-detail"></div>
+      </div>
+
+      <footer class="dialog-actions">
+        <button type="button" id="cancelCombatSkillCatalog" class="btn btn-secondary">Cancelar</button>
+        <button type="button" id="confirmCombatSkillCatalog" class="btn btn-primary" disabled>Adicionar</button>
       </footer>
     </div>
   </dialog>

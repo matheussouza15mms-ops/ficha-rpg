@@ -851,15 +851,6 @@ const SKILLS_CATALOG = [
     { name: "Veterinária", attribute: null },
   ]},
   { name: "Armadilhas", attribute: "PER", subgroups: [] },
-  { name: "Armas Brancas", attribute: "DEX", subgroups: [
-    "Facas", "Adagas", "Punhais", "Espadas", "Machados", "Chicotes",
-    "Manguais", "Maças", "Martelos", "Arcos", "Bestas", "Lanças",
-  ].map((n) => ({ name: n })) },
-  { name: "Armas de Fogo", attribute: "DEX", subgroups: [
-    "Revólveres", "Pistolas", "Armas Antigas", "Submetralhadoras", "Espingardas",
-    "Rifles de Caça", "Rifles Militares", "Metralhadoras", "Armas Pesadas",
-    "Granadas", "Armas Experimentais",
-  ].map((n) => ({ name: n })) },
   { name: "Artes", attribute: null, subgroups: [
     { name: "Arquitetura", attribute: "CAR" },
     { name: "Atuação", attribute: "CAR" },
@@ -989,6 +980,63 @@ const SKILLS_CATALOG = [
   ].map((n) => ({ name: n })) },
 ];
 
+const COMBAT_SKILLS_CATALOG = [
+  {
+    name: "Artes Marciais",
+    combatType: "melee",
+    combatGroup: "martial",
+    attribute1: "AGI",
+    attribute2: "AGI",
+    subgroups: [
+      { name: "Aikido",      attribute1: "AGI", attribute2: "AGI" },
+      { name: "Capoeira",    attribute1: "AGI", attribute2: "AGI" },
+      { name: "Hapkido",     attribute1: "AGI", attribute2: "AGI" },
+      { name: "Jiu-Jitsu",  attribute1: "AGI", attribute2: "AGI" },
+      { name: "Judô",        attribute1: "AGI", attribute2: "AGI" },
+      { name: "Karatê",      attribute1: "AGI", attribute2: "AGI" },
+      { name: "Krav Maga",   attribute1: "AGI", attribute2: "AGI" },
+      { name: "Kung Fu",     attribute1: "AGI", attribute2: "AGI" },
+      { name: "Luta Livre",  attribute1: "AGI", attribute2: "AGI" },
+      { name: "Muay Thai",   attribute1: "AGI", attribute2: "AGI" },
+      { name: "Ninjutsu",    attribute1: "AGI", attribute2: "AGI" },
+      { name: "Sambo",       attribute1: "AGI", attribute2: "AGI" },
+      { name: "Taekwondo",   attribute1: "AGI", attribute2: "AGI" },
+      { name: "Boxe",        attribute1: "DEX", attribute2: "DEX" },
+      { name: "Savate",      attribute1: "DEX", attribute2: "DEX" },
+    ],
+  },
+  {
+    name: "Brigas",
+    combatType: "melee",
+    combatGroup: "martial",
+    attribute1: "DEX",
+    attribute2: "DEX",
+    subgroups: [],
+  },
+  {
+    name: "Armas Brancas",
+    combatType: "melee",
+    combatGroup: "weapons",
+    attribute1: "DEX",
+    attribute2: "DEX",
+    subgroups: [
+      "Facas", "Adagas", "Punhais", "Espadas", "Machados", "Chicotes",
+      "Manguais", "Maças", "Martelos", "Arcos", "Bestas", "Lanças",
+    ].map((n) => ({ name: n, attribute1: "DEX", attribute2: "DEX" })),
+  },
+  {
+    name: "Armas de Fogo",
+    combatType: "firearm",
+    combatGroup: "firearm",
+    attribute: "DEX",
+    subgroups: [
+      "Revólveres", "Pistolas", "Armas Antigas", "Submetralhadoras", "Espingardas",
+      "Rifles de Caça", "Rifles Militares", "Metralhadoras", "Armas Pesadas",
+      "Granadas", "Armas Experimentais",
+    ].map((n) => ({ name: n })),
+  },
+];
+
 const identificationFields = [
   ["nome", "Personagem"],
   ["classeSocialProfissao", "Classe Social / Profissão"],
@@ -1028,8 +1076,11 @@ const state = {
   unsubscribeCharacters: null,
   lastRenderedSignature: null,
   skillCatalogSelection: null,
+  combatSkillCatalogSelection: null,
   upgradeCatalogSelection: null,
   upgradeCatalogTab: "positive",
+  kitCatalogSelection: null,
+  kits: [],
 };
 
 const elements = {};
@@ -1040,6 +1091,7 @@ async function bootApplication() {
   cacheElements();
   buildStaticForm();
   registerEvents();
+  loadKits();
   showLoading("Carregando aplicação...");
 
   try {
@@ -1084,6 +1136,14 @@ function cacheElements() {
   elements.skillsTable = document.getElementById("skillsTable");
   elements.addUpgradeRow = document.getElementById("addUpgradeRow");
   elements.addSkillRow = document.getElementById("addSkillRow");
+  elements.combatSkillsTable = document.getElementById("combatSkillsTable");
+  elements.addCombatSkillRow = document.getElementById("addCombatSkillRow");
+  elements.combatSkillCatalogDialog = document.getElementById("combatSkillCatalogDialog");
+  elements.combatSkillCatalogSearch = document.getElementById("combatSkillCatalogSearch");
+  elements.combatSkillCatalogList = document.getElementById("combatSkillCatalogList");
+  elements.combatSkillCatalogDetail = document.getElementById("combatSkillCatalogDetail");
+  elements.cancelCombatSkillCatalog = document.getElementById("cancelCombatSkillCatalog");
+  elements.confirmCombatSkillCatalog = document.getElementById("confirmCombatSkillCatalog");
   elements.inventoryFab = document.getElementById("inventoryFab");
   elements.inventoryDrawer = document.getElementById("inventoryDrawer");
   elements.closeInventoryDrawer = document.getElementById("closeInventoryDrawer");
@@ -1113,6 +1173,12 @@ function cacheElements() {
   elements.upgradeCatalogDetail = document.getElementById("upgradeCatalogDetail");
   elements.cancelUpgradeCatalog = document.getElementById("cancelUpgradeCatalog");
   elements.confirmUpgradeCatalog = document.getElementById("confirmUpgradeCatalog");
+  elements.openKitCatalog = document.getElementById("openKitCatalog");
+  elements.kitCatalogDialog = document.getElementById("kitCatalogDialog");
+  elements.kitCatalogList = document.getElementById("kitCatalogList");
+  elements.kitCatalogDetail = document.getElementById("kitCatalogDetail");
+  elements.cancelKitCatalog = document.getElementById("cancelKitCatalog");
+  elements.confirmKitCatalog = document.getElementById("confirmKitCatalog");
   elements.skillPointsField = document.querySelector(".skill-points-field");
   elements.saveSheetDialog = document.getElementById("saveSheetDialog");
   elements.saveSheetTitle = document.getElementById("saveSheetTitle");
@@ -1138,6 +1204,7 @@ function buildStaticForm() {
   buildGridFields(document.getElementById("statusGrid"), statusFields, true);
   buildUpgrades();
   buildSkillsTable();
+  buildCombatSkillsTable();
 }
 
 function buildAttributes() {
@@ -1300,6 +1367,125 @@ function createSkillRowElement({
   return row;
 }
 
+function buildCombatSkillsTable() {
+  const character = getActiveCharacter();
+  let rows = character?.dynamicCombatSkills || [createCombatSkillPlaceholder()];
+
+  elements.combatSkillsTable.innerHTML = "";
+
+  const header = document.createElement("div");
+  header.className = "skills-row skills-header";
+  header.innerHTML = `
+    <span>Perícia</span>
+    <span>Atributo</span>
+    <span>Valor</span>
+    <div class="combat-split-header">
+      <span>Atk%</span>
+      <div class="split-sep">/</div>
+      <span>Def%</span>
+    </div>
+  `;
+  elements.combatSkillsTable.appendChild(header);
+
+  const groupOrder = { martial: 0, weapons: 1, firearm: 2 };
+  const sorted = [...rows].sort((a, b) => {
+    const ga = groupOrder[a.combatGroup] ?? 99;
+    const gb = groupOrder[b.combatGroup] ?? 99;
+    return ga - gb;
+  });
+
+  let lastGroup = null;
+  sorted.forEach((row) => {
+    if (row.isPlaceholder) {
+      return;
+    }
+    if (row.combatGroup !== lastGroup) {
+      const groupLabels = { martial: "Lutas & Artes Marciais", weapons: "Armas Brancas", firearm: "Armas de Fogo" };
+      const label = groupLabels[row.combatGroup];
+      if (label) {
+        const divider = document.createElement("div");
+        divider.className = "combat-skills-group-header";
+        divider.textContent = label;
+        elements.combatSkillsTable.appendChild(divider);
+      }
+      lastGroup = row.combatGroup;
+    }
+    elements.combatSkillsTable.appendChild(createCombatSkillRowElement(row));
+  });
+}
+
+function createCombatSkillRowElement(row) {
+  if (row.combatType === "firearm") {
+    return createCombatSkillFirearmRowElement(row);
+  }
+  return createCombatSkillMeleeRowElement(row);
+}
+
+function createCombatSkillMeleeRowElement({ id, combatGroup, isPlaceholder }) {
+  const el = document.createElement("div");
+  el.className = "skills-row combat-melee-row dynamic-row";
+  el.dataset.dynamicType = "combatSkill";
+  el.dataset.rowId = id;
+  el.dataset.combatGroup = combatGroup || "martial";
+  el.dataset.combatType = "melee";
+  el.dataset.placeholder = isPlaceholder ? "true" : "false";
+  el.innerHTML = `
+    <label class="skill-cell skill-name">
+      <input type="text" data-field="dynamicCombatSkill:${id}:nome" aria-label="Nome da perícia de combate">
+    </label>
+    <div class="skill-cell skill-number combat-split-cell">
+      <div class="combat-split-inputs">
+        <input type="text" inputmode="numeric" data-field="dynamicCombatSkill:${id}:atributo1" aria-label="Atributo de ataque">
+        <div class="split-sep">/</div>
+        <input type="text" inputmode="numeric" data-field="dynamicCombatSkill:${id}:atributo2" aria-label="Atributo de defesa">
+      </div>
+    </div>
+    <div class="skill-cell skill-number combat-split-cell">
+      <div class="combat-split-inputs">
+        <input type="text" inputmode="numeric" data-field="dynamicCombatSkill:${id}:atk" aria-label="Valor de ataque">
+        <div class="split-sep">/</div>
+        <input type="text" inputmode="numeric" data-field="dynamicCombatSkill:${id}:def" aria-label="Valor de defesa">
+      </div>
+    </div>
+    <div class="skill-cell skill-number combat-split-cell">
+      <div class="combat-split-inputs">
+        <input type="text" data-field="dynamicCombatSkill:${id}:atkTeste" readonly>
+        <div class="split-sep">/</div>
+        <input type="text" data-field="dynamicCombatSkill:${id}:defTeste" readonly>
+      </div>
+    </div>
+  `;
+  return el;
+}
+
+function createCombatSkillFirearmRowElement({ id, isPlaceholder }) {
+  const el = document.createElement("div");
+  el.className = "skills-row dynamic-row";
+  el.dataset.dynamicType = "combatSkill";
+  el.dataset.rowId = id;
+  el.dataset.combatGroup = "firearm";
+  el.dataset.combatType = "firearm";
+  el.dataset.placeholder = isPlaceholder ? "true" : "false";
+  el.innerHTML = `
+    <label class="skill-cell skill-name">
+      <input type="text" data-field="dynamicCombatSkill:${id}:nome" aria-label="Nome da arma de fogo">
+    </label>
+    <label class="skill-cell skill-number">
+      <span>Atributo</span>
+      <input type="text" inputmode="numeric" data-field="dynamicCombatSkill:${id}:atributo">
+    </label>
+    <label class="skill-cell skill-number">
+      <span>Valor</span>
+      <input type="text" inputmode="numeric" data-field="dynamicCombatSkill:${id}:valor">
+    </label>
+    <label class="skill-cell skill-number">
+      <span>Teste %</span>
+      <input type="text" data-field="dynamicCombatSkill:${id}:teste" readonly>
+    </label>
+  `;
+  return el;
+}
+
 function registerEvents() {
   elements.loginForm.addEventListener("submit", handleLogin);
   elements.openRegisterFromLogin.addEventListener("click", openRegisterDialog);
@@ -1333,11 +1519,20 @@ function registerEvents() {
     renderUpgradeCatalogList(elements.upgradeCatalogSearch.value);
     renderUpgradeCatalogDetail();
   });
+  elements.openKitCatalog.addEventListener("click", openKitCatalogDialog);
+  elements.cancelKitCatalog.addEventListener("click", () => elements.kitCatalogDialog.close());
+  elements.confirmKitCatalog.addEventListener("click", confirmKitCatalogSelection);
   elements.addSkillRow.addEventListener("click", openSkillCatalogDialog);
   elements.cancelSkillCatalog.addEventListener("click", () => elements.skillCatalogDialog.close());
   elements.confirmSkillCatalog.addEventListener("click", confirmSkillCatalogSelection);
   elements.skillCatalogSearch.addEventListener("input", (event) => {
     renderSkillCatalogList(event.target.value);
+  });
+  elements.addCombatSkillRow.addEventListener("click", openCombatSkillCatalogDialog);
+  elements.cancelCombatSkillCatalog.addEventListener("click", () => elements.combatSkillCatalogDialog.close());
+  elements.confirmCombatSkillCatalog.addEventListener("click", confirmCombatSkillCatalogSelection);
+  elements.combatSkillCatalogSearch.addEventListener("input", (event) => {
+    renderCombatSkillCatalogList(event.target.value);
   });
   elements.inventoryFab.addEventListener("click", openInventoryDrawer);
   elements.closeInventoryDrawer.addEventListener("click", closeInventoryDrawer);
@@ -1647,8 +1842,14 @@ function handleDynamicRowFocusOut(event) {
     return;
   }
 
-  const hasContent = Array.from(row.querySelectorAll("[data-field]:not([readonly])"))
-    .some((field) => String(field.value || "").trim() !== "");
+  let hasContent;
+  if (row.dataset.dynamicType === "combatSkill") {
+    const nomeInput = row.querySelector('[data-field$=":nome"]');
+    hasContent = Boolean(nomeInput && String(nomeInput.value || "").trim());
+  } else {
+    hasContent = Array.from(row.querySelectorAll("[data-field]:not([readonly])"))
+      .some((field) => String(field.value || "").trim() !== "");
+  }
 
   if (hasContent) {
     if (row.dataset.placeholder === "true") {
@@ -1979,10 +2180,13 @@ function rebuildDynamicSections() {
   ensureDynamicRowsForActiveCharacter();
   buildUpgrades();
   buildSkillsTable();
+  buildCombatSkillsTable();
   bindFieldEvents(elements.upgradesGrid);
   bindFieldEvents(elements.skillsTable);
+  bindFieldEvents(elements.combatSkillsTable);
   bindDynamicRowEvents(elements.upgradesGrid);
   bindDynamicRowEvents(elements.skillsTable);
+  bindDynamicRowEvents(elements.combatSkillsTable);
 }
 
 function hydrateForm() {
@@ -2011,6 +2215,7 @@ function recalculateDerivedFields() {
   recalculateStatusFields();
   recalculateSkillPoints();
   recalculateSkills();
+  recalculateCombatSkills();
   updateAttributePointsDisplay();
   updateUpgradePoolDisplay();
 }
@@ -2041,7 +2246,11 @@ function applySheetMode() {
     elements.skillPointsField.classList.toggle("hidden", isPlay);
   }
   elements.addSkillRow.classList.toggle("hidden", isPlay);
+  elements.addCombatSkillRow.classList.toggle("hidden", isPlay);
   elements.addUpgradeRow.classList.toggle("hidden", isPlay);
+  if (elements.openKitCatalog) {
+    elements.openKitCatalog.classList.toggle("hidden", !isCreation);
+  }
 
   attributeDefinitions.forEach(({ key }) => {
     setFieldReadonly(`${key}Valor`, isPlay || isEvolution);
@@ -2050,6 +2259,12 @@ function applySheetMode() {
   document.querySelectorAll('#skillsTable input[data-field]').forEach((input) => {
     const f = input.dataset.field || "";
     if (f.endsWith(":teste")) return;
+    input.toggleAttribute("readonly", isPlay);
+  });
+
+  document.querySelectorAll('#combatSkillsTable input[data-field]').forEach((input) => {
+    const f = input.dataset.field || "";
+    if (f.endsWith(":atkTeste") || f.endsWith(":defTeste") || f.endsWith(":teste")) return;
     input.toggleAttribute("readonly", isPlay);
   });
 
@@ -2148,8 +2363,17 @@ function recalculateSkillPoints() {
   const character = getActiveCharacter();
   const spent = (character?.dynamicSkills || [])
     .reduce((sum, row) => sum + (parseInt(row.valor || "0", 10) || 0), 0);
+  const combatSpent = (character?.dynamicCombatSkills || [])
+    .filter((row) => !row.isPlaceholder)
+    .reduce((sum, row) => {
+      if (row.combatType === "firearm") {
+        return sum + (parseInt(row.valor || "0", 10) || 0);
+      }
+      return sum + (parseInt(row.atk || "0", 10) || 0) + (parseInt(row.def || "0", 10) || 0);
+    }, 0);
+  const kitCredit = character?.kitSkillCredit || 0;
 
-  setFieldValue("periciasPontos", String(base - spent));
+  setFieldValue("periciasPontos", String(base - spent - combatSpent + kitCredit));
 }
 
 function recalculateAttributes() {
@@ -2217,6 +2441,53 @@ function recalculateSkillFields(attributeField, valueField, testField) {
   setFieldValue(testField, String(attribute + value));
 }
 
+function recalculateCombatSkills() {
+  const character = getActiveCharacter();
+  const rows = character?.dynamicCombatSkills || [];
+
+  rows.forEach((row) => {
+    if (row.combatType === "firearm") {
+      recalculateCombatFirearmFields(
+        `dynamicCombatSkill:${row.id}:atributo`,
+        `dynamicCombatSkill:${row.id}:valor`,
+        `dynamicCombatSkill:${row.id}:teste`,
+      );
+    } else {
+      recalculateCombatMeleeFields(
+        `dynamicCombatSkill:${row.id}:atributo1`,
+        `dynamicCombatSkill:${row.id}:atributo2`,
+        `dynamicCombatSkill:${row.id}:atk`,
+        `dynamicCombatSkill:${row.id}:def`,
+        `dynamicCombatSkill:${row.id}:atkTeste`,
+        `dynamicCombatSkill:${row.id}:defTeste`,
+      );
+    }
+  });
+}
+
+function recalculateCombatMeleeFields(attr1Field, attr2Field, atkField, defField, atkTesteField, defTesteField) {
+  const attr1 = parseInt(getFieldValue(attr1Field) || "0", 10) || 0;
+  const attr2 = parseInt(getFieldValue(attr2Field) || "0", 10) || 0;
+  const atk = parseInt(getFieldValue(atkField) || "0", 10) || 0;
+  const def = parseInt(getFieldValue(defField) || "0", 10) || 0;
+  setFieldValue(atkTesteField, String(attr1 + atk));
+  setFieldValue(defTesteField, String(attr2 + def));
+}
+
+function recalculateCombatFirearmFields(attrField, valorField, testeField) {
+  const attrRaw = getFieldValue(attrField);
+  const valorRaw = getFieldValue(valorField);
+
+  if (attrRaw === "" && valorRaw === "") {
+    setFieldValue(testeField, "");
+    return;
+  }
+
+  const attr = parseInt(attrRaw || "0", 10) || 0;
+  const valor = parseInt(valorRaw || "0", 10) || 0;
+  setFieldValue(testeField, String(Math.floor((attr + valor) / 2)));
+}
+
 function addDynamicRow(type) {
   if (!hasActiveCharacter()) {
     return;
@@ -2255,13 +2526,174 @@ function addDynamicRow(type) {
 }
 
 function focusDynamicRow(type, rowId) {
-  const selector = type === "upgrade"
-    ? `[data-field="dynamicUpgrade:${rowId}:nome"]`
-    : `[data-field="dynamicSkill:${rowId}:nome"]`;
+  let selector;
+  if (type === "upgrade") {
+    selector = `[data-field="dynamicUpgrade:${rowId}:nome"]`;
+  } else if (type === "combatSkill") {
+    selector = `[data-field="dynamicCombatSkill:${rowId}:nome"]`;
+  } else {
+    selector = `[data-field="dynamicSkill:${rowId}:nome"]`;
+  }
   const field = document.querySelector(selector);
   if (field) {
     field.focus();
   }
+}
+
+async function loadKits() {
+  try {
+    const response = await fetch("kits.json");
+    state.kits = await response.json();
+  } catch {
+    state.kits = [];
+  }
+}
+
+function openKitCatalogDialog() {
+  if (!hasActiveCharacter()) return;
+  state.kitCatalogSelection = null;
+  renderKitCatalogList();
+  renderKitCatalogDetail();
+  elements.confirmKitCatalog.disabled = true;
+  elements.kitCatalogDialog.showModal();
+}
+
+function renderKitCatalogList() {
+  elements.kitCatalogList.innerHTML = "";
+  if (!state.kits.length) {
+    const empty = document.createElement("div");
+    empty.className = "skill-catalog-empty";
+    empty.textContent = "Nenhum kit disponível.";
+    elements.kitCatalogList.appendChild(empty);
+    return;
+  }
+  state.kits.forEach((kit) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "skill-catalog-item";
+    item.dataset.kitId = kit.id;
+    if (state.kitCatalogSelection?.id === kit.id) item.classList.add("selected");
+    item.innerHTML = `<span class="skill-catalog-item-name">${kit.name}</span>`;
+    item.addEventListener("click", () => selectKit(kit));
+    elements.kitCatalogList.appendChild(item);
+  });
+}
+
+function selectKit(kit) {
+  state.kitCatalogSelection = kit;
+  elements.kitCatalogList.querySelectorAll(".skill-catalog-item").forEach((el) => {
+    el.classList.toggle("selected", el.dataset.kitId === kit.id);
+  });
+  renderKitCatalogDetail();
+}
+
+function renderKitCatalogDetail() {
+  const kit = state.kitCatalogSelection;
+  const detail = elements.kitCatalogDetail;
+
+  if (!kit) {
+    detail.innerHTML = `<p class="skill-catalog-empty">Selecione um kit à esquerda</p>`;
+    elements.confirmKitCatalog.disabled = true;
+    return;
+  }
+
+  const skillAvailable = parseInt(getFieldValue("periciasPontos") || "0", 10) || 0;
+  const upgradeAvailable = computeUpgradePoolRemaining();
+  const canAfford = skillAvailable >= kit.skillCost && upgradeAvailable >= kit.upgradeCost;
+
+  const skillsHtml = (kit.skills || []).map((sk) => `
+    <div class="kit-row">
+      <span>${sk.nome}</span>
+      <span class="kit-valor">${sk.valor}%</span>
+    </div>
+  `).join("");
+
+  const upgradesHtml = (kit.upgrades || []).map((up) => `
+    <div class="kit-row">
+      <span>${up.nome}</span>
+      <span class="kit-valor cost-positive">−${up.cost}</span>
+    </div>
+  `).join("");
+
+  detail.innerHTML = `
+    <h3 class="skill-catalog-title">${escapeHtml(kit.name)}</h3>
+    <p class="kit-description">${escapeHtml(kit.description)}</p>
+    <div class="kit-cost-grid">
+      <div class="kit-cost-item">
+        <span class="kit-cost-label">Custo em Perícias</span>
+        <span class="kit-cost-value${skillAvailable < kit.skillCost ? " depleted" : ""}">${kit.skillCost} pts</span>
+      </div>
+      <div class="kit-cost-item">
+        <span class="kit-cost-label">Custo em Aprimoramentos</span>
+        <span class="kit-cost-value${upgradeAvailable < kit.upgradeCost ? " depleted" : ""}">${kit.upgradeCost} pts</span>
+      </div>
+    </div>
+    ${skillsHtml ? `
+    <div class="kit-section">
+      <h4 class="kit-section-title">Perícias incluídas</h4>
+      ${skillsHtml}
+    </div>` : ""}
+    ${upgradesHtml ? `
+    <div class="kit-section">
+      <h4 class="kit-section-title">Aprimoramentos incluídos</h4>
+      ${upgradesHtml}
+    </div>` : ""}
+    ${!canAfford ? `<p class="kit-warning">Pontos insuficientes para aplicar este kit.</p>` : ""}
+  `;
+
+  elements.confirmKitCatalog.disabled = !canAfford;
+}
+
+function confirmKitCatalogSelection() {
+  const kit = state.kitCatalogSelection;
+  if (!kit || !hasActiveCharacter()) return;
+
+  const skillAvailable = parseInt(getFieldValue("periciasPontos") || "0", 10) || 0;
+  const upgradeAvailable = computeUpgradePoolRemaining();
+  if (skillAvailable < kit.skillCost || upgradeAvailable < kit.upgradeCost) return;
+
+  const skillsSum = (kit.skills || []).reduce((s, sk) => s + sk.valor, 0);
+  const upgradesPositiveSum = (kit.upgrades || [])
+    .filter((up) => up.type === "positive")
+    .reduce((s, up) => s + up.cost, 0);
+
+  mutateActiveCharacter((character) => {
+    character.kitSkillCredit = (character.kitSkillCredit || 0) + (skillsSum - kit.skillCost);
+    character.kitUpgradeCredit = (character.kitUpgradeCredit || 0) + (upgradesPositiveSum - kit.upgradeCost);
+
+    character.dynamicSkills = (character.dynamicSkills || []).filter((e) => !e.isPlaceholder);
+    (kit.skills || []).forEach((skill) => {
+      const attrValue = skill.attributeKey ? getAttributeTesteValue(skill.attributeKey) : 0;
+      character.dynamicSkills.push({
+        id: crypto.randomUUID(),
+        nome: skill.nome,
+        atributo: String(attrValue),
+        valor: String(skill.valor),
+        teste: String(attrValue + skill.valor),
+        isPlaceholder: false,
+      });
+    });
+
+    character.dynamicUpgrades = (character.dynamicUpgrades || []).filter((e) => !e.isPlaceholder);
+    (kit.upgrades || []).forEach((upgrade) => {
+      const signedCost = upgrade.type === "positive" ? -upgrade.cost : upgrade.cost;
+      character.dynamicUpgrades.push({
+        id: crypto.randomUUID(),
+        nome: upgrade.nome,
+        valor: String(signedCost),
+        isPlaceholder: false,
+      });
+    });
+
+    character.classeSocialProfissao = kit.name;
+  });
+
+  markCharacterDirty();
+  rebuildDynamicSections();
+  hydrateForm();
+  recalculateDerivedFields();
+  applySheetMode();
+  elements.kitCatalogDialog.close();
 }
 
 function openUpgradeCatalogDialog() {
@@ -2381,7 +2813,8 @@ function computeUpgradePoolRemaining() {
     else if (v > 0) negativeBonusUncapped += v;
   });
   const negativeBonus = Math.min(UPGRADE_NEGATIVE_BONUS_CAP, negativeBonusUncapped);
-  return UPGRADE_BASE_POOL + negativeBonus - positiveSpent;
+  const kitCredit = character?.kitUpgradeCredit || 0;
+  return UPGRADE_BASE_POOL + negativeBonus - positiveSpent + kitCredit;
 }
 
 function updateUpgradePoolDisplay() {
@@ -2605,11 +3038,279 @@ function confirmSkillCatalogSelection() {
   elements.skillCatalogDialog.close();
 }
 
+function openCombatSkillCatalogDialog() {
+  if (!hasActiveCharacter()) return;
+
+  state.combatSkillCatalogSelection = null;
+  elements.combatSkillCatalogSearch.value = "";
+  renderCombatSkillCatalogList("");
+  elements.combatSkillCatalogDetail.innerHTML = `<p class="skill-catalog-empty">Selecione uma perícia à esquerda</p>`;
+  elements.confirmCombatSkillCatalog.disabled = true;
+  elements.combatSkillCatalogDialog.showModal();
+  setTimeout(() => elements.combatSkillCatalogSearch.focus(), 50);
+}
+
+function renderCombatSkillCatalogList(filter) {
+  const lower = (filter || "").trim().toLowerCase();
+  const matches = COMBAT_SKILLS_CATALOG.filter((skill) => {
+    if (!lower) return true;
+    if (skill.name.toLowerCase().includes(lower)) return true;
+    return (skill.subgroups || []).some((sg) => sg.name.toLowerCase().includes(lower));
+  });
+
+  elements.combatSkillCatalogList.innerHTML = "";
+
+  if (!matches.length) {
+    elements.combatSkillCatalogList.innerHTML = `<p class="skill-catalog-empty">Nenhuma perícia encontrada</p>`;
+    return;
+  }
+
+  matches.forEach((skill) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "skill-catalog-item";
+    item.dataset.skillName = skill.name;
+    item.textContent = skill.name;
+    item.addEventListener("click", () => selectCombatSkillFromCatalog(skill));
+    elements.combatSkillCatalogList.appendChild(item);
+  });
+}
+
+function selectCombatSkillFromCatalog(skill) {
+  state.combatSkillCatalogSelection = {
+    skill,
+    subgroup: (skill.subgroups && skill.subgroups[0]) || null,
+    atk: "",
+    def: "",
+    valor: "",
+  };
+  elements.combatSkillCatalogList.querySelectorAll(".skill-catalog-item").forEach((el) => {
+    el.classList.toggle("selected", el.dataset.skillName === skill.name);
+  });
+  renderCombatSkillCatalogDetail();
+  elements.confirmCombatSkillCatalog.disabled = false;
+}
+
+function renderCombatSkillCatalogDetail() {
+  const sel = state.combatSkillCatalogSelection;
+  const detail = elements.combatSkillCatalogDetail;
+
+  if (!sel?.skill) {
+    detail.innerHTML = `<p class="skill-catalog-empty">Selecione uma perícia à esquerda</p>`;
+    return;
+  }
+
+  const skill = sel.skill;
+  const isFirearm = skill.combatType === "firearm";
+  const hasSubgroups = (skill.subgroups || []).length > 0;
+  const subgroup = sel.subgroup;
+
+  if (isFirearm) {
+    const attrLabel = skill.attribute || "";
+    const attrValue = getAttributeTesteValue(attrLabel);
+    const valor = parseInt(sel.valor || "0", 10) || 0;
+    const teste = Math.floor((attrValue + valor) / 2);
+
+    let subgroupHTML = "";
+    if (hasSubgroups) {
+      const options = (skill.subgroups || []).map((sg) => {
+        const selectedAttr = sg.name === subgroup?.name ? "selected" : "";
+        return `<option value="${sg.name}" ${selectedAttr}>${sg.name}</option>`;
+      }).join("");
+      subgroupHTML = `
+        <label class="field">
+          <span>Subgrupo</span>
+          <select id="combatSkillCatalogSubgroup">${options}</select>
+        </label>
+      `;
+    }
+
+    detail.innerHTML = `
+      <h3 class="skill-catalog-title">${skill.name}</h3>
+      ${subgroupHTML}
+      <div class="skill-catalog-row">
+        <label class="field"><span>Atributo</span><input type="text" value="${attrLabel || "—"}" readonly></label>
+        <label class="field"><span>Base do atributo</span><input type="text" value="${attrValue}" readonly></label>
+      </div>
+      <label class="field">
+        <span>Valor (pontos)</span>
+        <input type="text" inputmode="numeric" id="combatCatalogValor" value="${sel.valor}" placeholder="0">
+      </label>
+      <div class="skill-catalog-row">
+        <label class="field"><span>Teste %</span><input type="text" id="combatCatalogTeste" value="${teste}" readonly></label>
+      </div>
+    `;
+
+    if (hasSubgroups) {
+      document.getElementById("combatSkillCatalogSubgroup").addEventListener("change", (event) => {
+        const newSub = (skill.subgroups || []).find((sg) => sg.name === event.target.value);
+        sel.subgroup = newSub || null;
+        renderCombatSkillCatalogDetail();
+      });
+    }
+
+    const valorInput = document.getElementById("combatCatalogValor");
+    valorInput.addEventListener("input", (event) => {
+      sel.valor = event.target.value;
+      const v = parseInt(event.target.value || "0", 10) || 0;
+      const testeInput = document.getElementById("combatCatalogTeste");
+      if (testeInput) testeInput.value = String(Math.floor((attrValue + v) / 2));
+    });
+    valorInput.focus();
+    return;
+  }
+
+  // Melee
+  const attr1Label = (subgroup && subgroup.attribute1) || skill.attribute1 || "";
+  const attr2Label = (subgroup && subgroup.attribute2) || skill.attribute2 || "";
+  const attr1Value = getAttributeTesteValue(attr1Label);
+  const attr2Value = getAttributeTesteValue(attr2Label);
+  const atk = parseInt(sel.atk || "0", 10) || 0;
+  const def = parseInt(sel.def || "0", 10) || 0;
+  const atkTeste = attr1Value + atk;
+  const defTeste = attr2Value + def;
+
+  let subgroupHTML = "";
+  if (hasSubgroups) {
+    const options = (skill.subgroups || []).map((sg) => {
+      const selectedAttr = sg.name === subgroup?.name ? "selected" : "";
+      const attrSuffix = (sg.attribute1 && sg.attribute2) ? ` (${sg.attribute1}/${sg.attribute2})` : "";
+      return `<option value="${sg.name}" ${selectedAttr}>${sg.name}${attrSuffix}</option>`;
+    }).join("");
+    subgroupHTML = `
+      <label class="field">
+        <span>Subgrupo</span>
+        <select id="combatSkillCatalogSubgroup">${options}</select>
+      </label>
+    `;
+  }
+
+  detail.innerHTML = `
+    <h3 class="skill-catalog-title">${skill.name}</h3>
+    ${subgroupHTML}
+    <div class="skill-catalog-row">
+      <label class="field"><span>Atributo Atk</span><input type="text" value="${attr1Label || "—"}" readonly></label>
+      <label class="field"><span>Base Atk</span><input type="text" value="${attr1Value}" readonly></label>
+    </div>
+    <div class="skill-catalog-row">
+      <label class="field"><span>Atributo Def</span><input type="text" value="${attr2Label || "—"}" readonly></label>
+      <label class="field"><span>Base Def</span><input type="text" value="${attr2Value}" readonly></label>
+    </div>
+    <div class="skill-catalog-row">
+      <label class="field">
+        <span>Valor Atk</span>
+        <input type="text" inputmode="numeric" id="combatCatalogAtk" value="${sel.atk}" placeholder="0">
+      </label>
+      <label class="field">
+        <span>Valor Def</span>
+        <input type="text" inputmode="numeric" id="combatCatalogDef" value="${sel.def}" placeholder="0">
+      </label>
+    </div>
+    <div class="skill-catalog-row">
+      <label class="field"><span>Atk%</span><input type="text" id="combatCatalogAtkTeste" value="${atkTeste}" readonly></label>
+      <label class="field"><span>Def%</span><input type="text" id="combatCatalogDefTeste" value="${defTeste}" readonly></label>
+    </div>
+  `;
+
+  if (hasSubgroups) {
+    document.getElementById("combatSkillCatalogSubgroup").addEventListener("change", (event) => {
+      const newSub = (skill.subgroups || []).find((sg) => sg.name === event.target.value);
+      sel.subgroup = newSub || null;
+      renderCombatSkillCatalogDetail();
+    });
+  }
+
+  const atkInput = document.getElementById("combatCatalogAtk");
+  const defInput = document.getElementById("combatCatalogDef");
+
+  atkInput.addEventListener("input", (event) => {
+    sel.atk = event.target.value;
+    const v = parseInt(event.target.value || "0", 10) || 0;
+    const testeEl = document.getElementById("combatCatalogAtkTeste");
+    if (testeEl) testeEl.value = String(attr1Value + v);
+  });
+
+  defInput.addEventListener("input", (event) => {
+    sel.def = event.target.value;
+    const v = parseInt(event.target.value || "0", 10) || 0;
+    const testeEl = document.getElementById("combatCatalogDefTeste");
+    if (testeEl) testeEl.value = String(attr2Value + v);
+  });
+
+  atkInput.focus();
+}
+
+function confirmCombatSkillCatalogSelection() {
+  const sel = state.combatSkillCatalogSelection;
+  if (!sel?.skill || !hasActiveCharacter()) return;
+
+  const skill = sel.skill;
+  const subgroup = sel.subgroup;
+  const isFirearm = skill.combatType === "firearm";
+  const displayName = subgroup ? `${skill.name} (${subgroup.name})` : skill.name;
+  const rowId = crypto.randomUUID();
+
+  mutateActiveCharacter((character) => {
+    character.dynamicCombatSkills = (character.dynamicCombatSkills || [])
+      .filter((entry) => !entry.isPlaceholder);
+
+    if (isFirearm) {
+      const attrLabel = skill.attribute || "";
+      const attrValue = getAttributeTesteValue(attrLabel);
+      const valorNum = parseInt(sel.valor || "0", 10) || 0;
+      character.dynamicCombatSkills.push({
+        id: rowId,
+        nome: displayName,
+        combatType: "firearm",
+        combatGroup: skill.combatGroup || "firearm",
+        atributo: String(attrValue),
+        valor: String(valorNum),
+        teste: String(Math.floor((attrValue + valorNum) / 2)),
+        isPlaceholder: false,
+      });
+    } else {
+      const attr1Label = (subgroup && subgroup.attribute1) || skill.attribute1 || "";
+      const attr2Label = (subgroup && subgroup.attribute2) || skill.attribute2 || "";
+      const attr1Value = getAttributeTesteValue(attr1Label);
+      const attr2Value = getAttributeTesteValue(attr2Label);
+      const atkNum = parseInt(sel.atk || "0", 10) || 0;
+      const defNum = parseInt(sel.def || "0", 10) || 0;
+      character.dynamicCombatSkills.push({
+        id: rowId,
+        nome: displayName,
+        combatType: "melee",
+        combatGroup: skill.combatGroup || "martial",
+        atributo1: String(attr1Value),
+        atributo2: String(attr2Value),
+        atk: String(atkNum),
+        def: String(defNum),
+        atkTeste: String(attr1Value + atkNum),
+        defTeste: String(attr2Value + defNum),
+        isPlaceholder: false,
+      });
+    }
+
+    character.dynamicCombatSkills.push(createCombatSkillPlaceholder());
+  });
+
+  markCharacterDirty();
+  rebuildDynamicSections();
+  hydrateForm();
+  recalculateDerivedFields();
+  updateEvolveButtonVisibility();
+  elements.combatSkillCatalogDialog.close();
+}
+
 function convertPlaceholderRow(row) {
   mutateActiveCharacter((character) => {
-    const collection = row.dataset.dynamicType === "upgrade"
-      ? (character.dynamicUpgrades || [])
-      : (character.dynamicSkills || []);
+    let collection;
+    if (row.dataset.dynamicType === "upgrade") {
+      collection = character.dynamicUpgrades || [];
+    } else if (row.dataset.dynamicType === "combatSkill") {
+      collection = character.dynamicCombatSkills || [];
+    } else {
+      collection = character.dynamicSkills || [];
+    }
     const item = collection.find((entry) => entry.id === row.dataset.rowId);
     if (item) {
       item.isPlaceholder = false;
@@ -2631,6 +3332,15 @@ function removeDynamicRow(row) {
       return;
     }
 
+    if (row.dataset.dynamicType === "combatSkill") {
+      character.dynamicCombatSkills = (character.dynamicCombatSkills || [])
+        .filter((entry) => entry.id !== row.dataset.rowId);
+      if (character.dynamicCombatSkills.length === 0) {
+        character.dynamicCombatSkills.push(createCombatSkillPlaceholder());
+      }
+      return;
+    }
+
     character.dynamicSkills = (character.dynamicSkills || [])
       .filter((entry) => entry.id !== row.dataset.rowId);
     if (character.dynamicSkills.length === 0) {
@@ -2646,17 +3356,33 @@ function removeDynamicRow(row) {
 }
 
 function clearDynamicFieldState(type, rowId) {
-  const fieldNames = type === "upgrade"
-    ? [
-        `dynamicUpgrade:${rowId}:nome`,
-        `dynamicUpgrade:${rowId}:valor`,
-      ]
-    : [
-        `dynamicSkill:${rowId}:nome`,
-        `dynamicSkill:${rowId}:atributo`,
-        `dynamicSkill:${rowId}:valor`,
-        `dynamicSkill:${rowId}:teste`,
-      ];
+  let fieldNames;
+  if (type === "upgrade") {
+    fieldNames = [
+      `dynamicUpgrade:${rowId}:nome`,
+      `dynamicUpgrade:${rowId}:valor`,
+    ];
+  } else if (type === "combatSkill") {
+    fieldNames = [
+      `dynamicCombatSkill:${rowId}:nome`,
+      `dynamicCombatSkill:${rowId}:atributo1`,
+      `dynamicCombatSkill:${rowId}:atributo2`,
+      `dynamicCombatSkill:${rowId}:atk`,
+      `dynamicCombatSkill:${rowId}:def`,
+      `dynamicCombatSkill:${rowId}:atkTeste`,
+      `dynamicCombatSkill:${rowId}:defTeste`,
+      `dynamicCombatSkill:${rowId}:atributo`,
+      `dynamicCombatSkill:${rowId}:valor`,
+      `dynamicCombatSkill:${rowId}:teste`,
+    ];
+  } else {
+    fieldNames = [
+      `dynamicSkill:${rowId}:nome`,
+      `dynamicSkill:${rowId}:atributo`,
+      `dynamicSkill:${rowId}:valor`,
+      `dynamicSkill:${rowId}:teste`,
+    ];
+  }
 
   fieldNames.forEach((key) => {
     state.pendingChanges.delete(key);
@@ -2790,11 +3516,21 @@ function persistDerivedValues(character) {
   (character.dynamicSkills || []).forEach((row) => {
     row.teste = getFieldValue(`dynamicSkill:${row.id}:teste`);
   });
+
+  (character.dynamicCombatSkills || []).forEach((row) => {
+    if (row.combatType === "firearm") {
+      row.teste = getFieldValue(`dynamicCombatSkill:${row.id}:teste`);
+    } else {
+      row.atkTeste = getFieldValue(`dynamicCombatSkill:${row.id}:atkTeste`);
+      row.defTeste = getFieldValue(`dynamicCombatSkill:${row.id}:defTeste`);
+    }
+  });
 }
 
 function normalizeCharacterCollections(character) {
   character.dynamicUpgrades = sanitizeUpgradeRows(character.dynamicUpgrades || []);
   character.dynamicSkills = sanitizeSkillRows(character.dynamicSkills || []);
+  character.dynamicCombatSkills = sanitizeCombatSkillRows(character.dynamicCombatSkills || []);
   character.inventoryItems = sanitizeInventoryItems(character.inventoryItems || []);
 }
 
@@ -3060,6 +3796,7 @@ function createDefaultCharacter(ownerProfile, ordinal) {
     inventoryItems: [],
     dynamicUpgrades: [createUpgradePlaceholder()],
     dynamicSkills: [createSkillPlaceholder()],
+    dynamicCombatSkills: [createCombatSkillPlaceholder()],
     revision: 1,
     createdAtMs: now,
     updatedAtMs: now,
@@ -3093,6 +3830,7 @@ function normalizeCharacter(rawCharacter, characterId) {
 
   normalized.dynamicUpgrades = sanitizeUpgradeRows(rawCharacter.dynamicUpgrades || normalized.dynamicUpgrades);
   normalized.dynamicSkills = sanitizeSkillRows(rawCharacter.dynamicSkills || normalized.dynamicSkills);
+  normalized.dynamicCombatSkills = sanitizeCombatSkillRows(rawCharacter.dynamicCombatSkills || normalized.dynamicCombatSkills);
   normalized.inventoryItems = sanitizeInventoryItems(rawCharacter.inventoryItems || normalized.inventoryItems);
   if (!normalized.state || !["creation", "play", "evolution"].includes(normalized.state)) {
     normalized.state = rawCharacter.state || "play";
@@ -3107,6 +3845,7 @@ function serializeCharacterForWrite(character) {
     ...payload,
     dynamicUpgrades: sanitizeUpgradeRows(payload.dynamicUpgrades || []),
     dynamicSkills: sanitizeSkillRows(payload.dynamicSkills || []),
+    dynamicCombatSkills: sanitizeCombatSkillRows(payload.dynamicCombatSkills || []),
     inventoryItems: sanitizeInventoryItems(payload.inventoryItems || []),
   };
 }
@@ -3141,6 +3880,61 @@ function sanitizeSkillRows(rows) {
   }
 
   return keepOnlyFirstPlaceholder(normalized);
+}
+
+function sanitizeCombatSkillRows(rows) {
+  const normalized = (Array.isArray(rows) ? rows : []).map((row) => {
+    const base = {
+      id: row.id || crypto.randomUUID(),
+      nome: row.nome ?? "",
+      combatType: row.combatType ?? "melee",
+      combatGroup: row.combatGroup ?? "martial",
+      isPlaceholder: Boolean(row.isPlaceholder),
+    };
+    if (base.combatType === "firearm") {
+      return {
+        ...base,
+        atributo: row.atributo ?? "",
+        valor: row.valor ?? "",
+        teste: row.teste ?? "",
+      };
+    }
+    return {
+      ...base,
+      atributo1: row.atributo1 ?? "",
+      atributo2: row.atributo2 ?? "",
+      atk: row.atk ?? "",
+      def: row.def ?? "",
+      atkTeste: row.atkTeste ?? "",
+      defTeste: row.defTeste ?? "",
+    };
+  });
+
+  const withoutEmpty = normalized.filter(
+    (row) => row.isPlaceholder || (row.nome ?? "").trim() !== ""
+  );
+
+  if (!withoutEmpty.length) {
+    return [createCombatSkillPlaceholder()];
+  }
+
+  return keepOnlyFirstPlaceholder(withoutEmpty);
+}
+
+function createCombatSkillPlaceholder() {
+  return {
+    id: crypto.randomUUID(),
+    nome: "",
+    combatType: "melee",
+    combatGroup: "martial",
+    atributo1: "",
+    atributo2: "",
+    atk: "",
+    def: "",
+    atkTeste: "",
+    defTeste: "",
+    isPlaceholder: true,
+  };
 }
 
 function sanitizeInventoryItems(rows) {
@@ -3178,6 +3972,7 @@ function ensureDynamicRowsForActiveCharacter() {
   mutateActiveCharacter((character) => {
     character.dynamicUpgrades = sanitizeUpgradeRows(character.dynamicUpgrades || []);
     character.dynamicSkills = sanitizeSkillRows(character.dynamicSkills || []);
+    character.dynamicCombatSkills = sanitizeCombatSkillRows(character.dynamicCombatSkills || []);
   });
 }
 
@@ -3368,6 +4163,12 @@ function resolveFieldValue(character, key) {
     return row?.[prop] ?? "";
   }
 
+  if (key.startsWith("dynamicCombatSkill:")) {
+    const [, rowId, prop] = key.split(":");
+    const row = (character.dynamicCombatSkills || []).find((entry) => entry.id === rowId);
+    return row?.[prop] ?? "";
+  }
+
   return character[key] ?? "";
 }
 
@@ -3387,6 +4188,17 @@ function applyFieldValueToCharacter(key, value) {
     if (key.startsWith("dynamicSkill:")) {
       const [, rowId, prop] = key.split(":");
       const row = (character.dynamicSkills || []).find((entry) => entry.id === rowId);
+      if (!row) {
+        return;
+      }
+
+      row[prop] = value;
+      return;
+    }
+
+    if (key.startsWith("dynamicCombatSkill:")) {
+      const [, rowId, prop] = key.split(":");
+      const row = (character.dynamicCombatSkills || []).find((entry) => entry.id === rowId);
       if (!row) {
         return;
       }
