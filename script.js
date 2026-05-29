@@ -2,7 +2,7 @@ import { initializeApp as initializeFirebaseApp } from "https://www.gstatic.com/
 import {
   getAuth,
   setPersistence,
-  browserLocalPersistence,
+  inMemoryPersistence,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -161,7 +161,7 @@ async function bootApplication() {
   showLoading("Carregando aplicação...");
 
   try {
-    await setPersistence(auth, browserLocalPersistence);
+    await setPersistence(auth, inMemoryPersistence);
   } catch (error) {
     console.warn("Não foi possível ajustar a persistência do Auth.", error);
   }
