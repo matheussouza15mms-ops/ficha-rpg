@@ -198,6 +198,7 @@ function cacheElements() {
   elements.portraitFrame = document.getElementById("portraitFrame");
   elements.portraitImage = document.getElementById("portraitImage");
   elements.portraitPlaceholder = document.getElementById("portraitPlaceholder");
+  elements.removePortraitButton = document.getElementById("removePortraitButton");
   elements.upgradesGrid = document.getElementById("upgradesGrid");
   elements.skillsTable = document.getElementById("skillsTable");
   elements.addUpgradeRow = document.getElementById("addUpgradeRow");
@@ -568,6 +569,7 @@ function registerEvents() {
   elements.logoutButton.addEventListener("click", handleLogout);
   elements.sheetSelector.addEventListener("change", handleSheetSelection);
   elements.imageInput.addEventListener("change", handleImageUpload);
+  elements.removePortraitButton.addEventListener("click", handleRemovePortrait);
   elements.addUpgradeRow.addEventListener("click", openUpgradeCatalogDialog);
   elements.cancelUpgradeCatalog.addEventListener("click", () => elements.upgradeCatalogDialog.close());
   elements.confirmUpgradeCatalog.addEventListener("click", confirmUpgradeCatalogSelection);
@@ -1058,6 +1060,20 @@ async function handleImageUpload(event) {
   }
 }
 
+async function handleRemovePortrait() {
+  if (!hasActiveCharacter()) return;
+
+  mutateActiveCharacter((character) => {
+    character.portraitDataUrl = "";
+    character.portraitStoragePath = "";
+  });
+
+  renderPortrait();
+  renderSessionSummary();
+  state.hasUnsavedChanges = true;
+  await flushPendingChanges();
+}
+
 function openInventoryDrawer() {
   if (!hasActiveCharacter()) {
     return;
@@ -1222,6 +1238,7 @@ function renderPortrait() {
   }
 
   elements.portraitFrame.classList.toggle("has-image", Boolean(portrait));
+  elements.removePortraitButton.classList.toggle("hidden", !portrait);
 }
 
 function renderCharacterWorkspace() {

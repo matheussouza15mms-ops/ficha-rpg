@@ -511,14 +511,33 @@ input[readonly] {
   letter-spacing: 0.18em;
 }
 
+.portrait-actions {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
 .upload-link {
   width: fit-content;
   display: block;
-  margin: 20px auto 0;
   color: var(--accent);
   border-bottom: 1px dashed rgba(216, 167, 45, 0.72);
   padding-bottom: 3px;
   cursor: pointer;
+  text-align: center;
+}
+
+.remove-link {
+  background: none;
+  border: none;
+  border-bottom: 1px dashed rgba(223, 90, 90, 0.72);
+  color: var(--danger);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  padding: 0 0 3px 0;
   text-align: center;
 }
 
