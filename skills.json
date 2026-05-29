@@ -1,0 +1,448 @@
+{
+  "skills": [
+    {
+      "name": "Animais",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Treinamento de Animais", "attribute": null },
+        { "name": "Montaria", "attribute": "AGI" },
+        { "name": "Doma", "attribute": null },
+        { "name": "Veterinária", "attribute": null }
+      ]
+    },
+    {
+      "name": "Armadilhas",
+      "attribute": "PER",
+      "subgroups": []
+    },
+    {
+      "name": "Artes",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Arquitetura", "attribute": "CAR" },
+        { "name": "Atuação", "attribute": "CAR" },
+        { "name": "Canto", "attribute": "CAR" },
+        { "name": "Crítica de Arte", "attribute": "PER" },
+        { "name": "Culinária", "attribute": "PER" },
+        { "name": "Dança", "attribute": "AGI" },
+        { "name": "Desenho e Pintura", "attribute": "DEX" },
+        { "name": "Escapismo", "attribute": "AGI" },
+        { "name": "Escultura", "attribute": "DEX" },
+        { "name": "Fotografia", "attribute": "PER" },
+        { "name": "Ilusionismo", "attribute": "DEX" },
+        { "name": "Instrumentos Musicais", "attribute": "DEX" },
+        { "name": "Joalheria", "attribute": "DEX" },
+        { "name": "Prestidigitação", "attribute": "DEX" },
+        { "name": "Redação", "attribute": "INT" }
+      ]
+    },
+    {
+      "name": "Artífice",
+      "attribute": "DEX",
+      "subgroups": []
+    },
+    {
+      "name": "Avaliação de Objetos",
+      "attribute": "PER",
+      "subgroups": [
+        { "name": "Antiguidades" },
+        { "name": "Gemas" },
+        { "name": "Metais Valiosos (Ourivese)" },
+        { "name": "Obras de Arte" }
+      ]
+    },
+    {
+      "name": "Camuflagem",
+      "attribute": "PER",
+      "subgroups": []
+    },
+    {
+      "name": "Ciências",
+      "attribute": "INT",
+      "subgroups": [
+        { "name": "Agricultura" },
+        { "name": "Anatomia" },
+        { "name": "Antropologia" },
+        { "name": "Arqueologia" },
+        { "name": "Astronomia" },
+        { "name": "Botânica" },
+        { "name": "Direito" },
+        { "name": "Ecologia" },
+        { "name": "Filosofia" },
+        { "name": "Física" },
+        { "name": "Genética" },
+        { "name": "Geografia" },
+        { "name": "Geologia" },
+        { "name": "Heráldica" },
+        { "name": "Herbalismo" },
+        { "name": "História" },
+        { "name": "Literatura" },
+        { "name": "Matemática" },
+        { "name": "Meteorologia" },
+        { "name": "Pedagogia" },
+        { "name": "Psicologia" },
+        { "name": "Química" },
+        { "name": "Sociologia" },
+        { "name": "Teologia" },
+        { "name": "Ufologia" },
+        { "name": "Zoologia" }
+      ]
+    },
+    {
+      "name": "Ciências Proibidas ou Alternativas",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Alquimia" },
+        { "name": "Anjos" },
+        { "name": "Astrologia" },
+        { "name": "Búzios" },
+        { "name": "Demônios" },
+        { "name": "Oculto" },
+        { "name": "Psionicismo" },
+        { "name": "Rituais" },
+        { "name": "Tarot" },
+        { "name": "Teoria da Magia" },
+        { "name": "Vampiros" },
+        { "name": "Viagem Astral" }
+      ]
+    },
+    {
+      "name": "Condução",
+      "attribute": "AGI",
+      "subgroups": [
+        { "name": "Automóvel" },
+        { "name": "Ônibus" },
+        { "name": "Caminhão" },
+        { "name": "Empilhadeira" },
+        { "name": "Guindaste" },
+        { "name": "Carruagem" },
+        { "name": "Motocicleta" },
+        { "name": "Carro de Corrida" },
+        { "name": "Helicóptero" },
+        { "name": "Avião Comercial" },
+        { "name": "Avião Militar" },
+        { "name": "Ônibus Espacial" },
+        { "name": "Lancha" },
+        { "name": "Iate" },
+        { "name": "Veleiro" },
+        { "name": "Navio Cargueiro" },
+        { "name": "Ultraleve" },
+        { "name": "Asa Delta" }
+      ]
+    },
+    {
+      "name": "Disfarce",
+      "attribute": "INT",
+      "subgroups": []
+    },
+    {
+      "name": "Eletrônica",
+      "attribute": null,
+      "subgroups": []
+    },
+    {
+      "name": "Engenharia",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Aeronáutica" },
+        { "name": "Alimentos" },
+        { "name": "Civil" },
+        { "name": "Computação" },
+        { "name": "Demolições" },
+        { "name": "Elétrica" },
+        { "name": "Eletrônica" },
+        { "name": "Materiais" },
+        { "name": "Mecânica" },
+        { "name": "Mecatrônica" },
+        { "name": "Naval" },
+        { "name": "Química" }
+      ]
+    },
+    {
+      "name": "Escutar",
+      "attribute": "PER",
+      "subgroups": []
+    },
+    {
+      "name": "Esquiva",
+      "attribute": "AGI",
+      "subgroups": []
+    },
+    {
+      "name": "Esportes",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Acrobacia", "attribute": "AGI" },
+        { "name": "Alpinismo", "attribute": "AGI" },
+        { "name": "Arremesso", "attribute": "DEX" },
+        { "name": "Artes Marciais", "attribute": "AGI" },
+        { "name": "Basquete", "attribute": "DEX" },
+        { "name": "Boxe", "attribute": "AGI" },
+        { "name": "Caça", "attribute": "PER" },
+        { "name": "Canoagem", "attribute": "CON" },
+        { "name": "Corrida", "attribute": "CON" },
+        { "name": "Esqui", "attribute": "AGI" },
+        { "name": "Futebol", "attribute": "AGI" },
+        { "name": "Mergulho", "attribute": "CON" },
+        { "name": "Paraquedismo", "attribute": "AGI" },
+        { "name": "Pesca", "attribute": "PER" },
+        { "name": "Natação", "attribute": "AGI" },
+        { "name": "Salto", "attribute": "AGI" },
+        { "name": "Salto Ornamental", "attribute": "AGI" },
+        { "name": "Tênis", "attribute": "DEX" },
+        { "name": "Voleibol", "attribute": "DEX" }
+      ]
+    },
+    {
+      "name": "Etiqueta",
+      "attribute": "CAR",
+      "subgroups": [
+        { "name": "Clero" },
+        { "name": "Comercial" },
+        { "name": "Diplomacia" },
+        { "name": "Mercado Negro" },
+        { "name": "Nobreza" },
+        { "name": "Submundo" }
+      ]
+    },
+    {
+      "name": "Explosivos",
+      "attribute": null,
+      "subgroups": []
+    },
+    {
+      "name": "Falsificação",
+      "attribute": "INT",
+      "subgroups": [
+        { "name": "Documentos" },
+        { "name": "Escultura" },
+        { "name": "Fotografia" },
+        { "name": "Joalheria" },
+        { "name": "Pinturas" }
+      ]
+    },
+    {
+      "name": "Furtar",
+      "attribute": "DEX",
+      "subgroups": []
+    },
+    {
+      "name": "Furtividade",
+      "attribute": "AGI",
+      "subgroups": []
+    },
+    {
+      "name": "Idiomas / Línguas",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Chinês" },
+        { "name": "Inglês" },
+        { "name": "Espanhol" },
+        { "name": "Hindu" },
+        { "name": "Russo" },
+        { "name": "Árabe" },
+        { "name": "Japonês" },
+        { "name": "Alemão" },
+        { "name": "Francês" },
+        { "name": "Braille" },
+        { "name": "Código Morse" },
+        { "name": "Criptografia" },
+        { "name": "Linguagem de Sinais" },
+        { "name": "Leitura Labial" }
+      ]
+    },
+    {
+      "name": "Informática",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Computação" },
+        { "name": "Internet" },
+        { "name": "Hacker" },
+        { "name": "Manutenção" },
+        { "name": "Programação" }
+      ]
+    },
+    {
+      "name": "Jogos",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Cartas", "attribute": "PER" },
+        { "name": "Tabuleiro", "attribute": "INT" },
+        { "name": "Videogames", "attribute": "DEX" },
+        { "name": "RPG", "attribute": "INT" }
+      ]
+    },
+    {
+      "name": "Manipulação",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Empatia", "attribute": "CAR" },
+        { "name": "Hipnose", "attribute": null },
+        { "name": "Impressionar", "attribute": "CAR" },
+        { "name": "Interrogatório", "attribute": "INT" },
+        { "name": "Intimidação", "attribute": "WILL" },
+        { "name": "Lábia", "attribute": "CAR" },
+        { "name": "Liderança", "attribute": "CAR" },
+        { "name": "Manha", "attribute": "CAR" },
+        { "name": "Sedução", "attribute": "CAR" },
+        { "name": "Tortura", "attribute": "INT" }
+      ]
+    },
+    {
+      "name": "Manuseio de Fechaduras",
+      "attribute": null,
+      "subgroups": []
+    },
+    {
+      "name": "Mecânica",
+      "attribute": "DEX",
+      "subgroups": []
+    },
+    {
+      "name": "Medicina",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Cirurgia", "attribute": "DEX" },
+        { "name": "Primeiros Socorros", "attribute": "INT" },
+        { "name": "Oftalmologia" },
+        { "name": "Dermatologia" },
+        { "name": "Psiquiatria" },
+        { "name": "Cardiologia" },
+        { "name": "Neurologia" },
+        { "name": "Urologia" },
+        { "name": "Ortopedia" },
+        { "name": "Oncologia" },
+        { "name": "Gastrologia" },
+        { "name": "Otorrinolaringologia" },
+        { "name": "Veterinária" }
+      ]
+    },
+    {
+      "name": "Mineração",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Cristais" },
+        { "name": "Gemas" },
+        { "name": "Metais" }
+      ]
+    },
+    {
+      "name": "Negociação",
+      "attribute": null,
+      "subgroups": [
+        { "name": "Barganha", "attribute": "CAR" },
+        { "name": "Burocracia", "attribute": "INT" },
+        { "name": "Contabilidade", "attribute": "INT" },
+        { "name": "Marketing", "attribute": "INT" }
+      ]
+    },
+    {
+      "name": "Pesquisa ou Investigação",
+      "attribute": "PER",
+      "subgroups": []
+    },
+    {
+      "name": "Procura",
+      "attribute": "PER",
+      "subgroups": []
+    },
+    {
+      "name": "Rastreio",
+      "attribute": "PER",
+      "subgroups": [
+        { "name": "Deserto" },
+        { "name": "Floresta" },
+        { "name": "Gelo" },
+        { "name": "Montanha" },
+        { "name": "Planície" },
+        { "name": "Selva" }
+      ]
+    },
+    {
+      "name": "Sobrevivência",
+      "attribute": "PER",
+      "subgroups": [
+        { "name": "Deserto" },
+        { "name": "Floresta" },
+        { "name": "Gelo" },
+        { "name": "Montanha" },
+        { "name": "Planície" },
+        { "name": "Selva" }
+      ]
+    }
+  ],
+  "combatSkills": [
+    {
+      "name": "Artes Marciais",
+      "combatType": "melee",
+      "combatGroup": "martial",
+      "attribute1": "AGI",
+      "attribute2": "AGI",
+      "subgroups": [
+        { "name": "Aikido",     "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Capoeira",   "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Hapkido",    "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Jiu-Jitsu", "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Judô",       "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Karatê",     "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Krav Maga",  "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Kung Fu",    "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Luta Livre", "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Muay Thai",  "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Ninjutsu",   "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Sambo",      "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Taekwondo",  "attribute1": "AGI", "attribute2": "AGI" },
+        { "name": "Boxe",       "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Savate",     "attribute1": "DEX", "attribute2": "DEX" }
+      ]
+    },
+    {
+      "name": "Brigas",
+      "combatType": "melee",
+      "combatGroup": "martial",
+      "attribute1": "DEX",
+      "attribute2": "DEX",
+      "subgroups": []
+    },
+    {
+      "name": "Armas Brancas",
+      "combatType": "melee",
+      "combatGroup": "weapons",
+      "attribute1": "DEX",
+      "attribute2": "DEX",
+      "subgroups": [
+        { "name": "Facas",    "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Adagas",   "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Punhais",  "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Espadas",  "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Machados", "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Chicotes", "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Manguais", "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Maças",    "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Martelos", "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Arcos",    "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Bestas",   "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Lanças",   "attribute1": "DEX", "attribute2": "DEX" }
+      ]
+    },
+    {
+      "name": "Armas de Fogo",
+      "combatType": "firearm",
+      "combatGroup": "firearm",
+      "attribute": "DEX",
+      "subgroups": [
+        { "name": "Revólveres" },
+        { "name": "Pistolas" },
+        { "name": "Armas Antigas" },
+        { "name": "Submetralhadoras" },
+        { "name": "Espingardas" },
+        { "name": "Rifles de Caça" },
+        { "name": "Rifles Militares" },
+        { "name": "Metralhadoras" },
+        { "name": "Armas Pesadas" },
+        { "name": "Granadas" },
+        { "name": "Armas Experimentais" }
+      ]
+    }
+  ]
+}
