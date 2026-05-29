@@ -188,7 +188,6 @@ function cacheElements() {
   elements.saveStatus = document.getElementById("saveStatus");
   elements.gmTools = document.getElementById("gmTools");
   elements.sheetSelector = document.getElementById("sheetSelector");
-  elements.imageInput = document.getElementById("imageInput");
   elements.portraitFrame = document.getElementById("portraitFrame");
   elements.portraitImage = document.getElementById("portraitImage");
   elements.portraitPlaceholder = document.getElementById("portraitPlaceholder");
@@ -562,7 +561,6 @@ function registerEvents() {
   elements.toggleRegisterPassword.addEventListener("click", () => togglePasswordVisibility(elements.registerPassword, elements.toggleRegisterPassword));
   elements.logoutButton.addEventListener("click", handleLogout);
   elements.sheetSelector.addEventListener("change", handleSheetSelection);
-  elements.imageInput.addEventListener("change", handleImageUpload);
   elements.removePortraitButton.addEventListener("click", handleRemovePortrait);
   elements.addUpgradeRow.addEventListener("click", openUpgradeCatalogDialog);
   elements.cancelUpgradeCatalog.addEventListener("click", () => elements.upgradeCatalogDialog.close());
@@ -988,85 +986,6 @@ function handleHistoryInput() {
   markCharacterDirty();
 }
 
-async function handleImageUpload(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-
-  if (!hasActiveCharacter()) {
-    alert("Crie ou selecione uma ficha antes de enviar imagem.");
-    elements.imageInput.value = "";
-    return;
-  }
-
-  const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
-  if (!allowedTypes.includes(file.type)) {
-    alert("Formato inválido. Use PNG, JPG/JPEG ou WEBP.");
-    elements.imageInput.value = "";
-    return;
-  }
-
-  const maxSize = 5 * 1024 * 1024;
-  if (file.size > maxSize) {
-    alert("A imagem deve ter no máximo 5 MB.");
-    elements.imageInput.value = "";
-    return;
-  }
-
-  state.uploadInFlight = true;
-  updateSaveStatus("Salvando", "saving");
-
-  try {
-    const dataUrl = await compressImageToBase64(file, 480, 640, 0.82);
-
-    mutateActiveCharacter((character) => {
-      character.portraitDataUrl = dataUrl;
-      character.portraitStoragePath = "";
-    });
-
-    renderPortrait();
-    renderSessionSummary();
-    state.hasUnsavedChanges = true;
-    await flushPendingChanges();
-  } catch (error) {
-    console.error(error);
-    alert("Não foi possível processar a imagem.");
-    updateSaveStatus("Salvo", "saved");
-  } finally {
-    state.uploadInFlight = false;
-    elements.imageInput.value = "";
-  }
-}
-
-function compressImageToBase64(file, maxWidth, maxHeight, quality) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width, height } = img;
-
-      if (width > maxWidth || height > maxHeight) {
-        const ratio = Math.min(maxWidth / width, maxHeight / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
-
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", quality));
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Falha ao carregar imagem."));
-    };
-
-    img.src = url;
-  });
-}
 
 async function handleRemovePortrait() {
   if (!hasActiveCharacter()) return;
