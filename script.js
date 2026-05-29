@@ -24,12 +24,6 @@ import {
   onSnapshot,
   deleteDoc,
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytesResumable,
-  getDownloadURL,
-} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDbdReMu6OxG3HMoLabFeWyaTIiWAoSehA",
@@ -64,7 +58,7 @@ try {
 }
 
 const auth = getAuth(firebaseApp);
-const storage = getStorage(firebaseApp);
+
 
 const STORAGE_KEYS = {
   selectedCharacterByUser: "rpg-selected-character-by-user",
@@ -996,9 +990,7 @@ function handleHistoryInput() {
 
 async function handleImageUpload(event) {
   const file = event.target.files?.[0];
-  if (!file) {
-    return;
-  }
+  if (!file) return;
 
   if (!hasActiveCharacter()) {
     alert("Crie ou selecione uma ficha antes de enviar imagem.");
@@ -1013,15 +1005,9 @@ async function handleImageUpload(event) {
     return;
   }
 
-  const maxSize = 2 * 1024 * 1024;
+  const maxSize = 5 * 1024 * 1024;
   if (file.size > maxSize) {
-    alert("A imagem deve ter no máximo 2 MB.");
-    elements.imageInput.value = "";
-    return;
-  }
-
-  const activeCharacter = getActiveCharacter();
-  if (!activeCharacter) {
+    alert("A imagem deve ter no máximo 5 MB.");
     elements.imageInput.value = "";
     return;
   }
@@ -1030,20 +1016,11 @@ async function handleImageUpload(event) {
   updateSaveStatus("Salvando", "saving");
 
   try {
-    const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-    const path = `portraits/${activeCharacter.ownerId}/${activeCharacter.id}/${Date.now()}-${cleanName}`;
-    const portraitRef = storageRef(storage, path);
-    const uploadTask = uploadBytesResumable(portraitRef, file, { contentType: file.type });
-
-    await new Promise((resolve, reject) => {
-      uploadTask.on("state_changed", null, reject, resolve);
-    });
-
-    const portraitUrl = await getDownloadURL(uploadTask.snapshot.ref);
+    const dataUrl = await compressImageToBase64(file, 480, 640, 0.82);
 
     mutateActiveCharacter((character) => {
-      character.portraitDataUrl = portraitUrl;
-      character.portraitStoragePath = path;
+      character.portraitDataUrl = dataUrl;
+      character.portraitStoragePath = "";
     });
 
     renderPortrait();
@@ -1052,12 +1029,43 @@ async function handleImageUpload(event) {
     await flushPendingChanges();
   } catch (error) {
     console.error(error);
-    alert(formatFirebaseError(error, "Não foi possível enviar a imagem."));
+    alert("Não foi possível processar a imagem.");
     updateSaveStatus("Salvo", "saved");
   } finally {
     state.uploadInFlight = false;
     elements.imageInput.value = "";
   }
+}
+
+function compressImageToBase64(file, maxWidth, maxHeight, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Falha ao carregar imagem."));
+    };
+
+    img.src = url;
+  });
 }
 
 async function handleRemovePortrait() {
