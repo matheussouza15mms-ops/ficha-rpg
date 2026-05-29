@@ -2608,6 +2608,19 @@ function renderKitCatalogDetail() {
     </div>
   `).join("");
 
+  const combatSkillsHtml = (kit.combatSkills || []).map((sk) => {
+    if (sk.combatType === "firearm") {
+      return `<div class="kit-row">
+        <span>${sk.nome}</span>
+        <span class="kit-valor">${sk.valor}%</span>
+      </div>`;
+    }
+    return `<div class="kit-row">
+      <span>${sk.nome}</span>
+      <span class="kit-valor">ATK ${sk.atk}% / DEF ${sk.def}%</span>
+    </div>`;
+  }).join("");
+
   const upgradesHtml = (kit.upgrades || []).map((up) => `
     <div class="kit-row">
       <span>${up.nome}</span>
@@ -2633,6 +2646,11 @@ function renderKitCatalogDetail() {
       <h4 class="kit-section-title">Perícias incluídas</h4>
       ${skillsHtml}
     </div>` : ""}
+    ${combatSkillsHtml ? `
+    <div class="kit-section">
+      <h4 class="kit-section-title">Perícias de Combate incluídas</h4>
+      ${combatSkillsHtml}
+    </div>` : ""}
     ${upgradesHtml ? `
     <div class="kit-section">
       <h4 class="kit-section-title">Aprimoramentos incluídos</h4>
@@ -2653,12 +2671,16 @@ function confirmKitCatalogSelection() {
   if (skillAvailable < kit.skillCost || upgradeAvailable < kit.upgradeCost) return;
 
   const skillsSum = (kit.skills || []).reduce((s, sk) => s + sk.valor, 0);
+  const combatSkillsSum = (kit.combatSkills || []).reduce((s, sk) => {
+    if (sk.combatType === "firearm") return s + (sk.valor || 0);
+    return s + (sk.atk || 0) + (sk.def || 0);
+  }, 0);
   const upgradesPositiveSum = (kit.upgrades || [])
     .filter((up) => up.type === "positive")
     .reduce((s, up) => s + up.cost, 0);
 
   mutateActiveCharacter((character) => {
-    character.kitSkillCredit = (character.kitSkillCredit || 0) + (skillsSum - kit.skillCost);
+    character.kitSkillCredit = (character.kitSkillCredit || 0) + (skillsSum + combatSkillsSum - kit.skillCost);
     character.kitUpgradeCredit = (character.kitUpgradeCredit || 0) + (upgradesPositiveSum - kit.upgradeCost);
 
     character.dynamicSkills = (character.dynamicSkills || []).filter((e) => !e.isPlaceholder);
@@ -2673,6 +2695,45 @@ function confirmKitCatalogSelection() {
         isPlaceholder: false,
       });
     });
+
+    character.dynamicCombatSkills = (character.dynamicCombatSkills || []).filter((e) => !e.isPlaceholder);
+    (kit.combatSkills || []).forEach((skill) => {
+      if (skill.combatType === "firearm") {
+        const attrValue = skill.attributeKey ? getAttributeTesteValue(skill.attributeKey) : 0;
+        const valorNum = skill.valor || 0;
+        character.dynamicCombatSkills.push({
+          id: crypto.randomUUID(),
+          nome: skill.nome,
+          combatType: "firearm",
+          combatGroup: skill.combatGroup || "firearm",
+          atributo: String(attrValue),
+          valor: String(valorNum),
+          teste: String(attrValue + valorNum),
+          isPlaceholder: false,
+        });
+      } else {
+        const attr1Value = skill.attribute1Key ? getAttributeTesteValue(skill.attribute1Key) : 0;
+        const attr2Value = skill.attribute2Key ? getAttributeTesteValue(skill.attribute2Key) : 0;
+        const atkNum = skill.atk || 0;
+        const defNum = skill.def || 0;
+        character.dynamicCombatSkills.push({
+          id: crypto.randomUUID(),
+          nome: skill.nome,
+          combatType: "melee",
+          combatGroup: skill.combatGroup || "weapons",
+          atributo1: String(attr1Value),
+          atributo2: String(attr2Value),
+          atk: String(atkNum),
+          def: String(defNum),
+          atkTeste: String(attr1Value + atkNum),
+          defTeste: String(attr2Value + defNum),
+          isPlaceholder: false,
+        });
+      }
+    });
+    if (!character.dynamicCombatSkills.length) {
+      character.dynamicCombatSkills.push(createCombatSkillPlaceholder());
+    }
 
     character.dynamicUpgrades = (character.dynamicUpgrades || []).filter((e) => !e.isPlaceholder);
     (kit.upgrades || []).forEach((upgrade) => {

@@ -2,523 +2,563 @@
   {
     "id": "medico",
     "name": "Médico",
-    "description": "Profissional de saúde com vasto conhecimento em anatomia, procedimentos médicos e primeiros socorros. Indispensável em situações críticas.",
-    "skillCost": 80,
-    "upgradeCost": 1,
+    "description": "Especialista em diagnóstico e tratamento de doenças, atua em emergências e cirurgias com vasto conhecimento científico.",
+    "skillCost": 235,
+    "upgradeCost": 2,
     "skills": [
-      { "nome": "Medicina (Primeiros Socorros)", "attributeKey": "INT", "valor": 40 },
-      { "nome": "Medicina (Cirurgia)",           "attributeKey": "DEX", "valor": 25 },
-      { "nome": "Ciências (Anatomia)",           "attributeKey": "INT", "valor": 15 },
-      { "nome": "Ciências (Psicologia)",         "attributeKey": "INT", "valor": 15 }
+      { "nome": "Medicina (Primeiros Socorros)",           "attributeKey": "INT", "valor": 40 },
+      { "nome": "Medicina (Cirurgia)",                     "attributeKey": "DEX", "valor": 40 },
+      { "nome": "Medicina (escolher uma especiacilidade)", "attributeKey": "INT", "valor": 40 },
+      { "nome": "Ciências (Anatomia)",                     "attributeKey": "INT", "valor": 30 },
+      { "nome": "Ciências (Química)",                      "attributeKey": "INT", "valor": 30 },
+      { "nome": "Ciências (Biologia)",                     "attributeKey": "INT", "valor": 20 },
+      { "nome": "Ciências (Genética)",                     "attributeKey": "INT", "valor": 20 },
+      { "nome": "Ciências (Psicologia)",                   "attributeKey": "INT", "valor": 20 },
+      { "nome": "Informática (Computação)",                "attributeKey": null,  "valor": 10 },
+      { "nome": "Manipulação (Empatia)",                   "attributeKey": "CAR", "valor": 30 },
+      { "nome": "Manipulação (Lábia)",                     "attributeKey": "CAR", "valor": 20 },
+      { "nome": "Idiomas (Linguagem de Sinais)",           "attributeKey": null,  "valor": 20 },
+      { "nome": "Pesquisa ou Investigação",                "attributeKey": "PER", "valor": 30 }
     ],
+    "combatSkills": [],
     "upgrades": [
-      { "nome": "Sábio",                  "type": "positive", "cost": 1 },
+      { "nome": "Recursos e Dinheiro", "type": "positive", "cost": 2 },
       { "nome": "Biblioteca (2 subgrupos)", "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "advogado",
     "name": "Advogado",
-    "description": "Especialista em direito e retórica, com amplo conhecimento em legislação e habilidade para negociar e convencer em qualquer situação.",
-    "skillCost": 75,
-    "upgradeCost": 0,
+    "description": "Especialista em leis, defende e representa clientes em disputas judiciais usando argumentação e domínio jurídico.",
+    "skillCost": 180,
+    "upgradeCost": 2,
     "skills": [
       { "nome": "Ciências (Direito)",         "attributeKey": "INT", "valor": 40 },
-      { "nome": "Manipulação (Lábia)",        "attributeKey": "CAR", "valor": 20 },
-      { "nome": "Negociação (Burocracia)",    "attributeKey": "INT", "valor": 20 },
-      { "nome": "Manipulação (Impressionar)", "attributeKey": "CAR", "valor": 10 }
+      { "nome": "Ciências (Filosofia)",       "attributeKey": "INT", "valor": 20 },
+      { "nome": "Ciências (Antropoligia)",    "attributeKey": "INT", "valor": 20 },
+      { "nome": "Ciências (Psicologia)",      "attributeKey": "INT", "valor": 20 },
+      { "nome": "Etiqueta (Diplomacia)",      "attributeKey": "CAR", "valor": 30 },
+      { "nome": "Informática (Computação)",   "attributeKey": null,  "valor": 10 },
+      { "nome": "Manipulação (Lábia)",        "attributeKey": "CAR", "valor": 40 },
+      { "nome": "Manipulação (Impressionar)", "attributeKey": "CAR", "valor": 30 },
+      { "nome": "Negociação (Burocracia)",    "attributeKey": "INT", "valor": 30 },
+      { "nome": "Pesquisa ou Investigação",   "attributeKey": "PER", "valor": 30 }
     ],
+    "combatSkills": [],
     "upgrades": [
-      { "nome": "Contatos e Aliados (1 aliado)", "type": "positive", "cost": 1 }
+      { "nome": "Biblioteca (2 subgrupos)", "type": "positive", "cost": 1 },
+      { "nome": "Contatos e Aliados",       "type": "positive", "cost": 1 },
+      { "nome": "Recursos e Dinheiro",      "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "bombeiro",
     "name": "Bombeiro",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Combate incêndios e realiza resgates em situações de risco, combinando força física, primeiros socorros e habilidades táticas.",
+    "skillCost": 200,
+    "upgradeCost": 2,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 },
-      { "nome": "Armas de Fogo (escolher uma)",       "attributeKey": "DEX",  "valor": 30 },
-      { "nome": "Mecânica",       "attributeKey": "DEX",  "valor": 30 },
-      { "nome": "Elétrica",       "attributeKey": "DEX",  "valor": 30 },
-      { "nome": "Condução (carro)",       "attributeKey": "AGI",  "valor": 30 },
-      { "nome": "Esportes (Natação)",       "attributeKey": "AGI",  "valor": 30 },
-      { "nome": "Esportes (Escalada)",       "attributeKey": "FR",  "valor": 30 },
-      { "nome": "Manipulação (Empatia)",       "attributeKey": "CAR",  "valor": 30 },
-      { "nome": "Medicina (Primeiros Socorros)",       "attributeKey": "INT",  "valor": 40 },
-      { "nome": "Ciências (Anatomia)",       "attributeKey": "INT",  "valor": 20 },
-      { "nome": "Ciências (Química)",       "attributeKey": "INT",  "valor": 20 }
+      { "nome": "Mecânica",                       "attributeKey": "DEX",  "valor": 20 },
+      { "nome": "Elétrica",                       "attributeKey": "DEX",  "valor": 20 },
+      { "nome": "Condução (carro)",               "attributeKey": "AGI",  "valor": 30 },
+      { "nome": "Esportes (Natação)",             "attributeKey": "AGI",  "valor": 30 },
+      { "nome": "Esportes (Escalada)",            "attributeKey": "FR",   "valor": 30 },
+      { "nome": "Manipulação (Empatia)",          "attributeKey": "CAR",  "valor": 20 },
+      { "nome": "Medicina (Primeiros Socorros)",  "attributeKey": "INT",  "valor": 40 },
+      { "nome": "Ciências (Anatomia)",            "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciências (Química)",             "attributeKey": "INT",  "valor": 20 }
+    ],
+    "combatSkills": [
+      { "nome": "Armas Brancas (Machado)", "combatType": "melee", "combatGroup": "weapons", "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 30, "def": 20 },
+      { "nome": "Armas de Fogo (escolher uma)", "combatType": "firearm", "combatGroup": "firearm", "attributeKey": "DEX", "valor": 20 }
     ],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
+      { "nome": "Coragem",          "type": "positive", "cost": 2 },
       { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
     ]
   },
   {
     "id": "policial",
     "name": "Policial",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Agente da lei treinado em contenção, investigação e uso da força para manter a ordem pública e proteger cidadãos.",
+    "skillCost": 300,
+    "upgradeCost": 2,
     "skills": [
-      { "nome": "Armas Brancas (Cassetete)",        "attributeKey": "DEX",  "valor": 30 }
-     
+      { "nome": "Manipulação (Intimidação)",      "attributeKey": "WILL", "valor": 25 },
+      { "nome": "Manipulação (Interrogatório)",   "attributeKey": "INT",  "valor": 25 },
+      { "nome": "Medicina (Primeiros Socorros)",  "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Condução (carro)",               "attributeKey": "AGI",  "valor": 25 },
+      { "nome": "Pesquisa ou Investigação",       "attributeKey": "PER",  "valor": 20 },
+      { "nome": "Ciências (Direito)",             "attributeKey": "INT",  "valor": 25 },
+      { "nome": "Escutar",                        "attributeKey": "PER",  "valor": 20 },
+      { "nome": "Arremesso",                      "attributeKey": "DEX",  "valor": 20 },
+      { "nome": "Explosivos",                     "attributeKey": null,   "valor": 10 },
+      { "nome": "Falsificação (Documentos)",      "attributeKey": "INT",  "valor": 10 },
+      { "nome": "Furtividade",                    "attributeKey": "AGI",  "valor": 20 },
+      { "nome": "Informática (Computação)",       "attributeKey": null,   "valor": 20 },
+      { "nome": "Manuseio de Fechaduras",         "attributeKey": null,   "valor": 10 },
+      { "nome": "Procura",                        "attributeKey": "PER",  "valor": 20 },
+      { "nome": "Rastreio",                       "attributeKey": "PER",  "valor": 20 }
+    ],
+    "combatSkills": [
+      { "nome": "Armas Brancas (Cassetete)",           "combatType": "melee",   "combatGroup": "weapons",  "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 25, "def": 25 },
+      { "nome": "Artes Marciais (escolher uma)",       "combatType": "melee",   "combatGroup": "martial",  "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 25, "def": 25 },
+      { "nome": "Armas de Fogo (Pistolas)",            "combatType": "firearm", "combatGroup": "firearm",  "attributeKey":  "DEX",  "valor": 35 },
+      { "nome": "Armas de Fogo (Escopeta)",           "combatType": "firearm", "combatGroup": "firearm",  "attributeKey":  "DEX",  "valor": 25 }
     ],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Armas de Fogo",          "type": "positive", "cost": 2 },
+      { "nome": "Patrono",                "type": "positive", "cost": 2 }
     ]
   },
   {
     "id": "ladrao",
     "name": "Ladrão",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Especialista em infiltração, furto e fuga, domina furtividade, manuseio de fechaduras e prestidigitação para operar nas sombras.",
+    "skillCost": 300,
+    "upgradeCost": 2,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Armadilhas",                     "attributeKey": "PER",  "valor": 10 },
+      { "nome": "Manipulação (Intimidação)",      "attributeKey": "WILL", "valor": 15 },
+      { "nome": "Arte (Escapismo)",               "attributeKey": "AGI",  "valor": 20 },
+      { "nome": "Arte (Presdigitação)",           "attributeKey": "DEX",  "valor": 20 },
+      { "nome": "Avaliação de Objetos",           "attributeKey": "PER",  "valor": 15 },
+      { "nome": "Camuflagem",                     "attributeKey": "PER",  "valor": 20 },
+      { "nome": "Condução (escolher)",            "attributeKey": "AGI",  "valor": 15 },
+      { "nome": "Disfarce",                       "attributeKey": "INT",  "valor": 15 },
+      { "nome": "Escutar",                        "attributeKey": "PER",  "valor": 15 },
+      { "nome": "Eletrônica",                     "attributeKey": null,   "valor": 10 },
+      { "nome": "Etiqueta (Submundo)",            "attributeKey": "PER",  "valor": 15 },
+      { "nome": "Avaliação de Objetos",           "attributeKey": "PER",  "valor": 15 },
+      { "nome": "Explosivos",                     "attributeKey": null,   "valor": 10 },
+      { "nome": "Falsificação (Documentos)",      "attributeKey": "INT",  "valor": 15 },
+      { "nome": "Furtar",                         "attributeKey": "DEX",  "valor": 30 },
+      { "nome": "Furtividade",                    "attributeKey": "AGI",  "valor": 30 },
+      { "nome": "Manipulação (Intimidação)",      "attributeKey": "WILL", "valor": 15 },
+      { "nome": "Manipulação (Manha)",            "attributeKey": "CAR",  "valor": 20 },
+      { "nome": "Manuseio de Fechaduras",         "attributeKey": null,   "valor": 30 },
+      { "nome": "Negociação (Barganha)",          "attributeKey": "CAR",  "valor": 15 },
+      { "nome": "Procura",                        "attributeKey": "PER",  "valor": 15 }
+    ],
+    "combatSkills": [
+      { "nome": "Armas Brancas (Facas)",      "combatType": "melee",   "combatGroup": "weapons",  "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 20, "def": 15 },
+      { "nome": "Armas de Fogo (Pistolas)",   "combatType": "firearm", "combatGroup": "firearm",  "attributeKey":  "DEX",  "valor": 15 },
+      { "nome": "Briga",                      "combatType": "melee",   "combatGroup": "martial",  "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 20, "def": 15 }
     ],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Improvisador",          "type": "positive", "cost": 1 },
+      { "nome": "Contatos e Aliados",    "type": "positive", "cost": 1 },
+      { "nome": "Armas de Fogo",         "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "cozinheiro",
     "name": "Chefe de Cozinha",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Profissional da gastronomia com domínio técnico de ingredientes e sabores, capaz de criar e gerir cardápios sofisticados.",
+    "skillCost": 125,
+    "upgradeCost": 1,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Artes (Culinária)",                   "attributeKey": "PER",  "valor": 40 },
+      { "nome": "Artes (Redação)",                     "attributeKey": "INT",  "valor": 10 },
+      { "nome": "Avaliação de Objetos",                "attributeKey": "PER",  "valor": 30 },
+      { "nome": "Ciências (Botânica)",                 "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciências (Química)",                  "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Negociação (Barganha)",               "attributeKey": "CAR",  "valor": 20 },
+      { "nome": "Manipulação (Impressionar)",          "attributeKey": "CAR",  "valor": 30 },
+      { "nome": "Etiqueta (Comercial)",                "attributeKey": "CAR",  "valor": 20 }
     ],
+    "combatSkills": [],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "tecnico",
-    "name": "Assistente Técnico",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "enfermeiro",
-    "name": "Enfermeiro",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Biblioteca (2 subgrupos)",    "type": "positive", "cost": 1 },
+      { "nome": "Talento",                     "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "socorrista",
     "name": "Socorrista",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Especialista em atendimento pré-hospitalar, age rapidamente para estabilizar vítimas e transportá-las com segurança.",
+    "skillCost": 140,
+    "upgradeCost": 2,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Medicina (Primeiros Socorros)",       "attributeKey": "INT",  "valor": 40 },
+      { "nome": "Ciências (Anatomia)",                 "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Ciências (Química)",                  "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciências (Psicologia)",               "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Condução (Carro)",                    "attributeKey": "AGI",  "valor": 30 },
+      { "nome": "Manipulação (Liderança)",             "attributeKey": "CAR",  "valor": 10 },
+      { "nome": "Manipulação (Empatia)",               "attributeKey": "CAR",  "valor": 30 },
+      { "nome": "Pesquisa ou Investigação",            "attributeKey": "PER",  "valor": 10 },
+      { "nome": "Idiomas (Linguagem de Sinais)",       "attributeKey": null,   "valor": 20 }
     ],
+    "combatSkills": [],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Coragem",          "type": "positive", "cost": 2 },
+      { "nome": "Biblioteca (2 subgrupos)", "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "veterinario",
     "name": "Veterinário",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Médico especializado em animais, realiza diagnósticos, cirurgias e tratamentos com amplo conhecimento de zoologia e biologia.",
+    "skillCost": 165,
+    "upgradeCost": 1,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Animais (Veterinária)",              "attributeKey": null,   "valor": 40 },
+      { "nome": "Medicina (Cirurgia)",                "attributeKey": "INT",  "valor": 40 },
+      { "nome": "Medicina (Primeiros Socorros)",      "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Animais (Treinamento de Animais)",   "attributeKey": null,   "valor": 20 },
+      { "nome": "Animais (Doma)",                     "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciências (Zoologia)",                "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Ciências (Química)",                 "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciências (Biologia)",                "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciências (Genética)",                "attributeKey": "INT",  "valor": 10 },
+      { "nome": "Informática (Computação)",           "attributeKey": null,   "valor": 10 },
+      { "nome": "Pesquisa ou Investigação",           "attributeKey": "PER",  "valor": 20 }
     ],
+    "combatSkills": [],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Empatia com Animais",          "type": "positive", "cost": 1 },
+      { "nome": "Biblioteca (2 subgrupos)",     "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "engenheiro",
     "name": "Engenheiro",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Especialista técnico que projeta e constrói estruturas e sistemas, com base sólida em ciências exatas e engenharia aplicada.",
+    "skillCost": 205,
+    "upgradeCost": 1,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Artífice",                       "attributeKey": null,   "valor": 20 },
+      { "nome": "Avaliação de Objetos",           "attributeKey": "PER",  "valor": 20 },
+      { "nome": "Ciência (Física)",               "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Ciência (Matemática)",           "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Ciências (Química)",             "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Eletrônica",                     "attributeKey": null,   "valor": 30 },
+      { "nome": "Engenharia (escolher)",          "attributeKey": null,   "valor": 40 },
+      { "nome": "Idiomas (escolher)",             "attributeKey": null,   "valor": 10 },
+      { "nome": "Informática (Computação)",       "attributeKey": null,   "valor": 20 },
+      { "nome": "Manipulação (Liderança)",        "attributeKey": "CAR",  "valor": 20 },
+      { "nome": "Mecânica",                       "attributeKey": "DEX",  "valor": 30 },
+      { "nome": "Mineração",                      "attributeKey": null,   "valor": 10 },
+      { "nome": "Negociação (escolher)",          "attributeKey": "CAR",  "valor": 10 },
+      { "nome": "Pesquisa ou Investigação",       "attributeKey": "PER",  "valor": 20 }
     ],
+    "combatSkills": [],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Senso Numérico",               "type": "positive", "cost": 1 },
+      { "nome": "Biblioteca (2 subgrupos)",     "type": "positive", "cost": 1 }
     ]
   },
   {
-    "id": "policial",
-    "name": "Policial",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "segurança",
+    "id": "seguranca",
     "name": "Segurança",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Profissional de proteção pessoal ou patrimonial, treinado em vigilância, contenção e uso proporcional da força.",
+    "skillCost": 225,
+    "upgradeCost": 1,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Condução (Carro)",              "attributeKey": "AGI",   "valor": 20 },
+      { "nome": "Falsificação (Documentos)",     "attributeKey": "INT",   "valor": 10 },
+      { "nome": "Escutar",                       "attributeKey": "PER",   "valor": 30 },
+      { "nome": "Esportes (Corrida)",            "attributeKey": "AGI",   "valor": 20 },
+      { "nome": "Furtividade",                   "attributeKey": "AGI",   "valor": 20 },
+      { "nome": "Manipulação (Intimidação)",     "attributeKey": "WILL",  "valor": 30 },
+      { "nome": "Medicina (Primeiros Socorros)", "attributeKey": "INT",   "valor": 20 },
+      { "nome": "Procura",                       "attributeKey": "AGI",   "valor": 20 }
+    ],
+    "combatSkills": [
+      { "nome": "Armas Brancas (escolher)",      "combatType": "melee",   "combatGroup": "weapons", "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 30, "def": 30 },
+      { "nome": "Armas de Fogo (Pistolas)",      "combatType": "firearm", "combatGroup": "firearm", "attributeKey": "DEX",  "valor": 40 },
+      { "nome": "Artes Marciais (escolher uma)", "combatType": "melee",   "combatGroup": "martial",  "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 40, "def": 30 }
     ],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Armas de Fogo",    "type": "positive", "cost": 1 },
+      { "nome": "Saúde de Ferro",   "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "programador",
     "name": "Programador",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+    "description": "Especialista em desenvolvimento de software, domina linguagens de programação, redes e sistemas com forte base lógica.",
+    "skillCost": 125,
+    "upgradeCost": 1,
+    "skills": [],
+    "combatSkills": [
+      { "nome": "Ciência (Física)",               "attributeKey": "INT",  "valor": 10 },
+      { "nome": "Ciência (Matemática)",           "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Eletrônica",                     "attributeKey": null,   "valor": 20 },
+      { "nome": "Idiomas (escolher)",             "attributeKey": null,   "valor": 10 },
+      { "nome": "Informática (Computação)",       "attributeKey": null,   "valor": 30 },
+      { "nome": "Informática (Programação)",      "attributeKey": null,   "valor": 40 },
+      { "nome": "Informática (Hacker)",           "attributeKey": null,   "valor": 30 },
+      { "nome": "Pesquisa ou Investigação",       "attributeKey": "PER",  "valor": 20 }
     ],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Senso Numérico",               "type": "positive", "cost": 1 },
+      { "nome": "Biblioteca (2 subgrupos)",     "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "professor",
     "name": "Professor",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Educador especializado em transmitir conhecimento de forma clara e didática, com amplo domínio em sua área de atuação.",
+    "skillCost": 145,
+    "upgradeCost": 1,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Artes (Redação)",               "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciência (Escolher)",            "attributeKey": "INT",  "valor": 40 },
+      { "nome": "Ciência (Física)",              "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Etiqueta (Diplomacia)",         "attributeKey": "CAR",  "valor": 20 },
+      { "nome": "Idiomas (escolher)",            "attributeKey": null,   "valor": 20 },
+      { "nome": "Informática (Computação)",      "attributeKey": "INT",  "valor": 10 },
+      { "nome": "Manipulação (Empatia)",         "attributeKey": "CAR",  "valor": 30 },
+      { "nome": "Manipulação (Impressionar)",    "attributeKey": "CAR",  "valor": 30 },
+      { "nome": "Pesquisa ou Investigação",      "attributeKey": "PER",  "valor": 30 }
     ],
+    "combatSkills": [],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Sábio",                        "type": "positive", "cost": 1 },
+      { "nome": "Biblioteca (2 subgrupos)",     "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "politico",
     "name": "Político",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Figura pública especializada em persuasão, negociação e liderança, atua em esferas de poder e influência social.",
+    "skillCost": 225,
+    "upgradeCost": 2,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Artes (Redação)",               "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Artes (Atuação)",               "attributeKey": "CAR",  "valor": 30 },
+      { "nome": "Ciências (Direito)",            "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciências (Sociologia)",         "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciências (Psicologia)",         "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Etiqueta (Diplomacia)",         "attributeKey": "CAR",  "valor": 40 },
+      { "nome": "Idiomas (escolher)",            "attributeKey": null,   "valor": 10 },
+      { "nome": "Manipulação (Liderança)",       "attributeKey": "CAR",  "valor": 40 },
+      { "nome": "Manipulação (Lábia)",           "attributeKey": "CAR",  "valor": 40 },
+      { "nome": "Manipulação (Empatia)",         "attributeKey": "CAR",  "valor": 30 },
+      { "nome": "Negociação (Burocracia)",       "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Negociação (Marketing)",        "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Pesquisa ou Investigação",      "attributeKey": "PER",  "valor": 10 }
     ],
+    "combatSkills": [],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Fama",               "type": "positive", "cost": 1 },
+      { "nome": "Contatos e Aliados", "type": "positive", "cost": 1 },
+      { "nome": "Influência",         "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "atleta",
-    "name": "Atleta",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "educador_fisico",
     "name": "Educador Físico",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Profissional do esporte que treina e orienta pessoas para a atividade física, com conhecimento de anatomia e técnicas esportivas.",
+    "skillCost": 195,
+    "upgradeCost": 1,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Ciências (Anatomia)",         "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Esportes (Corrida)",          "attributeKey": "AGI",  "valor": 30 },
+      { "nome": "Esportes (Arremesso)",        "attributeKey": "DEX",  "valor": 30 },
+      { "nome": "Esportes (Natação)",          "attributeKey": "AGI",  "valor": 30 },
+      { "nome": "Esportes (Salto)",            "attributeKey": "AGI",  "valor": 30 },
+      { "nome": "Idiomas (escolher)",          "attributeKey": null,   "valor": 10 },
+      { "nome": "Etiqueta (Comercial)",        "attributeKey": "CAR",  "valor": 10 },
+      { "nome": "Manipulação (Impressionar)",  "attributeKey": "CAR",  "valor": 20 },
+      { "nome": "Manipulação (Liderança)",     "attributeKey": "CAR",  "valor": 30 },
+      { "nome": "Negociação (Marketing)",      "attributeKey": "CAR",  "valor": 20 }
+    ],
+    "combatSkills": [
+      { "nome": "Artes Marciais (escolher uma)", "combatType": "melee",   "combatGroup": "martial",  "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 30, "def": 30 }
     ],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "construtor",
-    "name": "Construtor Civil",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Fama",             "type": "positive", "cost": 1 },
+      { "nome": "Saúde de Ferro",   "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "militar",
     "name": "Militar",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Combatente profissional treinado para missões de campo, operações táticas e sobrevivência em ambientes hostis.",
+    "skillCost": 300,
+    "upgradeCost": 2,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Armadilhas",                     "attributeKey": "PER",  "valor": 20 },
+      { "nome": "Camuflagem",                     "attributeKey": "PER",  "valor": 20 },
+      { "nome": "Ciências (Geografia)",           "attributeKey": "INT",  "valor": 15 },
+      { "nome": "Condução (Carro)",               "attributeKey": "AGI",  "valor": 15 },
+      { "nome": "Escutar",                        "attributeKey": "PER",  "valor": 15 },
+      { "nome": "Esportes (Arremesso)",           "attributeKey": "DEX",  "valor": 15 },
+      { "nome": "Esportes (Escalada)",            "attributeKey": "FR",   "valor": 15 },
+      { "nome": "Esportes (Natação)",             "attributeKey": "AGI",  "valor": 15 },
+      { "nome": "Esportes (Corrida)",             "attributeKey": "AGI",  "valor": 15 },
+      { "nome": "Explosivos",                     "attributeKey": null,   "valor": 20 },
+      { "nome": "Furtividade",                    "attributeKey": "AGI",  "valor": 20 },
+      { "nome": "Idiomas (Criptofgrafia)",        "attributeKey": null,   "valor": 15 },
+      { "nome": "Idiomas (Código Morse)",         "attributeKey": null,   "valor": 15 },
+      { "nome": "Manipulação (Liderança)",        "attributeKey": "CAR",  "valor": 20 },
+      { "nome": "Manipulação (Intimidação)",      "attributeKey": "WILL", "valor": 15 },
+      { "nome": "Medicina (Primeiros Socorros)",  "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Procura",                        "attributeKey": "PER",  "valor": 15 },
+      { "nome": "Rastreio",                       "attributeKey": "PER",  "valor": 20 },
+      { "nome": "Sobrevivência (escolher)",       "attributeKey": "PER",  "valor": 25 }
+    ],
+    "combatSkills": [
+      { "nome": "Armas Brancas (Facas)", "combatType": "melee", "combatGroup": "weapons", "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 20, "def": 0 },
+      { "nome": "Armas de Fogo (Pistolas)", "combatType": "firearm", "combatGroup": "firearm", "attributeKey": "DEX", "valor": 30 },
+      { "nome": "Armas de Fogo (Metralhadoras)", "combatType": "firearm", "combatGroup": "firearm", "attributeKey": "DEX", "valor": 30 },
+      { "nome": "Artes Marciais (escolher uma)", "combatType": "melee",   "combatGroup": "martial",  "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 20, "def": 20 }
     ],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Armas de Fogo",    "type": "positive", "cost": 1 },
+      { "nome": "Saúde de Ferro",   "type": "positive", "cost": 1 },
+      { "nome": "Senso de Direção", "type": "positive", "cost": 1 }
     ]
   },
   {
-    "id": "forca_especiais",
+    "id": "forcas_especiais",
     "name": "Forças Especiais",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Operador de elite com treinamento avançado em combate, infiltração, explosivos e sobrevivência em missões de alto risco.",
+    "skillCost": 300,
+    "upgradeCost": 2,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Armadilhas",                     "attributeKey": "PER",  "valor": 15 },
+      { "nome": "Camuflagem",                     "attributeKey": "PER",  "valor": 25 },
+      { "nome": "Ciências (Geografia)",           "attributeKey": "INT",  "valor": 10 },
+      { "nome": "Condução (Carro)",               "attributeKey": "AGI",  "valor": 10 },
+      { "nome": "Escutar",                        "attributeKey": "PER",  "valor": 15 },
+      { "nome": "Esportes (Arremesso)",           "attributeKey": "DEX",  "valor": 10 },
+      { "nome": "Esportes (Escalada)",            "attributeKey": "FR",   "valor": 10 },
+      { "nome": "Esportes (Natação)",             "attributeKey": "AGI",  "valor": 10 },
+      { "nome": "Esportes (Corrida)",             "attributeKey": "AGI",  "valor": 10 },
+      { "nome": "Esportes (Paraquedismo)",        "attributeKey": "AGI",  "valor": 10 },
+      { "nome": "Explosivos",                     "attributeKey": null,   "valor": 15 },
+      { "nome": "Furtividade",                    "attributeKey": "AGI",  "valor": 30 },
+      { "nome": "Manipulação (Interrogatório)",   "attributeKey": "INT",  "valor": 10 },
+      { "nome": "Manipulação (Intimidação)",      "attributeKey": "WILL", "valor": 10 },
+      { "nome": "Medicina (Primeiros Socorros)",  "attributeKey": "INT",  "valor": 10 },
+      { "nome": "Pesquisa ou Investigação",       "attributeKey": "PER",  "valor": 10 },
+      { "nome": "Procura",                        "attributeKey": "PER",  "valor": 15 },
+      { "nome": "Rastreio",                       "attributeKey": "PER",  "valor": 15 },
+      { "nome": "Sobrevivência (escolher)",       "attributeKey": "PER",  "valor": 15 },
+      { "nome": "Manuseio de Fechaduras",         "attributeKey": null,   "valor": 10 }
+    ],
+    "combatSkills": [
+      { "nome": "Armas Brancas (Facas)", "combatType": "melee", "combatGroup": "weapons", "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 25, "def": 0 },
+      { "nome": "Armas de Fogo (Pistolas)", "combatType": "firearm", "combatGroup": "firearm", "attributeKey": "DEX", "valor": 30 },
+      { "nome": "Armas de Fogo (Escopeta)", "combatType": "firearm", "combatGroup": "firearm", "attributeKey": "DEX", "valor": 25 },
+      { "nome": "Armas de Fogo (Submetralahdoras)", "combatType": "firearm", "combatGroup": "firearm", "attributeKey": "DEX", "valor": 30 },
+      { "nome": "Armas de Fogo (Metralhadoras)", "combatType": "firearm", "combatGroup": "firearm", "attributeKey": "DEX", "valor": 25 },
+      { "nome": "Artes Marciais (escolher uma)", "combatType": "melee",   "combatGroup": "martial",  "attribute1Key": "DEX", "attribute2Key": "DEX", "atk": 25, "def": 25 }
     ],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "policial",
-    "name": "Policial",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Armas de Fogo",    "type": "positive", "cost": 1 },
+      { "nome": "Armas de Fogo",    "type": "positive", "cost": 1 },
+      { "nome": "Coragem",          "type": "positive", "cost": 2 }
     ]
   },
   {
     "id": "artista",
     "name": "Artista",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Criador expressivo com domínio técnico e estético em sua forma de arte, capaz de impressionar e comunicar emoções com seu trabalho.",
+    "skillCost": 145,
+    "upgradeCost": 2,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Arte (escolher)",               "attributeKey": "INT",  "valor": 40 },
+      { "nome": "Arte (Crítica de Arte)",        "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Ciências (Filosofia)",          "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Avaliação de Objetos",          "attributeKey": "PER",  "valor": 30 },
+      { "nome": "Ciências (Psicologia)",         "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Etiqueta (Comercial)",          "attributeKey": "CAR",  "valor": 20 },
+      { "nome": "Idiomas (escolher)",            "attributeKey": null,   "valor": 10 },
+      { "nome": "Manipulação (Impressionar)",    "attributeKey": "CAR",  "valor": 30 },
+      { "nome": "Negociação (Marketing)",        "attributeKey": "INT",  "valor": 20 }
     ],
+    "combatSkills": [],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Talento",          "type": "positive", "cost": 1 },
+      { "nome": "Concentração",     "type": "positive", "cost": 2 }
     ]
   },
   {
     "id": "cientista",
     "name": "Cientista",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Pesquisador metódico que investiga fenômenos naturais e desenvolve conhecimento por meio de experimentos e análise de dados.",
+    "skillCost": 185,
+    "upgradeCost": 1,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Avaliação de Objetos",          "attributeKey": "PER",  "valor": 20 },
+      { "nome": "Ciência (Física)",              "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Ciência (Matemática)",          "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Ciência (Meteorologia)",        "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciência (Química)",             "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Ciências (Biologia)",           "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Ciências (Geografia)",          "attributeKey": "INT",  "valor": 10 },
+      { "nome": "Eletrônica",                    "attributeKey": null,   "valor": 20 },
+      { "nome": "Etiqueta (Comercial)",          "attributeKey": "INT",  "valor": 10 },
+      { "nome": "Idiomas (escolher)",            "attributeKey": null,   "valor": 10 },
+      { "nome": "Informática (Computação)",      "attributeKey": null,   "valor": 20 },
+      { "nome": "Pesquisa ou Investigação",      "attributeKey": "PER",  "valor": 40 },
+      { "nome": "Procura",                       "attributeKey": "PER",  "valor": 20 }
     ],
+    "combatSkills": [],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Sábio",                    "type": "positive", "cost": 1 },
+      { "nome": "Biblioteca (2 subgrupos)", "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "detetive",
     "name": "Detetive",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Investigador especializado em coleta de evidências, vigilância e interrogatórios para descobrir verdades ocultas e solucionar casos.",
+    "skillCost": 285,
+    "upgradeCost": 1,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Avaliação de Objetos",          "attributeKey": "PER",  "valor": 20 },
+      { "nome": "Arte (Fotografia)",             "attributeKey": "PER",  "valor": 20 },
+      { "nome": "Arte (Presdigitação)",          "attributeKey": "DEX",  "valor": 20 },
+      { "nome": "Condução (Carro)",              "attributeKey": "AGI",  "valor": 20 },
+      { "nome": "Disfarce",                      "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Escutar",                       "attributeKey": "PER",  "valor": 30 },
+      { "nome": "Etiqueta (Submundo)",           "attributeKey": "CAR",  "valor": 20 },
+      { "nome": "Furtividade",                   "attributeKey": "AGI",  "valor": 30 },
+      { "nome": "Idiomas (Leitura Labial)",      "attributeKey": null,   "valor": 20 },
+      { "nome": "Informática (Computação)",      "attributeKey": null,   "valor": 20 },
+      { "nome": "Manipulação (Manha)",           "attributeKey": "CAR",  "valor": 30 },
+      { "nome": "Manipulação (Interrogatório)",  "attributeKey": "INT",  "valor": 40 },
+      { "nome": "Manuseio de Fechaduras",        "attributeKey": null,   "valor": 20 },
+      { "nome": "Negociação (Barganha)",         "attributeKey": "CAR",  "valor": 10 },
+      { "nome": "Pesquisa ou Investigação",      "attributeKey": "PER",  "valor": 40 },
+      { "nome": "Procura",                       "attributeKey": "PER",  "valor": 30 }
+    ],
+    "combatSkills": [
+      { "nome": "Armas de Fogo (Pistolas)", "combatType": "firearm", "combatGroup": "firearm", "attributeKey": "DEX", "valor": 30 }
     ],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Armas de Fogo",          "type": "positive", "cost": 1 },
+      { "nome": "Contatos e Aliados",     "type": "positive", "cost": 1 }
     ]
   },
   {
     "id": "jornalista",
     "name": "Jornalista",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
+    "description": "Profissional da informação que investiga, apura e publica notícias, dominando redação, entrevistas e pesquisa de campo.",
+    "skillCost": 180,
+    "upgradeCost": 1,
     "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
+      { "nome": "Arte (Fotografia)",                "attributeKey": "PER",  "valor": 30 },
+      { "nome": "Arte (Redação)",                   "attributeKey": "INT",  "valor": 40 },
+      { "nome": "Ciências (Psicologia)",            "attributeKey": "INT",  "valor": 20 },
+      { "nome": "Escutar",                          "attributeKey": "PER",  "valor": 30 },
+      { "nome": "Etiqueta (Comercial)",             "attributeKey": "CAR",  "valor": 20 },
+      { "nome": "Idiomas (escolher)",               "attributeKey": null,   "valor": 20 },
+      { "nome": "Informática (Computação)",         "attributeKey": null,   "valor": 20 },
+      { "nome": "Manipulação (Interrogatório)",     "attributeKey": "INT",  "valor": 30 },
+      { "nome": "Pesquisa ou Investigação",         "attributeKey": "PER",  "valor": 40 },
+      { "nome": "Negociação (Marketing)",           "attributeKey": "INT",  "valor": 20 }
     ],
+    "combatSkills": [],
     "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "estudante",
-    "name": "Estudante",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "musico",
-    "name": "Músico",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "teologo",
-    "name": "Teólogo",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "policial",
-    "name": "Policial",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-    
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "fazendeiro",
-    "name": "Fazendeiro",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "vendedor",
-    "name": "Vendedor",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "motorista",
-    "name": "Motorista",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
-    ]
-  },
-  {
-    "id": "empresario",
-    "name": "Empresário",
-    "description": "",
-    "skillCost": 220,
-    "upgradeCost": 3,
-    "skills": [
-      { "nome": "Armas Brancas (Machado)",        "attributeKey": "DEX",  "valor": 40 }
-     
-    ],
-    "upgrades": [
-      { "nome": "Coragem",                   "type": "positive", "cost": 2 },
-      { "nome": "Vontade de Ferro", "type": "positive", "cost": 2 }
+      { "nome": "Contatos e Aliados",          "type": "positive", "cost": 1 },
+      { "nome": "Fama",                        "type": "positive", "cost": 1 }
     ]
   }
 ]
