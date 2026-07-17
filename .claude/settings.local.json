@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(Get-ChildItem -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(gh api *)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"https://matheussouza15mms-ops.github.io/ficha-rpg/\" -UseBasicParsing -TimeoutSec 15; $r.Content.Substring\\(0, 300\\) } catch { \"Erro: $\\($_.Exception.Message\\)\" })"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "firebase"
+  ]
 }

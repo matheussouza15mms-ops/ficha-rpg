@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://matheussouza15mms-ops.github.io", "http://localhost", "http://127.0.0.1"],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "X-Requested-With"]
+  }
+]

@@ -1,0 +1,9 @@
+node_modules/
+
+# Firebase Admin SDK service account keys - never commit
+serviceAccountKey.json
+*firebase-adminsdk*.json
+
+# One-off admin scripts containing plaintext credentials
+setup_gm.js
+complete_gm_setup.js

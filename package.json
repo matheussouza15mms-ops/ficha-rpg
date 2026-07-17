@@ -1,0 +1,8 @@
+{
+  "name": "ficha-rpg",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "firebase-admin": "^14.2.0"
+  }
+}
