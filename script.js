@@ -2672,13 +2672,7 @@ async function ensureUserProfile(user) {
 
 async function determineRoleForNewUser(email) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
-  if (MASTER_EMAILS.includes(normalizedEmail)) {
-    return "gm";
-  }
-
-  const usersSnapshot = await getDocs(collection(db, "users"));
-  const hasGm = usersSnapshot.docs.some((item) => item.data().role === "gm");
-  return hasGm ? "player" : "gm";
+  return MASTER_EMAILS.includes(normalizedEmail) ? "gm" : "player";
 }
 
 async function ensureOwnerHasAtLeastOneCharacter(profile) {
