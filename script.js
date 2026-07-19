@@ -2937,12 +2937,17 @@ function serializeCharacterForWrite(character) {
 }
 
 function sanitizeUpgradeRows(rows) {
-  const normalized = (Array.isArray(rows) ? rows : []).map((row) => ({
-    id: row.id || crypto.randomUUID(),
-    nome: row.nome ?? "",
-    valor: row.valor ?? "",
-    isPlaceholder: Boolean(row.isPlaceholder),
-  }));
+  const normalized = (Array.isArray(rows) ? rows : []).map((row) => {
+    const nome = row.nome ?? "";
+    const valor = row.valor ?? "";
+    const isEmpty = String(nome).trim() === "" && String(valor).trim() === "";
+    return {
+      id: row.id || crypto.randomUUID(),
+      nome,
+      valor,
+      isPlaceholder: Boolean(row.isPlaceholder) && isEmpty,
+    };
+  });
 
   if (!normalized.length) {
     return [createUpgradePlaceholder()];
@@ -2952,14 +2957,21 @@ function sanitizeUpgradeRows(rows) {
 }
 
 function sanitizeSkillRows(rows) {
-  const normalized = (Array.isArray(rows) ? rows : []).map((row) => ({
-    id: row.id || crypto.randomUUID(),
-    nome: row.nome ?? "",
-    atributo: row.atributo ?? "",
-    valor: row.valor ?? "",
-    teste: row.teste ?? "",
-    isPlaceholder: Boolean(row.isPlaceholder),
-  }));
+  const normalized = (Array.isArray(rows) ? rows : []).map((row) => {
+    const nome = row.nome ?? "";
+    const atributo = row.atributo ?? "";
+    const valor = row.valor ?? "";
+    const teste = row.teste ?? "";
+    const isEmpty = [nome, atributo, valor, teste].every((value) => String(value).trim() === "");
+    return {
+      id: row.id || crypto.randomUUID(),
+      nome,
+      atributo,
+      valor,
+      teste,
+      isPlaceholder: Boolean(row.isPlaceholder) && isEmpty,
+    };
+  });
 
   if (!normalized.length) {
     return [createSkillPlaceholder()];
@@ -2970,12 +2982,13 @@ function sanitizeSkillRows(rows) {
 
 function sanitizeCombatSkillRows(rows) {
   const normalized = (Array.isArray(rows) ? rows : []).map((row) => {
+    const nome = row.nome ?? "";
     const base = {
       id: row.id || crypto.randomUUID(),
-      nome: row.nome ?? "",
+      nome,
       combatType: row.combatType ?? "melee",
       combatGroup: row.combatGroup ?? "martial",
-      isPlaceholder: Boolean(row.isPlaceholder),
+      isPlaceholder: Boolean(row.isPlaceholder) && String(nome).trim() === "",
     };
     if (base.combatType === "firearm") {
       return {
