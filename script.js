@@ -2953,7 +2953,7 @@ function sanitizeUpgradeRows(rows) {
     return [createUpgradePlaceholder()];
   }
 
-  return keepOnlyFirstPlaceholder(normalized);
+  return normalized;
 }
 
 function sanitizeSkillRows(rows) {
@@ -2977,7 +2977,7 @@ function sanitizeSkillRows(rows) {
     return [createSkillPlaceholder()];
   }
 
-  return keepOnlyFirstPlaceholder(normalized);
+  return normalized;
 }
 
 function sanitizeCombatSkillRows(rows) {
@@ -3009,15 +3009,11 @@ function sanitizeCombatSkillRows(rows) {
     };
   });
 
-  const withoutEmpty = normalized.filter(
-    (row) => row.isPlaceholder || (row.nome ?? "").trim() !== ""
-  );
-
-  if (!withoutEmpty.length) {
+  if (!normalized.length) {
     return [createCombatSkillPlaceholder()];
   }
 
-  return keepOnlyFirstPlaceholder(withoutEmpty);
+  return normalized;
 }
 
 function createCombatSkillPlaceholder() {
@@ -3044,23 +3040,6 @@ function sanitizeInventoryItems(rows) {
     peso: row.peso ?? "",
     valor: row.valor ?? "",
   }));
-}
-
-function keepOnlyFirstPlaceholder(rows) {
-  let foundPlaceholder = false;
-
-  return rows.filter((row) => {
-    if (!row.isPlaceholder) {
-      return true;
-    }
-
-    if (foundPlaceholder) {
-      return false;
-    }
-
-    foundPlaceholder = true;
-    return true;
-  });
 }
 
 function ensureDynamicRowsForActiveCharacter() {
