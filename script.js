@@ -907,7 +907,8 @@ function handleDynamicRowFocusOut(event) {
     const nomeInput = row.querySelector('[data-field$=":nome"]');
     hasContent = Boolean(nomeInput && String(nomeInput.value || "").trim());
   } else {
-    hasContent = Array.from(row.querySelectorAll("[data-field]:not([readonly])"))
+    hasContent = Array.from(row.querySelectorAll("[data-field]"))
+      .filter((field) => !field.dataset.field.endsWith(":teste"))
       .some((field) => String(field.value || "").trim() !== "");
   }
 
