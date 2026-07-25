@@ -902,15 +902,19 @@ function handleDynamicRowFocusOut(event) {
     return;
   }
 
-  let hasContent;
-  if (row.dataset.dynamicType === "combatSkill") {
-    const nomeInput = row.querySelector('[data-field$=":nome"]');
-    hasContent = Boolean(nomeInput && String(nomeInput.value || "").trim());
-  } else {
-    hasContent = Array.from(row.querySelectorAll("[data-field]"))
-      .filter((field) => !field.dataset.field.endsWith(":teste"))
-      .some((field) => String(field.value || "").trim() !== "");
+  // A decisão de remover uma linha é feita a partir do MODELO (dados sincronizados
+  // do Firebase), nunca dos inputs do DOM. Os inputs podem estar momentaneamente
+  // vazios/dessincronizados durante trocas de foco e re-renderizações; confiar neles
+  // fazia aprimoramentos/perícias existentes no banco sumirem da ficha.
+  const type = row.dataset.dynamicType;
+  const modelRow = findDynamicModelRow(type, row.dataset.rowId);
+
+  // Linha que não existe mais no modelo: nada a fazer.
+  if (!modelRow) {
+    return;
   }
+
+  const hasContent = !isDynamicModelRowEmpty(type, modelRow);
 
   if (hasContent) {
     if (row.dataset.placeholder === "true") {
@@ -924,6 +928,44 @@ function handleDynamicRowFocusOut(event) {
   }
 
   removeDynamicRow(row);
+}
+
+function findDynamicModelRow(type, rowId) {
+  const character = getActiveCharacter();
+  if (!character) {
+    return null;
+  }
+
+  let collection;
+  if (type === "upgrade") {
+    collection = character.dynamicUpgrades;
+  } else if (type === "combatSkill") {
+    collection = character.dynamicCombatSkills;
+  } else {
+    collection = character.dynamicSkills;
+  }
+
+  return (collection || []).find((entry) => entry.id === rowId) || null;
+}
+
+function isDynamicModelRowEmpty(type, modelRow) {
+  if (!modelRow) {
+    return true;
+  }
+
+  const isBlank = (value) => String(value ?? "").trim() === "";
+
+  if (type === "upgrade") {
+    return isBlank(modelRow.nome) && isBlank(modelRow.valor);
+  }
+
+  if (type === "combatSkill") {
+    // Uma linha de combate é considerada preenchida pelo nome da perícia.
+    return isBlank(modelRow.nome);
+  }
+
+  // Perícias comuns: teste é derivado, então não conta para preenchimento.
+  return isBlank(modelRow.nome) && isBlank(modelRow.atributo) && isBlank(modelRow.valor);
 }
 
 function handleInventoryRowFocusOut(event) {
@@ -1247,6 +1289,11 @@ function applySheetMode() {
   const isEvolution = mode === "evolution";
   const hasCharacter = hasActiveCharacter();
 
+  // O mestre pode editar perícias e aprimoramentos de qualquer ficha, inclusive
+  // em modo de Jogo. As alterações são salvas automaticamente (autosave), e as
+  // regras do Firestore já autorizam o mestre a atualizar qualquer personagem.
+  const canEditDynamic = !isPlay || masterUser;
+
   elements.saveSheetButton.classList.toggle("hidden", !hasCharacter || isPlay);
   elements.attributePointsBadge.classList.toggle("hidden", !isCreation);
   elements.upgradePointsPool.classList.toggle("hidden", !isCreation);
@@ -1254,11 +1301,11 @@ function applySheetMode() {
     elements.evolutionUpgradePointsBadge.classList.toggle("hidden", !isEvolution);
   }
   if (elements.skillPointsField) {
-    elements.skillPointsField.classList.toggle("hidden", isPlay);
+    elements.skillPointsField.classList.toggle("hidden", isPlay && !masterUser);
   }
-  elements.addSkillRow.classList.toggle("hidden", isPlay);
-  elements.addCombatSkillRow.classList.toggle("hidden", isPlay);
-  elements.addUpgradeRow.classList.toggle("hidden", isPlay);
+  elements.addSkillRow.classList.toggle("hidden", !canEditDynamic);
+  elements.addCombatSkillRow.classList.toggle("hidden", !canEditDynamic);
+  elements.addUpgradeRow.classList.toggle("hidden", !canEditDynamic);
   if (elements.openKitCatalog) {
     elements.openKitCatalog.classList.toggle("hidden", !isCreation);
   }
@@ -1270,17 +1317,17 @@ function applySheetMode() {
   document.querySelectorAll('#skillsTable input[data-field]').forEach((input) => {
     const f = input.dataset.field || "";
     if (f.endsWith(":teste")) return;
-    input.toggleAttribute("readonly", isPlay);
+    input.toggleAttribute("readonly", !canEditDynamic);
   });
 
   document.querySelectorAll('#combatSkillsTable input[data-field]').forEach((input) => {
     const f = input.dataset.field || "";
     if (f.endsWith(":atkTeste") || f.endsWith(":defTeste") || f.endsWith(":teste")) return;
-    input.toggleAttribute("readonly", isPlay);
+    input.toggleAttribute("readonly", !canEditDynamic);
   });
 
   document.querySelectorAll('#upgradesGrid input[data-field]').forEach((input) => {
-    input.toggleAttribute("readonly", isPlay || isEvolution);
+    input.toggleAttribute("readonly", (isPlay || isEvolution) && !masterUser);
   });
 
   setFieldReadonly("nivel", !isCreation);
@@ -1871,9 +1918,11 @@ function renderUpgradeCatalogDetail() {
   const character = getActiveCharacter();
   const evolutionPts = character?.evolutionUpgradePoints || 0;
   const remaining = isEvolutionMode ? evolutionPts : computeUpgradePoolRemaining();
-  const canAfford = isEvolutionMode
-    ? (isPositive && evolutionPts >= entry.cost)
-    : (isPositive ? remaining >= entry.cost : true);
+  const canAfford = isMasterUser()
+    ? true
+    : (isEvolutionMode
+      ? (isPositive && evolutionPts >= entry.cost)
+      : (isPositive ? remaining >= entry.cost : true));
 
   detail.innerHTML = `
     <h3 class="skill-catalog-title">${entry.name}</h3>
@@ -1926,12 +1975,15 @@ function confirmUpgradeCatalogSelection() {
   const signedCost = isPositive ? -entry.cost : entry.cost;
   const isEvolutionMode = getActiveCharacterMode() === "evolution";
 
-  if (isEvolutionMode) {
-    if (!isPositive) return;
-    const evPts = getActiveCharacter()?.evolutionUpgradePoints || 0;
-    if (evPts < entry.cost) return;
-  } else if (isPositive && computeUpgradePoolRemaining() < entry.cost) {
-    return;
+  // O mestre adiciona aprimoramentos livremente, sem travar pelo saldo de pontos.
+  if (!isMasterUser()) {
+    if (isEvolutionMode) {
+      if (!isPositive) return;
+      const evPts = getActiveCharacter()?.evolutionUpgradePoints || 0;
+      if (evPts < entry.cost) return;
+    } else if (isPositive && computeUpgradePoolRemaining() < entry.cost) {
+      return;
+    }
   }
 
   const rowId = crypto.randomUUID();
