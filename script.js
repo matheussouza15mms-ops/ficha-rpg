@@ -842,7 +842,9 @@ function registerEvents() {
   elements.toggleLoginPassword.addEventListener("click", () => togglePasswordVisibility(elements.passwordInput, elements.toggleLoginPassword));
   elements.toggleRegisterPassword.addEventListener("click", () => togglePasswordVisibility(elements.registerPassword, elements.toggleRegisterPassword));
   elements.logoutButton.addEventListener("click", handleLogout);
-  elements.printSheetButton.addEventListener("click", handlePrintSheet);
+  // Optional chaining de propósito: se o navegador servir um index.html antigo
+  // do cache, o botão não existe e o registro não pode derrubar o boot inteiro.
+  elements.printSheetButton?.addEventListener("click", handlePrintSheet);
   elements.sheetSelector.addEventListener("change", handleSheetSelection);
   elements.removePortraitButton.addEventListener("click", handleRemovePortrait);
   elements.addUpgradeRow.addEventListener("click", openUpgradeCatalogDialog);
@@ -1860,7 +1862,7 @@ function applySheetMode() {
   const canEditDynamic = !isPlay || masterUser;
 
   elements.saveSheetButton.classList.toggle("hidden", !hasCharacter || isPlay);
-  elements.printSheetButton.classList.toggle("hidden", !hasCharacter);
+  elements.printSheetButton?.classList.toggle("hidden", !hasCharacter);
   elements.attributePointsBadge.classList.toggle("hidden", !isCreation);
   elements.upgradePointsPool.classList.toggle("hidden", !isCreation);
   if (elements.evolutionUpgradePointsBadge) {
