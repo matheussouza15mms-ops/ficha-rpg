@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
   <!-- O ?v= força o navegador a baixar a versão nova em vez de reaproveitar a
        do cache do GitHub Pages. Suba o número sempre que mexer no CSS/JS. -->
-  <link rel="stylesheet" href="./styles.css?v=6">
+  <link rel="stylesheet" href="./styles.css?v=7">
 </head>
 <body>
   <div class="page-art page-art-top" aria-hidden="true"></div>
@@ -82,6 +82,12 @@
 
           <div class="toolbar-group toolbar-group-right">
             <div id="saveStatus" class="save-status" aria-live="polite">Pronto</div>
+            <button type="button" id="printSheetButton" class="btn btn-secondary btn-print hidden" title="Gerar PDF / imprimir a ficha completa">
+              <svg class="btn-print-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 3h10v4H7V3Zm-3 6h16c1.1 0 2 .9 2 2v6h-4v4H6v-4H2v-6c0-1.1.9-2 2-2Zm4 8v4h8v-4H8Zm10-5.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/>
+              </svg>
+              Imprimir / PDF
+            </button>
             <button type="button" id="logoutButton" class="btn btn-secondary">Sair</button>
           </div>
         </div>
@@ -465,6 +471,6 @@
   <div id="toastStack" class="toast-stack" aria-live="polite"></div>
   <div id="upgradeTooltip" class="upgrade-tooltip" role="tooltip" aria-hidden="true"></div>
 
-  <script type="module" src="./script.js?v=6"></script>
+  <script type="module" src="./script.js?v=7"></script>
 </body>
 </html>

@@ -298,6 +298,7 @@ function cacheElements() {
   elements.deleteCurrentSheet = document.getElementById("deleteCurrentSheet");
   elements.logoutButton = document.getElementById("logoutButton");
   elements.saveStatus = document.getElementById("saveStatus");
+  elements.printSheetButton = document.getElementById("printSheetButton");
   elements.gmTools = document.getElementById("gmTools");
   elements.sheetSelector = document.getElementById("sheetSelector");
   elements.portraitFrame = document.getElementById("portraitFrame");
@@ -841,6 +842,7 @@ function registerEvents() {
   elements.toggleLoginPassword.addEventListener("click", () => togglePasswordVisibility(elements.passwordInput, elements.toggleLoginPassword));
   elements.toggleRegisterPassword.addEventListener("click", () => togglePasswordVisibility(elements.registerPassword, elements.toggleRegisterPassword));
   elements.logoutButton.addEventListener("click", handleLogout);
+  elements.printSheetButton.addEventListener("click", handlePrintSheet);
   elements.sheetSelector.addEventListener("change", handleSheetSelection);
   elements.removePortraitButton.addEventListener("click", handleRemovePortrait);
   elements.addUpgradeRow.addEventListener("click", openUpgradeCatalogDialog);
@@ -1858,6 +1860,7 @@ function applySheetMode() {
   const canEditDynamic = !isPlay || masterUser;
 
   elements.saveSheetButton.classList.toggle("hidden", !hasCharacter || isPlay);
+  elements.printSheetButton.classList.toggle("hidden", !hasCharacter);
   elements.attributePointsBadge.classList.toggle("hidden", !isCreation);
   elements.upgradePointsPool.classList.toggle("hidden", !isCreation);
   if (elements.evolutionUpgradePointsBadge) {
@@ -4378,6 +4381,498 @@ function escapeAttribute(text) {
     .replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+/* ==========================================================================
+   Impressão / PDF da ficha
+   ========================================================================== */
+
+/**
+ * Monta um documento próprio para impressão em uma nova aba e manda imprimir.
+ * A tela do jogo é escura e cheia de campos de formulário: imprimir a página
+ * como ela é gastaria tinta e cortaria as gavetas (pertences, anotações e
+ * história), que ficam fora do fluxo. Aqui o conteúdo é remontado em papel
+ * branco, na ordem da ficha, com tudo o que está fora da tela junto.
+ */
+function handlePrintSheet() {
+  if (!hasActiveCharacter()) {
+    showToast("Nenhuma ficha aberta para imprimir.", "danger", "🖨️");
+    return;
+  }
+
+  // Campos derivados (testes, PV, totais) só vão para o objeto do personagem no
+  // save; até lá o valor atual está no DOM. Por isso o documento lê o DOM
+  // primeiro e usa o personagem como reserva.
+  void flushPendingChanges();
+
+  const printWindow = window.open("", "_blank", "width=920,height=1200");
+  if (!printWindow) {
+    showToast("Libere os pop-ups deste site para gerar o PDF.", "danger", "🖨️");
+    return;
+  }
+
+  printWindow.document.open();
+  printWindow.document.write(buildPrintDocument(getActiveCharacter()));
+  printWindow.document.close();
+}
+
+function printValue(fieldKey, fallback = "") {
+  const fromDom = getFieldValue(fieldKey);
+  if (String(fromDom).trim() !== "") {
+    return String(fromDom);
+  }
+
+  const value = String(fallback ?? "").trim();
+  return value;
+}
+
+function printCell(value) {
+  const text = String(value ?? "").trim();
+  return text === "" ? "—" : escapeHtml(text);
+}
+
+function printParagraphs(text) {
+  const content = String(text ?? "").trim();
+  if (!content) {
+    return `<p class="print-empty">Sem registros.</p>`;
+  }
+
+  return `<div class="print-longtext">${escapeHtml(content)}</div>`;
+}
+
+function isPrintableSkillRow(row) {
+  if (row.isPlaceholder) return false;
+  return [row.nome, row.atributo, row.valor, row.teste]
+    .some((value) => String(value ?? "").trim() !== "");
+}
+
+function isPrintableUpgradeRow(row) {
+  if (row.isPlaceholder) return false;
+  return [row.nome, row.valor].some((value) => String(value ?? "").trim() !== "");
+}
+
+function isPrintableInventoryRow(row) {
+  return [row.item, row.quantidade, row.peso, row.valor]
+    .some((value) => String(value ?? "").trim() !== "");
+}
+
+function buildPrintDocument(character) {
+  const name = printValue("nome", character.nome) || "Personagem sem nome";
+  const player = character.ownerDisplayName || "—";
+  const profession = printValue("classeSocialProfissao", character.classeSocialProfissao);
+  const level = printValue("nivel", character.nivel);
+  const portraitSrc = elements.portraitFrame.classList.contains("has-image")
+    ? (elements.portraitImage.currentSrc || elements.portraitImage.src || "")
+    : "";
+  const portraitCode = formatPortraitCode(character.portraitNumber);
+  const printedAt = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+  const metaLine = [
+    `Jogador: ${player}`,
+    profession ? `Profissão: ${profession}` : "",
+    level ? `Nível: ${level}` : "",
+    portraitCode ? `Ficha #${portraitCode}` : "",
+    `Impresso em ${printedAt}`,
+  ].filter(Boolean).map((part) => escapeHtml(part)).join(" · ");
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Ficha - ${escapeHtml(name)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
+<style>${buildPrintStyles()}</style>
+</head>
+<body>
+<div class="print-toolbar">
+  <button type="button" onclick="window.print()">Imprimir / Salvar em PDF</button>
+  <button type="button" onclick="window.close()">Fechar</button>
+</div>
+
+<header class="print-header">
+  <p class="print-kicker">Ficha de Personagem · Sistema Daemon</p>
+  <h1>${escapeHtml(name)}</h1>
+  <p class="print-meta">${metaLine}</p>
+</header>
+
+${buildPrintIdentificationSection(character, portraitSrc)}
+${buildPrintAttributesSection(character)}
+${buildPrintSkillsSection(character)}
+${buildPrintCombatSkillsSection(character)}
+${buildPrintUpgradesSection(character)}
+${buildPrintInventorySection(character)}
+${buildPrintTextSection("Anotações", character.notesText)}
+${buildPrintTextSection("História", character.historyText)}
+
+<script>
+  window.addEventListener("load", () => {
+    window.focus();
+    // Um quadro de folga deixa a fonte e o retrato entrarem antes da prévia.
+    setTimeout(() => window.print(), 350);
+  });
+<\/script>
+</body>
+</html>`;
+}
+
+function buildPrintStyles() {
+  return `
+  @page { size: A4 portrait; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 18px 20px 40px;
+    background: #fff;
+    color: #16130f;
+    font-family: "Courier Prime", "Courier New", monospace;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  h1, h2 { font-family: "Special Elite", "Courier Prime", "Courier New", monospace; margin: 0; }
+  .print-toolbar {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+  }
+  .print-toolbar button {
+    font: inherit;
+    padding: 8px 16px;
+    border: 1px solid #7e0f14;
+    border-radius: 999px;
+    background: #7e0f14;
+    color: #fff;
+    cursor: pointer;
+  }
+  .print-toolbar button + button { background: #fff; color: #7e0f14; }
+  .print-header {
+    border-bottom: 2px solid #7e0f14;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+  }
+  .print-kicker {
+    margin: 0 0 2px;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #6b5b45;
+  }
+  .print-header h1 { font-size: 22px; line-height: 1.15; }
+  .print-meta { margin: 4px 0 0; font-size: 10px; color: #4a4034; }
+  /* Seções curtas não se partem; as tabelas longas podem virar a página, mas
+     sempre em cima de uma linha inteira e repetindo o cabeçalho. */
+  .print-section { margin-bottom: 14px; }
+  .print-section.print-compact { break-inside: avoid; }
+  .print-section h2 { break-after: avoid; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  .print-section h2 {
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #b9a887;
+    padding-bottom: 3px;
+    margin-bottom: 7px;
+  }
+  .print-columns { display: flex; gap: 14px; align-items: flex-start; }
+  .print-columns > * { flex: 1 1 0; min-width: 0; }
+  .print-portrait {
+    flex: 0 0 34mm;
+    border: 1px solid #8a7a5e;
+    padding: 3px;
+  }
+  .print-portrait img { width: 100%; display: block; }
+  .print-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px 12px;
+  }
+  .print-field { border-bottom: 1px dotted #b9a887; padding-bottom: 2px; }
+  .print-field span {
+    display: block;
+    font-size: 8.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #6b5b45;
+  }
+  .print-field strong { font-weight: 700; font-size: 11.5px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td {
+    border: 1px solid #b9a887;
+    padding: 3px 6px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    font-size: 8.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: #efe8d8;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  td.num, th.num { text-align: center; width: 12%; }
+  tr.print-group td {
+    background: #f6f1e5;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 9px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  tr.print-total td { font-weight: 700; }
+  .print-empty { color: #6b5b45; font-style: italic; margin: 0; }
+  .print-longtext {
+    white-space: pre-wrap;
+    border: 1px solid #b9a887;
+    padding: 8px 10px;
+    min-height: 24mm;
+  }
+  @media print {
+    .print-toolbar { display: none; }
+    body { padding: 0; font-size: 10.5px; }
+  }
+  `;
+}
+
+function buildPrintIdentificationSection(character, portraitSrc) {
+  const fields = identificationFields
+    .map(([key, label]) => `
+      <div class="print-field">
+        <span>${escapeHtml(label)}</span>
+        <strong>${printCell(printValue(key, character[key]))}</strong>
+      </div>`)
+    .join("");
+
+  const portrait = portraitSrc
+    ? `<div class="print-portrait"><img src="${escapeAttribute(portraitSrc)}" alt="Retrato de ${escapeAttribute(character.nome || "personagem")}"></div>`
+    : "";
+
+  return `
+<section class="print-section print-compact">
+  <h2>Identificação</h2>
+  <div class="print-columns">
+    ${portrait}
+    <div class="print-fields">${fields}</div>
+  </div>
+</section>`;
+}
+
+function buildPrintAttributesSection(character) {
+  const rows = attributeDefinitions
+    .map(({ key, label }) => `
+      <tr>
+        <td>${escapeHtml(label)}</td>
+        <td class="num">${printCell(printValue(`${key}Valor`, character[`${key}Valor`]))}</td>
+        <td class="num">${printCell(printValue(`${key}Mod`, character[`${key}Mod`]))}</td>
+        <td class="num">${printCell(printValue(`${key}Teste`, character[`${key}Teste`]))}</td>
+      </tr>`)
+    .join("");
+
+  const status = statusFields
+    .map(([key, label]) => `
+      <tr>
+        <td>${escapeHtml(label)}</td>
+        <td class="num">${printCell(printValue(key, character[key]))}</td>
+      </tr>`)
+    .join("");
+
+  const skillPoints = printValue("periciasPontos", character.periciasPontos);
+
+  return `
+<section class="print-section print-compact">
+  <div class="print-columns">
+    <div>
+      <h2>Atributos</h2>
+      <table>
+        <thead>
+          <tr><th>Atributo</th><th class="num">Valor</th><th class="num">Modif.</th><th class="num">Teste %</th></tr>
+        </thead>
+        <tbody>
+          ${rows}
+          <tr class="print-total">
+            <td>Total</td>
+            <td class="num">${printCell(printValue("atributosTotal", character.atributosTotal))}</td>
+            <td class="num"></td>
+            <td class="num"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h2>Status</h2>
+      <table>
+        <thead>
+          <tr><th>Campo</th><th class="num">Valor</th></tr>
+        </thead>
+        <tbody>
+          ${status}
+          <tr class="print-total">
+            <td>Pontos de Perícia</td>
+            <td class="num">${printCell(skillPoints)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>`;
+}
+
+function buildPrintSkillsSection(character) {
+  const rows = (character.dynamicSkills || []).filter(isPrintableSkillRow);
+
+  const body = rows.length
+    ? rows.map((row) => `
+        <tr>
+          <td>${printCell(printValue(`dynamicSkill:${row.id}:nome`, row.nome))}</td>
+          <td class="num">${printCell(printValue(`dynamicSkill:${row.id}:atributo`, row.atributo))}</td>
+          <td class="num">${printCell(printValue(`dynamicSkill:${row.id}:valor`, row.valor))}</td>
+          <td class="num">${printCell(printValue(`dynamicSkill:${row.id}:teste`, row.teste))}</td>
+        </tr>`).join("")
+    : "";
+
+  return `
+<section class="print-section">
+  <h2>Perícias</h2>
+  ${rows.length ? `
+  <table>
+    <thead>
+      <tr><th>Perícia</th><th class="num">Atributo</th><th class="num">Valor</th><th class="num">Teste %</th></tr>
+    </thead>
+    <tbody>${body}</tbody>
+  </table>` : `<p class="print-empty">Sem perícias registradas.</p>`}
+</section>`;
+}
+
+function buildPrintCombatSkillsSection(character) {
+  const groupLabels = { martial: "Lutas & Artes Marciais", weapons: "Armas Brancas", firearm: "Armas de Fogo" };
+  const groupOrder = { martial: 0, weapons: 1, firearm: 2 };
+  const rows = (character.dynamicCombatSkills || [])
+    .filter((row) => !row.isPlaceholder && String(row.nome ?? "").trim() !== "")
+    .sort((a, b) => (groupOrder[a.combatGroup] ?? 99) - (groupOrder[b.combatGroup] ?? 99));
+
+  let lastGroup = null;
+  const body = rows.map((row) => {
+    let groupRow = "";
+    if (row.combatGroup !== lastGroup) {
+      lastGroup = row.combatGroup;
+      const label = groupLabels[row.combatGroup];
+      if (label) {
+        groupRow = `<tr class="print-group"><td colspan="4">${escapeHtml(label)}</td></tr>`;
+      }
+    }
+
+    const id = row.id;
+    if (row.combatType === "firearm") {
+      return `${groupRow}
+        <tr>
+          <td>${printCell(printValue(`dynamicCombatSkill:${id}:nome`, row.nome))}</td>
+          <td class="num">${printCell(printValue(`dynamicCombatSkill:${id}:atributo`, row.atributo))}</td>
+          <td class="num">${printCell(printValue(`dynamicCombatSkill:${id}:valor`, row.valor))}</td>
+          <td class="num">${printCell(printValue(`dynamicCombatSkill:${id}:teste`, row.teste))}</td>
+        </tr>`;
+    }
+
+    // Corpo a corpo tem ataque e defesa: cada célula traz os dois lados
+    // separados por barra, na mesma leitura da ficha na tela.
+    const attrs = `${printValue(`dynamicCombatSkill:${id}:atributo1`, row.atributo1) || "—"} / ${printValue(`dynamicCombatSkill:${id}:atributo2`, row.atributo2) || "—"}`;
+    const values = `${printValue(`dynamicCombatSkill:${id}:atk`, row.atk) || "—"} / ${printValue(`dynamicCombatSkill:${id}:def`, row.def) || "—"}`;
+    const tests = `${printValue(`dynamicCombatSkill:${id}:atkTeste`, row.atkTeste) || "—"} / ${printValue(`dynamicCombatSkill:${id}:defTeste`, row.defTeste) || "—"}`;
+
+    return `${groupRow}
+      <tr>
+        <td>${printCell(printValue(`dynamicCombatSkill:${id}:nome`, row.nome))}</td>
+        <td class="num">${escapeHtml(attrs)}</td>
+        <td class="num">${escapeHtml(values)}</td>
+        <td class="num">${escapeHtml(tests)}</td>
+      </tr>`;
+  }).join("");
+
+  return `
+<section class="print-section">
+  <h2>Perícias de Combate</h2>
+  ${rows.length ? `
+  <table>
+    <thead>
+      <tr><th>Perícia</th><th class="num">Atributo</th><th class="num">Valor</th><th class="num">Atk % / Def %</th></tr>
+    </thead>
+    <tbody>${body}</tbody>
+  </table>` : `<p class="print-empty">Sem perícias de combate registradas.</p>`}
+</section>`;
+}
+
+function buildPrintUpgradesSection(character) {
+  const rows = (character.dynamicUpgrades || []).filter(isPrintableUpgradeRow);
+
+  const body = rows.map((row) => `
+    <tr>
+      <td>${printCell(printValue(`dynamicUpgrade:${row.id}:nome`, row.nome))}</td>
+      <td class="num">${printCell(printValue(`dynamicUpgrade:${row.id}:valor`, row.valor))}</td>
+    </tr>`).join("");
+
+  return `
+<section class="print-section">
+  <h2>Aprimoramentos</h2>
+  ${rows.length ? `
+  <table>
+    <thead>
+      <tr><th>Aprimoramento</th><th class="num">Valor</th></tr>
+    </thead>
+    <tbody>${body}</tbody>
+  </table>` : `<p class="print-empty">Sem aprimoramentos registrados.</p>`}
+</section>`;
+}
+
+function buildPrintInventorySection(character) {
+  const rows = (character.inventoryItems || []).filter(isPrintableInventoryRow);
+
+  const totals = rows.reduce((acc, row) => {
+    const quantidade = parseInt(row.quantidade || "0", 10) || 0;
+    const peso = parseInt(row.peso || "0", 10) || 0;
+    const valor = parseInt(row.valor || "0", 10) || 0;
+    acc.peso += peso * (quantidade || 1);
+    acc.valor += valor * (quantidade || 1);
+    return acc;
+  }, { peso: 0, valor: 0 });
+
+  const body = rows.map((row) => `
+    <tr>
+      <td>${printCell(row.item)}</td>
+      <td class="num">${printCell(row.quantidade)}</td>
+      <td class="num">${printCell(row.peso)}</td>
+      <td class="num">${printCell(row.valor)}</td>
+    </tr>`).join("");
+
+  return `
+<section class="print-section">
+  <h2>Pertences</h2>
+  ${rows.length ? `
+  <table>
+    <thead>
+      <tr><th>Item</th><th class="num">Quant.</th><th class="num">Peso</th><th class="num">Valor</th></tr>
+    </thead>
+    <tbody>
+      ${body}
+      <tr class="print-total">
+        <td>Total (quantidade × unidade)</td>
+        <td class="num"></td>
+        <td class="num">${totals.peso}</td>
+        <td class="num">${totals.valor}</td>
+      </tr>
+    </tbody>
+  </table>` : `<p class="print-empty">Nenhum pertence registrado.</p>`}
+</section>`;
+}
+
+function buildPrintTextSection(title, text) {
+  return `
+<section class="print-section print-text">
+  <h2>${escapeHtml(title)}</h2>
+  ${printParagraphs(text)}
+</section>`;
 }
 
 /* ==========================================================================

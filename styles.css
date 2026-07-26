@@ -371,6 +371,23 @@ input[readonly] {
   flex-shrink: 0;
 }
 
+.btn-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  color: var(--accent);
+  border-color: rgba(216, 167, 45, 0.5);
+  white-space: nowrap;
+}
+
+.btn-print-icon {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
 .btn-add-row {
   display: inline-flex;
   align-items: center;
