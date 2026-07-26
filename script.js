@@ -306,6 +306,7 @@ function cacheElements() {
   elements.removePortraitButton = document.getElementById("removePortraitButton");
   elements.portraitCodeBadge = document.getElementById("portraitCodeBadge");
   elements.portraitFileHint = document.getElementById("portraitFileHint");
+  elements.portraitFileName = document.getElementById("portraitFileName");
   elements.upgradesGrid = document.getElementById("upgradesGrid");
   elements.skillsTable = document.getElementById("skillsTable");
   elements.addUpgradeRow = document.getElementById("addUpgradeRow");
@@ -1749,13 +1750,10 @@ function renderPortrait() {
     elements.portraitCodeBadge.classList.add("hidden");
   }
 
-  const showFileHint = Boolean(code) && !legacyPortrait;
-  if (showFileHint) {
-    elements.portraitFileHint.textContent = `imagens/personagens/${buildPortraitFileName(portraitNumber, "png")}`;
-  } else {
-    elements.portraitFileHint.textContent = "";
-  }
-  elements.portraitFileHint.classList.toggle("hidden", !showFileHint);
+  // O nome do arquivo fica dentro da moldura, junto do "Sem imagem": quem for
+  // salvar o retrato já lê ali como o arquivo precisa se chamar.
+  elements.portraitFileName.textContent = code ? buildPortraitFileName(portraitNumber, "png") : "";
+  elements.portraitFileHint.classList.toggle("hidden", !code);
 
   // O botão de remover só vale para retratos antigos salvos na própria ficha;
   // imagem da pasta se troca trocando o arquivo.

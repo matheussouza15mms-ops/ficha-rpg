@@ -507,9 +507,39 @@ input[readonly] {
 }
 
 .portrait-placeholder {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 0 16px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.18em;
+  text-align: center;
+}
+
+/* Nome do arquivo que a pasta imagens/personagens espera para esta ficha.
+   Fica dentro da moldura, junto do "Sem imagem", para quem for salvar a
+   imagem não precisar procurar o número em outro lugar. */
+.portrait-file-hint {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  max-width: 100%;
+  text-transform: none;
+}
+
+.portrait-file-name {
+  color: var(--accent);
+  font-size: 0.86rem;
+  letter-spacing: 0.06em;
+  word-break: break-all;
+}
+
+.portrait-file-folder {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
 }
 
 .portrait-actions {
@@ -540,13 +570,6 @@ input[readonly] {
   letter-spacing: 0.08em;
 }
 
-.portrait-file-hint {
-  color: var(--muted);
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  text-align: center;
-  width: 100%;
-}
 
 .upload-link {
   width: fit-content;
