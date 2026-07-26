@@ -19,7 +19,11 @@ service cloud.firestore {
 
     match /characters/{characterId} {
       allow read: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isMaster());
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      // O mestre cria fichas em nome do jogador cuja ficha está aberta, então o
+      // ownerId do documento novo pode ser de outro usuário. Isso acompanha as
+      // permissões de update/delete, que o mestre já possui sobre qualquer ficha.
+      allow create: if isSignedIn()
+        && (request.resource.data.ownerId == request.auth.uid || isMaster());
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isMaster());
     }
   }

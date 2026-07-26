@@ -4050,6 +4050,8 @@ function formatFirebaseError(error, fallbackMessage) {
     "auth/network-request-failed": "Falha de rede. Verifique sua conexão e tente novamente.",
     "auth/too-many-requests": "Muitas tentativas. Aguarde um pouco e tente novamente.",
     "storage/unauthorized": "Você não tem permissão para enviar essa imagem.",
+    "permission-denied": "Permissão negada pelo banco de dados. As regras do Firestore precisam ser atualizadas (firebase deploy --only firestore:rules).",
+    "unavailable": "Sem conexão com o servidor. Verifique sua internet e tente novamente.",
   };
 
   return map[code] || fallbackMessage;
