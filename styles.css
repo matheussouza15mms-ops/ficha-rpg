@@ -371,21 +371,30 @@ input[readonly] {
   flex-shrink: 0;
 }
 
-.btn-print {
+/* Botão só de ícone: mesma altura dos botões de texto da toolbar, para não
+   quebrar o alinhamento da linha. */
+.btn-icon {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
+  justify-content: center;
+  /* Mesmo padding vertical dos botões de texto: a altura sai igual sem
+     depender de um valor fixo que desalinharia se a fonte mudasse. */
+  padding: 12px;
+  flex-shrink: 0;
+}
+
+.btn-print {
+  background: linear-gradient(180deg, rgba(67, 67, 67, 0.92), rgba(20, 20, 20, 0.96));
   color: var(--accent);
   border-color: rgba(216, 167, 45, 0.5);
-  white-space: nowrap;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
 }
 
 .btn-print-icon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   fill: currentColor;
-  flex-shrink: 0;
+  display: block;
 }
 
 .btn-add-row {

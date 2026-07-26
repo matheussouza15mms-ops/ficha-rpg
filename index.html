@@ -77,17 +77,16 @@
 
             <button type="button" id="openRegisterFromGm" class="btn btn-secondary">Nova Ficha</button>
             <button type="button" id="deleteCurrentSheet" class="btn btn-danger">Excluir Ficha</button>
+            <button type="button" id="printSheetButton" class="btn btn-icon btn-print hidden" title="Gerar PDF da ficha para impressão" aria-label="Gerar PDF da ficha para impressão">
+              <svg class="btn-print-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 3h10v4H7V3Zm-3 6h16c1.1 0 2 .9 2 2v6h-4v4H6v-4H2v-6c0-1.1.9-2 2-2Zm4 8v4h8v-4H8Zm10-5.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/>
+              </svg>
+            </button>
             <button type="button" id="saveSheetButton" class="btn btn-primary hidden">Salvar</button>
           </div>
 
           <div class="toolbar-group toolbar-group-right">
             <div id="saveStatus" class="save-status" aria-live="polite">Pronto</div>
-            <button type="button" id="printSheetButton" class="btn btn-secondary btn-print hidden" title="Gerar PDF / imprimir a ficha completa">
-              <svg class="btn-print-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M7 3h10v4H7V3Zm-3 6h16c1.1 0 2 .9 2 2v6h-4v4H6v-4H2v-6c0-1.1.9-2 2-2Zm4 8v4h8v-4H8Zm10-5.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/>
-              </svg>
-              Imprimir / PDF
-            </button>
             <button type="button" id="logoutButton" class="btn btn-secondary">Sair</button>
           </div>
         </div>
