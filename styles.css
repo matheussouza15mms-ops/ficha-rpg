@@ -1527,11 +1527,6 @@ textarea::-webkit-scrollbar-thumb:hover {
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-@keyframes popOut {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(0.94); }
-}
-
 /* Zoom in / zoom out dos popups */
 @keyframes zoomIn {
   0% { opacity: 0; transform: scale(0.72); }
@@ -1544,25 +1539,6 @@ textarea::-webkit-scrollbar-thumb:hover {
   0% { opacity: 1; transform: scale(1); }
   30% { transform: scale(1.03); }
   100% { opacity: 0; transform: scale(0.68); }
-}
-
-/* Flip 3D para os catálogos e para a troca de passo do wizard */
-@keyframes flipIn {
-  0% { opacity: 0; transform: perspective(1400px) rotateX(-78deg) scale(0.88); }
-  60% { opacity: 1; transform: perspective(1400px) rotateX(12deg) scale(1.01); }
-  80% { transform: perspective(1400px) rotateX(-5deg) scale(1); }
-  100% { opacity: 1; transform: perspective(1400px) rotateX(0deg) scale(1); }
-}
-
-@keyframes flipOut {
-  0% { opacity: 1; transform: perspective(1400px) rotateX(0deg) scale(1); }
-  100% { opacity: 0; transform: perspective(1400px) rotateX(72deg) scale(0.88); }
-}
-
-@keyframes flipInY {
-  0% { opacity: 0; transform: perspective(1400px) rotateY(72deg) scale(0.9); }
-  60% { opacity: 1; transform: perspective(1400px) rotateY(-10deg) scale(1.01); }
-  100% { opacity: 1; transform: perspective(1400px) rotateY(0deg) scale(1); }
 }
 
 @keyframes rowSlideIn {
@@ -1580,19 +1556,11 @@ textarea::-webkit-scrollbar-thumb:hover {
   50% { opacity: 0.55; }
 }
 
-@keyframes spotlightGlow {
-  0%, 100% {
-    box-shadow:
-      0 0 0 2px rgba(216, 167, 45, 0.55),
-      0 0 34px 6px rgba(216, 167, 45, 0.18),
-      var(--shadow-heavy);
-  }
-  50% {
-    box-shadow:
-      0 0 0 3px rgba(216, 167, 45, 0.85),
-      0 0 54px 12px rgba(216, 167, 45, 0.32),
-      var(--shadow-heavy);
-  }
+/* O halo do elemento em destaque pulsa só com opacidade: animar box-shadow
+   obrigava o navegador a repintar o painel inteiro a cada quadro. */
+@keyframes spotlightPulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
 @keyframes vanishSheet {
@@ -1649,18 +1617,9 @@ textarea::-webkit-scrollbar-thumb:hover {
   animation: rowSlideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Botões com resposta tátil */
-.btn,
-.attr-point-btn,
-.catalog-tab,
-.btn-kit,
-.password-toggle,
-.remove-link,
-.inventory-fab,
-.skill-catalog-item {
-  will-change: transform;
-}
-
+/* Botões com resposta tátil.
+   Sem "will-change" fixo: manter dezenas de botões promovidos a camada própria
+   o tempo todo pesa mais do que a animação que eles fazem no clique. */
 .btn {
   position: relative;
   overflow: hidden;
@@ -1669,20 +1628,6 @@ textarea::-webkit-scrollbar-thumb:hover {
     opacity 0.16s ease,
     box-shadow 0.22s ease,
     filter 0.22s ease;
-}
-
-.btn::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255, 236, 190, 0.35), transparent 62%);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.btn.is-rippling::after {
-  animation: fadeIn 0.1s ease forwards, popOut 0.45s ease 0.1s forwards;
 }
 
 .btn:hover {
@@ -1843,14 +1788,11 @@ select:focus {
   animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Diálogos */
-dialog {
-  perspective: 1400px;
-}
-
+/* Diálogos.
+   Sem backdrop-filter: desfocar a página inteira atrás do modal derrubava os
+   quadros em telas grandes, e o fundo escuro já isola o modal. */
 dialog::backdrop {
   animation: fadeIn 0.22s ease both;
-  backdrop-filter: blur(3px);
 }
 
 /* Confirmações simples entram e saem com zoom (scale). */
@@ -1864,17 +1806,16 @@ dialog.is-closing > form {
   transform-origin: center center;
 }
 
-/* Catálogos (perícias, combate, aprimoramentos e kits) viram como uma carta. */
+/* Catálogos (perícias, combate, aprimoramentos e kits) entram e saem com o mesmo
+   zoom das confirmações — mais leve e mais previsível que o giro 3D. */
 dialog[open] > .skill-catalog-content {
-  animation: flipIn 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
-  transform-origin: center top;
-  backface-visibility: hidden;
+  animation: zoomIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center center;
 }
 
 dialog.is-closing > .skill-catalog-content {
-  animation: flipOut 0.26s cubic-bezier(0.55, 0, 0.68, 0.19) both;
-  transform-origin: center top;
-  backface-visibility: hidden;
+  animation: zoomOut 0.24s cubic-bezier(0.55, 0, 0.68, 0.19) both;
+  transform-origin: center center;
 }
 
 dialog.is-closing::backdrop {
@@ -2025,12 +1966,13 @@ dialog.is-closing::backdrop {
    Passo a passo de criação (wizard)
    ========================================================================== */
 
+/* Sem backdrop-filter aqui: o desfoque cobria a tela toda e era recalculado a
+   cada quadro do brilho do destaque, que era a maior fonte de travamento. */
 .wizard-overlay {
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: radial-gradient(circle at 50% 40%, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.9));
-  backdrop-filter: blur(2px);
+  background: radial-gradient(circle at 50% 40%, rgba(0, 0, 0, 0.74), rgba(0, 0, 0, 0.92));
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.35s ease, visibility 0s linear 0.35s;
@@ -2047,28 +1989,40 @@ dialog.is-closing::backdrop {
 .wizard-spotlight {
   position: relative;
   z-index: 41;
-  animation: spotlightGlow 2.4s ease-in-out infinite;
+  box-shadow:
+    0 0 0 2px rgba(216, 167, 45, 0.6),
+    var(--shadow-heavy);
+}
+
+.wizard-spotlight::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 46px 10px rgba(216, 167, 45, 0.3);
+  animation: spotlightPulse 2.4s ease-in-out infinite;
 }
 
 .inventory-drawer.wizard-spotlight {
   position: fixed;
 }
 
+/* O popup não viaja pela tela entre um passo e outro: ele some com zoom out,
+   reaparece já na posição certa com zoom in. Por isso "top" e "left" mudam sem
+   transição — só opacidade e escala são animadas. */
 .wizard-popup {
   position: fixed;
   z-index: 60;
   width: min(340px, calc(100vw - 24px));
-  perspective: 1400px;
   opacity: 0;
   visibility: hidden;
-  /* Zoom out ao sair, zoom in ao entrar. */
-  transform: scale(0.7);
+  transform: scale(0.72);
+  transform-origin: var(--wizard-origin, center center);
   transition:
-    opacity 0.28s ease,
-    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-    top 0.36s cubic-bezier(0.22, 1, 0.36, 1),
-    left 0.36s cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 0s linear 0.28s;
+    opacity 0.2s ease,
+    transform 0.2s cubic-bezier(0.55, 0, 0.68, 0.19),
+    visibility 0s linear 0.2s;
 }
 
 .wizard-popup.is-active {
@@ -2076,10 +2030,8 @@ dialog.is-closing::backdrop {
   visibility: visible;
   transform: scale(1);
   transition:
-    opacity 0.28s ease,
-    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-    top 0.36s cubic-bezier(0.22, 1, 0.36, 1),
-    left 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.26s ease,
+    transform 0.34s cubic-bezier(0.34, 1.56, 0.64, 1),
     visibility 0s;
 }
 
@@ -2096,13 +2048,6 @@ dialog.is-closing::backdrop {
   border-radius: 20px;
   background: linear-gradient(180deg, rgba(58, 20, 20, 0.98), rgba(8, 8, 8, 0.99));
   box-shadow: 0 26px 60px rgba(0, 0, 0, 0.62), inset 0 1px 0 rgba(255, 235, 189, 0.07);
-}
-
-/* Cada troca de passo vira a "página" do popup. */
-.wizard-popup.is-swapping .wizard-popup-inner {
-  animation: flipInY 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-  transform-origin: left center;
-  backface-visibility: hidden;
 }
 
 .wizard-step-label {
@@ -2224,9 +2169,12 @@ dialog.is-closing::backdrop {
   color: var(--accent);
 }
 
-/* Enquanto o passo a passo roda, a ficha não rola sozinha atrás do overlay. */
+/* Enquanto o passo a passo roda, a rolagem é só do assistente: o scroll do mouse
+   na página fica bloqueado (ver lockWizardScroll no script) e só o próprio popup
+   e as gavetas continuam rolando. */
 body.wizard-active {
   overflow-x: hidden;
+  overscroll-behavior: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

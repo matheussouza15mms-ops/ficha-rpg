@@ -139,11 +139,16 @@ const state = {
   upgradeCatalogTab: "positive",
   kitCatalogSelection: null,
   kits: [],
+  viewportFrame: 0,
   wizard: {
     active: false,
     index: 0,
     characterId: null,
     spotlight: null,
+    // Cada troca de passo ganha um número: renderizações antigas que ainda
+    // estavam esperando a rolagem terminar se cancelam sozinhas.
+    renderToken: 0,
+    scrollLocked: false,
     // Fichas para as quais o passo a passo já foi oferecido nesta sessão.
     offered: new Set(),
   },
@@ -164,7 +169,7 @@ const WIZARD_STEPS = [
     id: "identificacao",
     label: "Identificação",
     title: "🪪 Quem é esse sobrevivente?",
-    text: "Preencha nome, origem, idade e demais dados pessoais. A profissão fica em branco de propósito: ela é definida mais à frente, pelo kit ou pelo nome que você inventar.\n\nA idade real e a inteligência definem quantos pontos de perícia você terá mais adiante — escolha com cuidado.",
+    text: "Preencha nome, origem, idade e demais dados pessoais. A profissão fica em branco de propósito: ela é definida mais à frente, pelo kit ou pelo nome que você criar.\n\nA idade real e a inteligência definem quantos pontos de perícia você terá mais adiante — escolha com cuidado.",
     target: () => document.getElementById("identificationGrid")?.closest(".panel"),
     focus: () => document.querySelector('[data-field="nome"]'),
   },
@@ -180,11 +185,12 @@ const WIZARD_STEPS = [
     id: "profissao",
     label: "Profissão",
     title: "🧰 De onde vem o seu sustento?",
-    text: "Quer comprar um kit de profissão pronto? Ele já traz as perícias, as perícias de combate e os aprimoramentos daquele ofício, cobrando pontos por isso.\n\nSe preferir, diga não e invente o nome da sua própria profissão — aí você monta as perícias do seu jeito.",
+    text: "Quer comprar um kit de profissão pronto? Ele já traz as perícias, as perícias de combate e os aprimoramentos daquele ofício, cobrando pontos por isso.\n\nSe preferir, diga não e crie o nome da sua própria profissão — aí você monta as perícias do seu jeito.",
     // Este passo não usa o botão "Avançar": quem manda são os dois botões de
     // escolha, e cada caminho grava a profissão antes de seguir.
     choices: true,
-    target: () => document.getElementById("identificationGrid")?.closest(".panel"),
+    // Sem alvo de propósito: a pergunta se resolve inteira dentro do popup, sem
+    // arrastar o jogador de volta para o painel de identificação.
   },
   {
     id: "pericias",
@@ -208,6 +214,9 @@ const WIZARD_STEPS = [
     target: () => elements.inventoryDrawer,
     onEnter: () => openInventoryDrawer(),
     onLeave: () => closeInventoryDrawer(),
+    // A gaveta entra deslizando pela direita: medir antes do fim da animação
+    // colocaria o popup perseguindo uma posição que ainda estava mudando.
+    settleMs: 380,
   },
   {
     id: "historia",
@@ -217,6 +226,7 @@ const WIZARD_STEPS = [
     target: () => elements.historyDrawer,
     onEnter: () => openHistoryDrawer(),
     onLeave: () => closeHistoryDrawer(),
+    settleMs: 380,
   },
   {
     id: "finish",
@@ -911,11 +921,8 @@ function registerEvents() {
     }
   });
 
-  // Micro-interação de clique nos botões.
-  document.addEventListener("pointerdown", handleButtonRipple, true);
-
-  window.addEventListener("resize", handleViewportChange);
-  window.addEventListener("scroll", handleViewportChange, true);
+  window.addEventListener("resize", scheduleViewportChange);
+  window.addEventListener("scroll", scheduleViewportChange, { capture: true, passive: true });
 
   document.addEventListener("keydown", (event) => {
     if (!state.wizard.active) {
@@ -937,19 +944,20 @@ function registerEvents() {
   });
 }
 
-function handleButtonRipple(event) {
-  const button = event.target.closest(".btn");
-  if (!button || button.disabled) {
+/**
+ * Scroll e resize disparam dezenas de vezes por segundo. Medir e reposicionar o
+ * popup em cada evento forçava recálculo de layout a cada quadro e era o que
+ * deixava a página travada — agora acontece no máximo uma vez por quadro.
+ */
+function scheduleViewportChange() {
+  if (state.viewportFrame) {
     return;
   }
 
-  const rect = button.getBoundingClientRect();
-  button.style.setProperty("--ripple-x", `${((event.clientX - rect.left) / rect.width) * 100}%`);
-  button.style.setProperty("--ripple-y", `${((event.clientY - rect.top) / rect.height) * 100}%`);
-  button.classList.remove("is-rippling");
-  void button.offsetWidth;
-  button.classList.add("is-rippling");
-  setTimeout(() => button.classList.remove("is-rippling"), 600);
+  state.viewportFrame = requestAnimationFrame(() => {
+    state.viewportFrame = 0;
+    handleViewportChange();
+  });
 }
 
 function handleViewportChange() {
@@ -4194,9 +4202,70 @@ function startWizard(characterId, { stepId = null } = {}) {
   elements.wizardOverlay.classList.add("is-active");
   elements.wizardOverlay.setAttribute("aria-hidden", "false");
   elements.wizardPopup.setAttribute("aria-hidden", "false");
+  lockWizardScroll();
 
   renderWizardDots();
   renderWizardStep({ animate: true });
+}
+
+/* Rolagem travada durante o passo a passo -------------------------------- */
+
+// Áreas que continuam rolando: o próprio popup, as gavetas, os catálogos e
+// qualquer campo de texto. O resto da página fica parado.
+const WIZARD_SCROLLABLE_AREAS = ".wizard-popup-inner, .inventory-drawer, dialog, textarea, .skill-catalog-list, .skill-catalog-detail, .inventory-rows";
+const WIZARD_SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ", "Spacebar"]);
+
+/**
+ * Enquanto o assistente conduz a criação, quem decide o que aparece na tela é
+ * ele: a roda do mouse não pode mais subir ou descer a ficha por baixo do
+ * overlay. A rolagem programada (scrollIntoView) continua funcionando.
+ */
+function lockWizardScroll() {
+  if (state.wizard.scrollLocked) {
+    return;
+  }
+
+  state.wizard.scrollLocked = true;
+  window.addEventListener("wheel", blockWizardScroll, { passive: false, capture: true });
+  window.addEventListener("touchmove", blockWizardScroll, { passive: false, capture: true });
+  window.addEventListener("keydown", blockWizardScrollKeys, true);
+}
+
+function unlockWizardScroll() {
+  if (!state.wizard.scrollLocked) {
+    return;
+  }
+
+  state.wizard.scrollLocked = false;
+  window.removeEventListener("wheel", blockWizardScroll, { capture: true });
+  window.removeEventListener("touchmove", blockWizardScroll, { capture: true });
+  window.removeEventListener("keydown", blockWizardScrollKeys, true);
+}
+
+function blockWizardScroll(event) {
+  if (event.target?.closest?.(WIZARD_SCROLLABLE_AREAS)) {
+    return;
+  }
+
+  event.preventDefault();
+}
+
+function blockWizardScrollKeys(event) {
+  if (!WIZARD_SCROLL_KEYS.has(event.key)) {
+    return;
+  }
+
+  const target = event.target;
+  if (target?.closest?.(WIZARD_SCROLLABLE_AREAS)) {
+    return;
+  }
+
+  // Digitar num campo da ficha continua livre: as setas andam com o cursor.
+  if (target?.matches?.("input, textarea, select, [contenteditable='true']")) {
+    return;
+  }
+
+  event.preventDefault();
 }
 
 /**
@@ -4268,14 +4337,16 @@ function finishWizard({ completed = false, skipped = false, silent = false } = {
   currentStep?.onLeave?.();
 
   clearWizardSpotlight();
+  unlockWizardScroll();
   state.wizard.active = false;
   state.wizard.index = 0;
   state.wizard.characterId = null;
+  state.wizard.renderToken += 1;
 
   document.body.classList.remove("wizard-active");
   elements.wizardOverlay?.classList.remove("is-active");
   elements.wizardOverlay?.setAttribute("aria-hidden", "true");
-  elements.wizardPopup?.classList.remove("is-active", "is-centered", "is-swapping");
+  elements.wizardPopup?.classList.remove("is-active", "is-centered");
   elements.wizardPopup?.setAttribute("aria-hidden", "true");
 
   if (silent) {
@@ -4302,14 +4373,79 @@ function renderWizardDots() {
   });
 }
 
+/**
+ * Troca de passo sem o popup atravessar a tela: ele sai com zoom out, o destaque
+ * e a rolagem se acomodam com ele fora de cena e só então ele reaparece com zoom
+ * in já no lugar certo.
+ */
 function renderWizardStep({ animate = false } = {}) {
   const step = WIZARD_STEPS[state.wizard.index];
   if (!step) {
     return;
   }
 
-  step.onEnter?.();
+  const popup = elements.wizardPopup;
+  const token = ++state.wizard.renderToken;
+  const wasVisible = popup.classList.contains("is-active");
 
+  step.onEnter?.();
+  fillWizardStepContent(step);
+
+  if (animate && wasVisible) {
+    popup.classList.remove("is-active");
+  }
+
+  const scrolled = applyWizardSpotlight(step);
+
+  // O popup só é medido depois que tudo parou de se mexer: gaveta terminando de
+  // abrir ou rolagem suave em curso dariam uma posição que já nasceria errada.
+  const waitMs = Math.max(animate && wasVisible ? 190 : 0, step.settleMs || 0);
+
+  setTimeout(() => {
+    if (token !== state.wizard.renderToken || !state.wizard.active) {
+      return;
+    }
+
+    waitForScrollSettle(() => {
+      if (token !== state.wizard.renderToken || !state.wizard.active) {
+        return;
+      }
+
+      positionWizardPopup();
+      popup.classList.add("is-active");
+      // preventScroll: dar foco ao campo não pode arrastar a página de novo.
+      step.focus?.()?.focus?.({ preventScroll: true });
+    }, { minWaitMs: scrolled ? 120 : 0 });
+  }, waitMs);
+}
+
+/**
+ * Espera a rolagem suave parar de fato antes de medir posições. Sem isso o
+ * popup era posicionado contra um alvo que ainda estava andando pela tela.
+ */
+function waitForScrollSettle(callback, { minWaitMs = 0, maxWaitMs = 720 } = {}) {
+  const startedAt = performance.now();
+  let lastY = Math.round(window.scrollY);
+  let stableFrames = 0;
+
+  const check = () => {
+    const elapsed = performance.now() - startedAt;
+    const currentY = Math.round(window.scrollY);
+    stableFrames = currentY === lastY ? stableFrames + 1 : 0;
+    lastY = currentY;
+
+    if ((elapsed >= minWaitMs && stableFrames >= 3) || elapsed >= maxWaitMs) {
+      callback();
+      return;
+    }
+
+    requestAnimationFrame(check);
+  };
+
+  requestAnimationFrame(check);
+}
+
+function fillWizardStepContent(step) {
   elements.wizardStepLabel.textContent = step.layout === "center"
     ? step.label
     : `Passo ${state.wizard.index} de ${countWizardFormSteps()} · ${step.label}`;
@@ -4324,7 +4460,7 @@ function renderWizardStep({ animate = false } = {}) {
   elements.wizardSkip.classList.toggle("hidden", state.wizard.index === WIZARD_STEPS.length - 1);
 
   // Passo de escolha: o "Avançar" sai de cena para o jogador ter que decidir
-  // entre comprar um kit ou inventar a própria profissão.
+  // entre comprar um kit ou criar a própria profissão.
   elements.wizardChoices.classList.toggle("hidden", !step.choices);
   elements.wizardNext.classList.toggle("hidden", Boolean(step.choices));
   hideWizardInventedProfession();
@@ -4333,36 +4469,21 @@ function renderWizardStep({ animate = false } = {}) {
     dot.classList.toggle("is-done", index < state.wizard.index);
     dot.classList.toggle("is-current", index === state.wizard.index);
   });
-
-  if (animate && elements.wizardPopup) {
-    elements.wizardPopup.classList.remove("is-swapping");
-    void elements.wizardPopup.offsetWidth;
-    elements.wizardPopup.classList.add("is-swapping");
-  }
-
-  applyWizardSpotlight(step);
-  elements.wizardPopup.classList.add("is-active");
-
-  // A posição depende do tamanho já renderizado do popup e do scroll suave.
-  requestAnimationFrame(() => {
-    positionWizardPopup();
-    setTimeout(() => {
-      positionWizardPopup();
-      step.focus?.()?.focus?.();
-    }, 380);
-  });
 }
 
 /**
  * Caminho "não quero kit": troca os dois botões por um campo onde o jogador
- * escreve o nome da profissão que inventou.
+ * escreve o nome da profissão que criou — tudo dentro do próprio popup.
  */
 function showWizardInventedProfession() {
   elements.wizardChoices.classList.add("hidden");
   elements.wizardInvent.classList.remove("hidden");
   elements.wizardInventInput.value = getFieldValue("classeSocialProfissao") || "";
-  positionWizardPopup();
-  elements.wizardInventInput.focus();
+  // O popup cresce ao abrir o campo: recentraliza antes de dar o foco.
+  requestAnimationFrame(() => {
+    positionWizardPopup();
+    elements.wizardInventInput.focus({ preventScroll: true });
+  });
 }
 
 function hideWizardInventedProfession() {
@@ -4437,6 +4558,7 @@ function countWizardFormSteps() {
   return WIZARD_STEPS.filter((step) => step.layout !== "center").length;
 }
 
+/** Retorna true quando pediu uma rolagem suave — quem chama precisa esperá-la. */
 function applyWizardSpotlight(step, { scroll = true } = {}) {
   clearWizardSpotlight();
 
@@ -4445,7 +4567,7 @@ function applyWizardSpotlight(step, { scroll = true } = {}) {
 
   if (!target) {
     elements.wizardPopup.classList.add("is-centered");
-    return;
+    return false;
   }
 
   elements.wizardPopup.classList.remove("is-centered");
@@ -4455,7 +4577,10 @@ function applyWizardSpotlight(step, { scroll = true } = {}) {
   // Re-renderizações do Firestore reaplicam o destaque sem rolar de novo.
   if (scroll && !target.classList.contains("inventory-drawer")) {
     target.scrollIntoView({ behavior: "smooth", block: "center" });
+    return true;
   }
+
+  return false;
 }
 
 function clearWizardSpotlight() {
@@ -4466,9 +4591,12 @@ function clearWizardSpotlight() {
 }
 
 /**
- * Coloca o popup ao lado do elemento em destaque, escolhendo o primeiro lado com
- * espaço livre (direita, esquerda, baixo, cima) para nunca cobrir o campo que
- * está sendo preenchido. Sem alvo, o popup fica centralizado na tela.
+ * Coloca o popup ao lado do elemento em destaque. A primeira tentativa é sempre
+ * a margem livre do lado de fora da ficha (painel da coluna esquerda -> popup à
+ * esquerda; painel da direita ou gaveta -> popup à direita), assim ele não cobre
+ * a coluna vizinha nem precisa atravessar a tela de um passo para o outro. Se
+ * faltar espaço, tenta o lado oposto, depois abaixo e acima. Sem alvo, fica
+ * centralizado.
  */
 function positionWizardPopup() {
   const popup = elements.wizardPopup;
@@ -4486,35 +4614,62 @@ function positionWizardPopup() {
   const viewportHeight = window.innerHeight;
 
   if (!target) {
-    popup.style.left = `${Math.max(margin, (viewportWidth - width) / 2)}px`;
-    popup.style.top = `${Math.max(margin, (viewportHeight - height) / 2)}px`;
+    setWizardPopupPosition(
+      (viewportWidth - width) / 2,
+      (viewportHeight - height) / 2,
+      "center center",
+    );
     return;
   }
 
   const rect = target.getBoundingClientRect();
-  let left;
-  let top;
+  const middleTop = rect.top + (rect.height / 2) - (height / 2);
+  const middleLeft = rect.left + (rect.width / 2) - (width / 2);
 
-  if (viewportWidth - rect.right >= width + margin * 2) {
-    left = rect.right + margin;
-    top = rect.top + (rect.height / 2) - (height / 2);
-  } else if (rect.left >= width + margin * 2) {
-    left = rect.left - width - margin;
-    top = rect.top + (rect.height / 2) - (height / 2);
-  } else if (viewportHeight - rect.bottom >= height + margin * 2) {
-    left = rect.left + (rect.width / 2) - (width / 2);
-    top = rect.bottom + margin;
-  } else if (rect.top >= height + margin * 2) {
-    left = rect.left + (rect.width / 2) - (width / 2);
-    top = rect.top - height - margin;
-  } else {
-    // Sem folga em nenhum lado: encosta no rodapé, ainda fora do centro do campo.
-    left = rect.left + (rect.width / 2) - (width / 2);
-    top = viewportHeight - height - margin;
-  }
+  const atLeft = {
+    fits: rect.left >= width + margin,
+    left: rect.left - width - margin,
+    top: middleTop,
+    // A origem aponta para o alvo: o zoom parece nascer do painel destacado.
+    origin: "right center",
+  };
+  const atRight = {
+    fits: viewportWidth - rect.right >= width + margin,
+    left: rect.right + margin,
+    top: middleTop,
+    origin: "left center",
+  };
+  const below = {
+    fits: viewportHeight - rect.bottom >= height + margin,
+    left: middleLeft,
+    top: rect.bottom + margin,
+    origin: "center top",
+  };
+  const above = {
+    fits: rect.top >= height + margin,
+    left: middleLeft,
+    top: rect.top - height - margin,
+    origin: "center bottom",
+  };
 
-  popup.style.left = `${Math.round(clampValue(left, margin, Math.max(margin, viewportWidth - width - margin)))}px`;
-  popup.style.top = `${Math.round(clampValue(top, margin, Math.max(margin, viewportHeight - height - margin)))}px`;
+  const outwardIsLeft = rect.left + (rect.width / 2) < viewportWidth / 2;
+  const order = outwardIsLeft ? [atLeft, atRight, below, above] : [atRight, atLeft, below, above];
+  // Sem folga em lugar nenhum: encosta no rodapé, ainda fora do centro do alvo.
+  const placement = order.find((candidate) => candidate.fits)
+    || { left: middleLeft, top: viewportHeight - height - margin, origin: "center bottom" };
+
+  setWizardPopupPosition(placement.left, placement.top, placement.origin);
+}
+
+function setWizardPopupPosition(left, top, origin) {
+  const popup = elements.wizardPopup;
+  const width = popup.offsetWidth || 340;
+  const height = popup.offsetHeight || 260;
+  const margin = 16;
+
+  popup.style.setProperty("--wizard-origin", origin);
+  popup.style.left = `${Math.round(clampValue(left, margin, Math.max(margin, window.innerWidth - width - margin)))}px`;
+  popup.style.top = `${Math.round(clampValue(top, margin, Math.max(margin, window.innerHeight - height - margin)))}px`;
 }
 
 function clampValue(value, min, max) {
