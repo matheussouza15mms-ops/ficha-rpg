@@ -164,7 +164,7 @@ const WIZARD_STEPS = [
     id: "identificacao",
     label: "Identificação",
     title: "🪪 Quem é esse sobrevivente?",
-    text: "Preencha nome, profissão, origem, idade e demais dados pessoais.\n\nA idade real e a inteligência definem quantos pontos de perícia você terá mais adiante — escolha com cuidado.",
+    text: "Preencha nome, origem, idade e demais dados pessoais. A profissão fica em branco de propósito: ela é definida mais à frente, pelo kit ou pelo nome que você inventar.\n\nA idade real e a inteligência definem quantos pontos de perícia você terá mais adiante — escolha com cuidado.",
     target: () => document.getElementById("identificationGrid")?.closest(".panel"),
     focus: () => document.querySelector('[data-field="nome"]'),
   },
@@ -177,10 +177,20 @@ const WIZARD_STEPS = [
     focus: () => document.querySelector('[data-field="conValor"]'),
   },
   {
+    id: "profissao",
+    label: "Profissão",
+    title: "🧰 De onde vem o seu sustento?",
+    text: "Quer comprar um kit de profissão pronto? Ele já traz as perícias, as perícias de combate e os aprimoramentos daquele ofício, cobrando pontos por isso.\n\nSe preferir, diga não e invente o nome da sua própria profissão — aí você monta as perícias do seu jeito.",
+    // Este passo não usa o botão "Avançar": quem manda são os dois botões de
+    // escolha, e cada caminho grava a profissão antes de seguir.
+    choices: true,
+    target: () => document.getElementById("identificationGrid")?.closest(".panel"),
+  },
+  {
     id: "pericias",
     label: "Kits & Perícias",
     title: "🎯 O que você sabe fazer",
-    text: "Use o botão Kits para aplicar um pacote pronto de profissão, ou monte tudo na mão com \"+ Adicionar perícia\".\n\nAs perícias de combate ficam logo abaixo e consomem os mesmos pontos.",
+    text: "Aqui você ajusta as perícias na mão com \"+ Adicionar perícia\" — inclusive as que vieram do kit, se você comprou um.\n\nAs perícias de combate ficam logo abaixo e consomem os mesmos pontos.",
     target: () => document.getElementById("skillsTable")?.closest(".panel"),
   },
   {
@@ -339,9 +349,16 @@ function cacheElements() {
   elements.wizardTitle = document.getElementById("wizardTitle");
   elements.wizardText = document.getElementById("wizardText");
   elements.wizardDots = document.getElementById("wizardDots");
+  elements.wizardActions = document.getElementById("wizardActions");
   elements.wizardBack = document.getElementById("wizardBack");
   elements.wizardNext = document.getElementById("wizardNext");
   elements.wizardSkip = document.getElementById("wizardSkip");
+  elements.wizardChoices = document.getElementById("wizardChoices");
+  elements.wizardChoiceKits = document.getElementById("wizardChoiceKits");
+  elements.wizardChoiceInvent = document.getElementById("wizardChoiceInvent");
+  elements.wizardInvent = document.getElementById("wizardInvent");
+  elements.wizardInventInput = document.getElementById("wizardInventInput");
+  elements.wizardInventConfirm = document.getElementById("wizardInventConfirm");
   elements.toastStack = document.getElementById("toastStack");
   elements.upgradeTooltip = document.getElementById("upgradeTooltip");
 }
@@ -398,12 +415,22 @@ function buildGridFields(container, fields, centered = false) {
 
   fields.forEach(([key, label]) => {
     const wrapper = document.createElement("label");
-    const isDerivedStatusField = key === "pv" || key === "pvAtual";
+    // A profissão não se digita: vem do kit comprado ou do nome inventado no
+    // passo a passo de criação.
+    const isProfession = key === "classeSocialProfissao";
+    const isDerivedStatusField = key === "pv" || key === "pvAtual" || isProfession;
     wrapper.className = "grid-field";
     wrapper.innerHTML = `
       <span>${label}</span>
       <input type="text" data-field="${key}"${isDerivedStatusField ? " readonly" : ""}>
     `;
+
+    if (isProfession) {
+      const input = wrapper.querySelector("input");
+      input.classList.add("profession-input");
+      input.placeholder = "Definida na criação";
+      input.addEventListener("click", handleProfessionFieldClick);
+    }
 
     if (centered) {
       wrapper.querySelector("input").classList.add("status-input");
@@ -837,6 +864,15 @@ function registerEvents() {
   elements.wizardNext.addEventListener("click", () => advanceWizard(1));
   elements.wizardBack.addEventListener("click", () => advanceWizard(-1));
   elements.wizardSkip.addEventListener("click", () => finishWizard({ skipped: true }));
+  elements.wizardChoiceKits.addEventListener("click", openKitCatalogDialog);
+  elements.wizardChoiceInvent.addEventListener("click", showWizardInventedProfession);
+  elements.wizardInventConfirm.addEventListener("click", confirmInventedProfession);
+  elements.wizardInventInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      confirmInventedProfession();
+    }
+  });
 
   // Tooltip de descrição dos aprimoramentos (item ⓘ das linhas).
   elements.upgradesGrid.addEventListener("pointerover", (event) => {
@@ -1751,6 +1787,11 @@ function applySheetMode() {
   setFieldReadonly("nivel", !isCreation);
   setFieldReadonly("xp", !isCreation && !masterUser);
 
+  // Fora da criação o campo de profissão não responde ao clique, então também
+  // não finge ser clicável.
+  document.querySelector('[data-field="classeSocialProfissao"]')
+    ?.classList.toggle("is-editable-prompt", isCreation);
+
   updateAttributePointsDisplay();
   updateEvolutionUpgradePointsDisplay();
 }
@@ -2296,6 +2337,8 @@ function confirmKitCatalogSelection() {
   applySheetMode();
   closeDialogAnimated(elements.kitCatalogDialog);
   showToast(`Kit "${kit.name}" aplicado à ficha.`, "success", "🎒");
+  // O kit já batizou a profissão: o passo da pergunta cumpriu seu papel.
+  leaveProfessionStep();
 }
 
 function openUpgradeCatalogDialog() {
@@ -4131,13 +4174,15 @@ function escapeAttribute(text) {
    Passo a passo de criação de personagem
    ========================================================================== */
 
-function startWizard(characterId) {
+function startWizard(characterId, { stepId = null } = {}) {
   if (!elements.wizardOverlay || !elements.wizardPopup) {
     return;
   }
 
+  const startIndex = stepId ? WIZARD_STEPS.findIndex((step) => step.id === stepId) : 0;
+
   state.wizard.active = true;
-  state.wizard.index = 0;
+  state.wizard.index = startIndex > 0 ? startIndex : 0;
   state.wizard.characterId = characterId || state.selectedCharacterId;
   state.wizard.spotlight = null;
 
@@ -4278,6 +4323,12 @@ function renderWizardStep({ animate = false } = {}) {
   elements.wizardNext.textContent = step.nextLabel || "Avançar →";
   elements.wizardSkip.classList.toggle("hidden", state.wizard.index === WIZARD_STEPS.length - 1);
 
+  // Passo de escolha: o "Avançar" sai de cena para o jogador ter que decidir
+  // entre comprar um kit ou inventar a própria profissão.
+  elements.wizardChoices.classList.toggle("hidden", !step.choices);
+  elements.wizardNext.classList.toggle("hidden", Boolean(step.choices));
+  hideWizardInventedProfession();
+
   Array.from(elements.wizardDots.children).forEach((dot, index) => {
     dot.classList.toggle("is-done", index < state.wizard.index);
     dot.classList.toggle("is-current", index === state.wizard.index);
@@ -4300,6 +4351,86 @@ function renderWizardStep({ animate = false } = {}) {
       step.focus?.()?.focus?.();
     }, 380);
   });
+}
+
+/**
+ * Caminho "não quero kit": troca os dois botões por um campo onde o jogador
+ * escreve o nome da profissão que inventou.
+ */
+function showWizardInventedProfession() {
+  elements.wizardChoices.classList.add("hidden");
+  elements.wizardInvent.classList.remove("hidden");
+  elements.wizardInventInput.value = getFieldValue("classeSocialProfissao") || "";
+  positionWizardPopup();
+  elements.wizardInventInput.focus();
+}
+
+function hideWizardInventedProfession() {
+  elements.wizardInvent.classList.add("hidden");
+}
+
+function confirmInventedProfession() {
+  const nome = String(elements.wizardInventInput.value || "").trim();
+  if (!nome) {
+    elements.wizardInventInput.focus();
+    showToast("Escreva o nome da profissão para continuar.", "danger", "✍️");
+    return;
+  }
+
+  setProfession(nome);
+  showToast(`Profissão definida: ${nome}.`, "success", "🧰");
+  leaveProfessionStep();
+}
+
+/**
+ * Único ponto que grava a profissão na ficha — o campo em si é somente leitura,
+ * então ou vem daqui ou vem do nome do kit comprado.
+ */
+function setProfession(nome) {
+  mutateActiveCharacter((character) => {
+    character.classeSocialProfissao = nome;
+  });
+  setFieldValue("classeSocialProfissao", nome);
+  markCharacterDirty();
+}
+
+/**
+ * Depois de escolher kit ou inventar a profissão, o assistente segue sozinho
+ * para o passo das perícias.
+ */
+function leaveProfessionStep() {
+  if (!state.wizard.active || WIZARD_STEPS[state.wizard.index]?.id !== "profissao") {
+    return;
+  }
+  advanceWizard(1);
+}
+
+/**
+ * O campo de profissão é somente leitura na ficha. Durante a criação, clicar
+ * nele reabre a pergunta de kit/profissão em vez de deixar o jogador travado.
+ */
+function handleProfessionFieldClick() {
+  if (getActiveCharacterMode() !== "creation") {
+    return;
+  }
+
+  if (state.wizard.active) {
+    goToWizardStep("profissao");
+    return;
+  }
+
+  startWizard(state.selectedCharacterId, { stepId: "profissao" });
+}
+
+function goToWizardStep(stepId) {
+  const index = WIZARD_STEPS.findIndex((step) => step.id === stepId);
+  if (index < 0 || index === state.wizard.index) {
+    return;
+  }
+
+  WIZARD_STEPS[state.wizard.index]?.onLeave?.();
+  state.wizard.index = index;
+  renderWizardStep({ animate: true });
 }
 
 function countWizardFormSteps() {

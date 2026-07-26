@@ -2168,6 +2168,41 @@ dialog.is-closing::backdrop {
   font-size: 0.78rem;
 }
 
+/* Os dois caminhos da pergunta de profissão: comprar um kit ou inventar. */
+.wizard-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.wizard-invent {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+  animation: rowSlideIn 0.3s ease both;
+}
+
+.wizard-invent .field span {
+  font-size: 0.7rem;
+}
+
+/* O campo de profissão na ficha é somente leitura, mas clicável: o clique
+   reabre a pergunta de kit/profissão durante a criação. */
+.profession-input {
+  cursor: default;
+}
+
+.profession-input.is-editable-prompt {
+  cursor: pointer;
+}
+
+.profession-input::placeholder {
+  font-size: 0.72rem;
+  opacity: 0.55;
+}
+
 .wizard-skip {
   display: block;
   width: 100%;
