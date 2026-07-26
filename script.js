@@ -139,7 +139,84 @@ const state = {
   upgradeCatalogTab: "positive",
   kitCatalogSelection: null,
   kits: [],
+  wizard: {
+    active: false,
+    index: 0,
+    characterId: null,
+    spotlight: null,
+    // Fichas para as quais o passo a passo já foi oferecido nesta sessão.
+    offered: new Set(),
+  },
 };
+
+// Passo a passo de criação de personagem. A ordem segue a sequência pedida:
+// Identificação -> Atributos -> Kits/Perícias -> Aprimoramentos -> Pertences -> História.
+const WIZARD_STEPS = [
+  {
+    id: "welcome",
+    layout: "center",
+    label: "O começo",
+    title: "🧟‍♂️ Um novo sobrevivente desperta 🩸",
+    text: "O mundo já não é o mesmo. Entre os escombros e os gemidos ao longe, alguém ainda respira — e essa pessoa é sua.\n\nVou te guiar passo a passo na criação da ficha. A qualquer momento você pode voltar e refazer o que não gostou.",
+    nextLabel: "Começar ☠️",
+  },
+  {
+    id: "identificacao",
+    label: "Identificação",
+    title: "🪪 Quem é esse sobrevivente?",
+    text: "Preencha nome, profissão, origem, idade e demais dados pessoais.\n\nA idade real e a inteligência definem quantos pontos de perícia você terá mais adiante — escolha com cuidado.",
+    target: () => document.getElementById("identificationGrid")?.closest(".panel"),
+    focus: () => document.querySelector('[data-field="nome"]'),
+  },
+  {
+    id: "atributos",
+    label: "Atributos",
+    title: "💪 A carne e o nervo",
+    text: "Distribua os 101 pontos entre os oito atributos. O contador no topo do painel mostra quanto ainda resta.\n\nCON e FR definem seus pontos de vida; INT amplia suas perícias; AGI e DEX mandam no combate.",
+    target: () => document.getElementById("attributeTable")?.closest(".panel"),
+    focus: () => document.querySelector('[data-field="conValor"]'),
+  },
+  {
+    id: "pericias",
+    label: "Kits & Perícias",
+    title: "🎯 O que você sabe fazer",
+    text: "Use o botão Kits para aplicar um pacote pronto de profissão, ou monte tudo na mão com \"+ Adicionar perícia\".\n\nAs perícias de combate ficam logo abaixo e consomem os mesmos pontos.",
+    target: () => document.getElementById("skillsTable")?.closest(".panel"),
+  },
+  {
+    id: "aprimoramentos",
+    label: "Aprimoramentos",
+    title: "🧬 Dons e maldições",
+    text: "Você tem 5 pontos para aprimoramentos positivos. Aprimoramentos negativos devolvem até 3 pontos extras — todo poder cobra seu preço.\n\nPasse o mouse no ícone ⓘ de cada linha para reler a descrição quando quiser.",
+    target: () => document.getElementById("upgradesGrid")?.closest(".panel"),
+  },
+  {
+    id: "pertences",
+    label: "Pertences",
+    title: "🎒 O que cabe na mochila",
+    text: "Liste armas, munição, remédios e tudo que seu personagem carrega, com quantidade, peso e valor.\n\nA lista rola sozinha: adicione quantos itens precisar.",
+    target: () => elements.inventoryDrawer,
+    onEnter: () => openInventoryDrawer(),
+    onLeave: () => closeInventoryDrawer(),
+  },
+  {
+    id: "historia",
+    label: "História",
+    title: "📖 Antes de tudo desabar",
+    text: "Conte o passado do personagem: quem era, o que perdeu e o que ainda o mantém de pé.\n\nEsse texto é seu — escreva à vontade.",
+    target: () => elements.historyDrawer,
+    onEnter: () => openHistoryDrawer(),
+    onLeave: () => closeHistoryDrawer(),
+  },
+  {
+    id: "finish",
+    layout: "center",
+    label: "Fim",
+    title: "☠️ A ficha está de pé",
+    text: "Pronto! Agora a ficha volta ao normal e você pode revisar tudo com calma, ajustar o que quiser e, quando estiver satisfeito, clicar em Salvar para entrar no modo de Jogo.\n\nBoa sorte lá fora. 🧟",
+    nextLabel: "Revisar ficha 🔎",
+  },
+];
 
 const elements = {};
 
@@ -255,6 +332,18 @@ function cacheElements() {
   elements.deleteCharacterMessage = document.getElementById("deleteCharacterMessage");
   elements.cancelDeleteCharacter = document.getElementById("cancelDeleteCharacter");
   elements.confirmDeleteCharacter = document.getElementById("confirmDeleteCharacter");
+  elements.wizardOverlay = document.getElementById("wizardOverlay");
+  elements.wizardPopup = document.getElementById("wizardPopup");
+  elements.wizardPopupInner = elements.wizardPopup?.querySelector(".wizard-popup-inner") || null;
+  elements.wizardStepLabel = document.getElementById("wizardStepLabel");
+  elements.wizardTitle = document.getElementById("wizardTitle");
+  elements.wizardText = document.getElementById("wizardText");
+  elements.wizardDots = document.getElementById("wizardDots");
+  elements.wizardBack = document.getElementById("wizardBack");
+  elements.wizardNext = document.getElementById("wizardNext");
+  elements.wizardSkip = document.getElementById("wizardSkip");
+  elements.toastStack = document.getElementById("toastStack");
+  elements.upgradeTooltip = document.getElementById("upgradeTooltip");
 }
 
 function buildStaticForm() {
@@ -288,7 +377,7 @@ function buildAttributes() {
     row.innerHTML = `
       <div class="attribute-name">${label}</div>
       <input type="text" inputmode="numeric" data-field="${key}Valor">
-      <input type="text" inputmode="numeric" data-field="${key}Mod">
+      <input type="text" inputmode="text" data-field="${key}Mod" data-modifier="true" placeholder="-0" title="Use + para somar e - (ou nenhum sinal) para subtrair.">
       <input type="text" data-field="${key}Teste" readonly>
       <button type="button" class="attr-point-btn hidden" data-attr-key="${key}" aria-label="Adicionar +1 em ${label}">+1</button>
     `;
@@ -296,12 +385,10 @@ function buildAttributes() {
   });
 
   const totalRow = document.createElement("div");
-  totalRow.className = "attribute-row";
+  totalRow.className = "attribute-row attribute-total-row";
   totalRow.innerHTML = `
     <div class="attribute-name">TOTAL</div>
     <input type="text" data-field="atributosTotal" readonly>
-    <div></div>
-    <div></div>
   `;
   table.appendChild(totalRow);
 }
@@ -345,6 +432,8 @@ function buildUpgrades() {
       isPlaceholder: Boolean(row.isPlaceholder),
     }));
   });
+
+  decorateUpgradeInfoIcons();
 }
 
 function buildSkillsTable() {
@@ -384,11 +473,148 @@ function createUpgradeRowElement({ id, nameField, valueField, ariaIndex, dynamic
   row.dataset.rowId = id;
   row.dataset.placeholder = isPlaceholder ? "true" : "false";
   row.innerHTML = `
-    <input type="text" data-field="${nameField}" aria-label="Nome do aprimoramento ${ariaIndex}">
+    <span class="upgrade-name-cell">
+      <input type="text" data-field="${nameField}" aria-label="Nome do aprimoramento ${ariaIndex}">
+    </span>
     <input type="text" inputmode="numeric" data-field="${valueField}" aria-label="Valor do aprimoramento ${ariaIndex}">
   `;
 
   return row;
+}
+
+/**
+ * Mantém o ícone ⓘ de cada linha de aprimoramento em sincronia com o catálogo.
+ * O ícone só aparece quando existe uma descrição correspondente, e fica visível
+ * tanto na criação quanto no modo de Jogo.
+ */
+function decorateUpgradeInfoIcons() {
+  if (!elements.upgradesGrid) {
+    return;
+  }
+
+  elements.upgradesGrid.querySelectorAll(".upgrade-row").forEach((row) => {
+    const cell = row.querySelector(".upgrade-name-cell");
+    if (!cell) {
+      return;
+    }
+
+    const input = cell.querySelector("input[data-field]");
+    const modelRow = findDynamicModelRow("upgrade", row.dataset.rowId);
+    const name = String(modelRow?.nome ?? input?.value ?? "").trim();
+    const entry = findUpgradeCatalogEntry(name);
+    let button = cell.querySelector(".upgrade-info");
+
+    if (!entry) {
+      if (button) {
+        button.remove();
+      }
+      cell.classList.remove("has-info");
+      return;
+    }
+
+    if (!button) {
+      button = document.createElement("button");
+      button.type = "button";
+      button.className = "upgrade-info";
+      button.tabIndex = -1;
+      button.textContent = "i";
+      cell.appendChild(button);
+    }
+
+    button.dataset.upgradeName = entry.name;
+    button.setAttribute("aria-label", `Descrição do aprimoramento ${entry.name}`);
+    button.title = "";
+    cell.classList.add("has-info");
+  });
+}
+
+/**
+ * Localiza o aprimoramento no catálogo. Kits gravam nomes genéricos
+ * ("Armas de Fogo"), então caímos para uma busca por prefixo quando não há
+ * correspondência exata.
+ */
+function findUpgradeCatalogEntry(name) {
+  const target = String(name || "").trim();
+  if (!target || !UPGRADES_CATALOG.length) {
+    return null;
+  }
+
+  const exact = UPGRADES_CATALOG.find((entry) => entry.name === target);
+  if (exact) {
+    return exact;
+  }
+
+  const lower = target.toLowerCase();
+  const caseInsensitive = UPGRADES_CATALOG.find((entry) => entry.name.toLowerCase() === lower);
+  if (caseInsensitive) {
+    return caseInsensitive;
+  }
+
+  const byPrefix = UPGRADES_CATALOG.find((entry) => entry.name.toLowerCase().startsWith(`${lower} (`));
+  if (byPrefix) {
+    return byPrefix;
+  }
+
+  return UPGRADES_CATALOG.find((entry) => lower.startsWith(`${entry.name.toLowerCase()} (`)) || null;
+}
+
+function showUpgradeTooltip(button) {
+  const tooltip = elements.upgradeTooltip;
+  if (!tooltip) {
+    return;
+  }
+
+  const entry = findUpgradeCatalogEntry(button.dataset.upgradeName);
+  if (!entry) {
+    return;
+  }
+
+  const isPositive = entry.type === "positive";
+  tooltip.innerHTML = `
+    <span class="upgrade-tooltip-title">${escapeHtml(entry.name)}</span>
+    <span class="upgrade-tooltip-cost">${isPositive ? "Positivo" : "Negativo"} · ${isPositive ? "−" : "+"}${entry.cost} pts</span>
+    <span class="upgrade-tooltip-text">${escapeHtml(entry.description || "Sem descrição.")}</span>
+  `;
+
+  tooltip.classList.add("is-visible");
+  tooltip.setAttribute("aria-hidden", "false");
+  positionUpgradeTooltip(button);
+}
+
+function positionUpgradeTooltip(button) {
+  const tooltip = elements.upgradeTooltip;
+  if (!tooltip) {
+    return;
+  }
+
+  const anchor = button.getBoundingClientRect();
+  // offsetWidth/Height ignoram o scale da animação de entrada; getBoundingClientRect
+  // devolveria o tamanho reduzido e o posicionamento sairia errado.
+  const width = tooltip.offsetWidth;
+  const height = tooltip.offsetHeight;
+  const margin = 12;
+
+  let left = anchor.right + margin;
+  if (left + width > window.innerWidth - margin) {
+    left = anchor.left - width - margin;
+  }
+  left = Math.max(margin, Math.min(left, Math.max(margin, window.innerWidth - width - margin)));
+
+  let top = anchor.top + (anchor.height / 2) - (height / 2);
+  top = Math.max(margin, Math.min(top, Math.max(margin, window.innerHeight - height - margin)));
+
+  tooltip.style.left = `${Math.round(left)}px`;
+  tooltip.style.top = `${Math.round(top)}px`;
+}
+
+function hideUpgradeTooltip() {
+  const tooltip = elements.upgradeTooltip;
+  if (!tooltip) {
+    return;
+  }
+
+  tooltip.classList.remove("is-visible");
+  tooltip.setAttribute("aria-hidden", "true");
 }
 
 function createSkillRowElement({
@@ -551,9 +777,9 @@ function registerEvents() {
   elements.openRegisterFromLogin.addEventListener("click", openRegisterDialog);
   elements.openRegisterFromGm.addEventListener("click", handleCreateCharacter);
   elements.deleteCurrentSheet.addEventListener("click", openDeleteCharacterDialog);
-  elements.cancelRegister.addEventListener("click", () => elements.registerDialog.close());
+  elements.cancelRegister.addEventListener("click", () => closeDialogAnimated(elements.registerDialog));
   elements.registerForm.addEventListener("submit", handleRegister);
-  elements.cancelDeleteCharacter.addEventListener("click", () => elements.deleteCharacterDialog.close());
+  elements.cancelDeleteCharacter.addEventListener("click", () => closeDialogAnimated(elements.deleteCharacterDialog));
   elements.confirmDeleteCharacter.addEventListener("click", () => {
     void handleDeleteCurrentCharacter();
   });
@@ -563,7 +789,7 @@ function registerEvents() {
   elements.sheetSelector.addEventListener("change", handleSheetSelection);
   elements.removePortraitButton.addEventListener("click", handleRemovePortrait);
   elements.addUpgradeRow.addEventListener("click", openUpgradeCatalogDialog);
-  elements.cancelUpgradeCatalog.addEventListener("click", () => elements.upgradeCatalogDialog.close());
+  elements.cancelUpgradeCatalog.addEventListener("click", () => closeDialogAnimated(elements.upgradeCatalogDialog));
   elements.confirmUpgradeCatalog.addEventListener("click", confirmUpgradeCatalogSelection);
   elements.upgradeCatalogSearch.addEventListener("input", (event) => {
     renderUpgradeCatalogList(event.target.value);
@@ -580,16 +806,16 @@ function registerEvents() {
     renderUpgradeCatalogDetail();
   });
   elements.openKitCatalog.addEventListener("click", openKitCatalogDialog);
-  elements.cancelKitCatalog.addEventListener("click", () => elements.kitCatalogDialog.close());
+  elements.cancelKitCatalog.addEventListener("click", () => closeDialogAnimated(elements.kitCatalogDialog));
   elements.confirmKitCatalog.addEventListener("click", confirmKitCatalogSelection);
   elements.addSkillRow.addEventListener("click", openSkillCatalogDialog);
-  elements.cancelSkillCatalog.addEventListener("click", () => elements.skillCatalogDialog.close());
+  elements.cancelSkillCatalog.addEventListener("click", () => closeDialogAnimated(elements.skillCatalogDialog));
   elements.confirmSkillCatalog.addEventListener("click", confirmSkillCatalogSelection);
   elements.skillCatalogSearch.addEventListener("input", (event) => {
     renderSkillCatalogList(event.target.value);
   });
   elements.addCombatSkillRow.addEventListener("click", openCombatSkillCatalogDialog);
-  elements.cancelCombatSkillCatalog.addEventListener("click", () => elements.combatSkillCatalogDialog.close());
+  elements.cancelCombatSkillCatalog.addEventListener("click", () => closeDialogAnimated(elements.combatSkillCatalogDialog));
   elements.confirmCombatSkillCatalog.addEventListener("click", confirmCombatSkillCatalogSelection);
   elements.combatSkillCatalogSearch.addEventListener("input", (event) => {
     renderCombatSkillCatalogList(event.target.value);
@@ -602,11 +828,68 @@ function registerEvents() {
   elements.notesTextarea.addEventListener("input", handleNotesInput);
   elements.evolveButton.addEventListener("click", handleEvolve);
   elements.saveSheetButton.addEventListener("click", openSaveSheetDialog);
-  elements.cancelSaveSheet.addEventListener("click", () => elements.saveSheetDialog.close());
+  elements.cancelSaveSheet.addEventListener("click", () => closeDialogAnimated(elements.saveSheetDialog));
   elements.confirmSaveSheet.addEventListener("click", confirmSaveSheet);
   elements.historyFab.addEventListener("click", openHistoryDrawer);
   elements.closeHistoryDrawer.addEventListener("click", closeHistoryDrawer);
   elements.historyTextarea.addEventListener("input", handleHistoryInput);
+
+  elements.wizardNext.addEventListener("click", () => advanceWizard(1));
+  elements.wizardBack.addEventListener("click", () => advanceWizard(-1));
+  elements.wizardSkip.addEventListener("click", () => finishWizard({ skipped: true }));
+
+  // Tooltip de descrição dos aprimoramentos (item ⓘ das linhas).
+  elements.upgradesGrid.addEventListener("pointerover", (event) => {
+    const button = event.target.closest(".upgrade-info");
+    if (button) {
+      showUpgradeTooltip(button);
+    }
+  });
+  elements.upgradesGrid.addEventListener("pointerout", (event) => {
+    const button = event.target.closest(".upgrade-info");
+    if (button && !button.contains(event.relatedTarget)) {
+      hideUpgradeTooltip();
+    }
+  });
+  elements.upgradesGrid.addEventListener("focusin", (event) => {
+    const button = event.target.closest(".upgrade-info");
+    if (button) {
+      showUpgradeTooltip(button);
+    }
+  });
+  elements.upgradesGrid.addEventListener("focusout", (event) => {
+    if (event.target.closest(".upgrade-info")) {
+      hideUpgradeTooltip();
+    }
+  });
+  elements.upgradesGrid.addEventListener("click", (event) => {
+    const button = event.target.closest(".upgrade-info");
+    if (!button) {
+      return;
+    }
+    event.preventDefault();
+    if (elements.upgradeTooltip?.classList.contains("is-visible")) {
+      hideUpgradeTooltip();
+    } else {
+      showUpgradeTooltip(button);
+    }
+  });
+
+  // Micro-interação de clique nos botões.
+  document.addEventListener("pointerdown", handleButtonRipple, true);
+
+  window.addEventListener("resize", handleViewportChange);
+  window.addEventListener("scroll", handleViewportChange, true);
+
+  document.addEventListener("keydown", (event) => {
+    if (!state.wizard.active) {
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      finishWizard({ skipped: true });
+    }
+  });
 
   bindFieldEvents(document);
   bindDynamicRowEvents(document);
@@ -616,6 +899,83 @@ function registerEvents() {
       void flushPendingChanges();
     }
   });
+}
+
+function handleButtonRipple(event) {
+  const button = event.target.closest(".btn");
+  if (!button || button.disabled) {
+    return;
+  }
+
+  const rect = button.getBoundingClientRect();
+  button.style.setProperty("--ripple-x", `${((event.clientX - rect.left) / rect.width) * 100}%`);
+  button.style.setProperty("--ripple-y", `${((event.clientY - rect.top) / rect.height) * 100}%`);
+  button.classList.remove("is-rippling");
+  void button.offsetWidth;
+  button.classList.add("is-rippling");
+  setTimeout(() => button.classList.remove("is-rippling"), 600);
+}
+
+function handleViewportChange() {
+  if (state.wizard.active) {
+    positionWizardPopup();
+  }
+
+  if (elements.upgradeTooltip?.classList.contains("is-visible")) {
+    hideUpgradeTooltip();
+  }
+}
+
+function openDialogAnimated(dialog) {
+  if (!dialog || dialog.open) {
+    return;
+  }
+
+  dialog.classList.remove("is-closing");
+  dialog.showModal();
+}
+
+/**
+ * Fecha o <dialog> só depois da animação de saída, para que o modal não
+ * desapareça de forma seca. Se a animação não disparar, o timeout garante o fechamento.
+ */
+function closeDialogAnimated(dialog) {
+  if (!dialog || !dialog.open || dialog.classList.contains("is-closing")) {
+    return;
+  }
+
+  const content = dialog.firstElementChild;
+  dialog.classList.add("is-closing");
+
+  let settled = false;
+  const finish = () => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    content?.removeEventListener("animationend", finish);
+    dialog.classList.remove("is-closing");
+    dialog.close();
+  };
+
+  content?.addEventListener("animationend", finish);
+  setTimeout(finish, 320);
+}
+
+function showToast(message, variant = "", icon = "") {
+  if (!elements.toastStack) {
+    return;
+  }
+
+  const toast = document.createElement("div");
+  toast.className = `toast${variant ? ` toast-${variant}` : ""}`;
+  toast.innerHTML = `${icon ? `<span class="toast-icon">${escapeHtml(icon)}</span>` : ""}<span>${escapeHtml(message)}</span>`;
+  elements.toastStack.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("is-leaving");
+    setTimeout(() => toast.remove(), 320);
+  }, 2600);
 }
 
 function bindFieldEvents(scope) {
@@ -645,6 +1005,7 @@ function bindDynamicRowEvents(scope) {
 }
 
 async function handleAuthStateChange(user) {
+  finishWizard({ silent: true });
   closeAllDrawers();
   clearCharacterListener();
 
@@ -712,7 +1073,7 @@ async function handleLogout() {
 
 function openRegisterDialog() {
   elements.registerForm.reset();
-  elements.registerDialog.showModal();
+  openDialogAnimated(elements.registerDialog);
 }
 
 async function handleRegister(event) {
@@ -753,7 +1114,7 @@ async function handleRegister(event) {
     });
 
     await setDoc(doc(db, "users", credential.user.uid), serializeProfileForWrite(profile), { merge: true });
-    elements.registerDialog.close();
+    closeDialogAnimated(elements.registerDialog);
   } catch (error) {
     console.error(error);
     showLogin();
@@ -767,6 +1128,8 @@ async function handleSheetSelection(event) {
     return;
   }
 
+  // Trocar de ficha encerra o passo a passo da ficha anterior.
+  finishWizard({ silent: true });
   await flushPendingChanges();
   state.selectedCharacterId = nextCharacterId;
   persistSelectedCharacter();
@@ -797,11 +1160,14 @@ async function handleCreateCharacter() {
   renderSheetSelector();
   renderCharacterWorkspace();
 
+  startWizard(characterRef.id);
+
   try {
     await setDoc(characterRef, serializeCharacterForWrite(optimisticCharacter));
     queueStatus("Salvo", "saved");
   } catch (error) {
     console.error(error);
+    finishWizard({ silent: true });
     delete state.charactersMap[characterRef.id];
     rebuildCharacterOrder();
     syncSelectedCharacterId();
@@ -819,22 +1185,26 @@ function openDeleteCharacterDialog() {
 
   const characterName = resolveSessionCharacterName(activeCharacter);
   elements.deleteCharacterMessage.textContent = `Você irá excluir a ficha ${characterName}. Deseja continuar?`;
-  elements.deleteCharacterDialog.showModal();
+  openDialogAnimated(elements.deleteCharacterDialog);
 }
 
 async function handleDeleteCurrentCharacter() {
   const activeCharacter = getActiveCharacter();
   if (!activeCharacter) {
-    elements.deleteCharacterDialog.close();
+    closeDialogAnimated(elements.deleteCharacterDialog);
     return;
   }
 
   const currentCharacterId = activeCharacter.id;
-  elements.deleteCharacterDialog.close();
+  const characterName = resolveSessionCharacterName(activeCharacter);
+  const sheetLayout = document.querySelector(".sheet-layout");
+  closeDialogAnimated(elements.deleteCharacterDialog);
+  finishWizard({ silent: true });
 
   try {
     await flushPendingChanges();
     updateSaveStatus("Salvando", "saving");
+    await playVanishAnimation(sheetLayout);
     await deleteDoc(doc(db, "characters", currentCharacterId));
 
     delete state.charactersMap[currentCharacterId];
@@ -842,11 +1212,45 @@ async function handleDeleteCurrentCharacter() {
     syncSelectedCharacterId();
     renderCharacterWorkspace();
     queueStatus("Salvo", "saved");
+    showToast(`Ficha ${characterName} foi apagada.`, "danger", "🩸");
   } catch (error) {
     console.error(error);
     updateSaveStatus("Salvo", "saved");
     alert(formatFirebaseError(error, "Não foi possível excluir a ficha."));
+  } finally {
+    // A ficha volta com um fade suave em vez de reaparecer de repente.
+    if (sheetLayout) {
+      sheetLayout.classList.remove("is-vanishing");
+      sheetLayout.classList.add("is-revealing");
+      setTimeout(() => sheetLayout.classList.remove("is-revealing"), 520);
+    }
   }
+}
+
+/**
+ * Toca a animação de desaparecimento da ficha antes de removê-la de fato,
+ * dando peso à exclusão. Resolve mesmo que a animação não dispare.
+ */
+function playVanishAnimation(element) {
+  if (!element) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      element.removeEventListener("animationend", finish);
+      resolve();
+    };
+
+    element.addEventListener("animationend", finish);
+    element.classList.add("is-vanishing");
+    setTimeout(finish, 700);
+  });
 }
 
 function handleFieldInput(field, isNumeric) {
@@ -857,6 +1261,8 @@ function handleFieldInput(field, isNumeric) {
 
   if (field.dataset.field === "dano") {
     field.value = sanitizeDamageInput(field.value);
+  } else if (field.dataset.modifier === "true") {
+    field.value = sanitizeModifierInput(field.value);
   } else if (isNumeric) {
     field.value = sanitizeIntegerInput(field.value);
   }
@@ -884,6 +1290,10 @@ function handleFieldInput(field, isNumeric) {
   if (key === "nome") {
     renderSheetSelector();
     renderSessionSummary();
+  }
+
+  if (key.startsWith("dynamicUpgrade:") && key.endsWith(":nome")) {
+    decorateUpgradeInfoIcons();
   }
 
   if (key === "nivel" || key === "xp") {
@@ -1227,6 +1637,13 @@ function renderCharacterWorkspace() {
   applySheetMode();
   showApp();
   updateSaveStatus(state.saveInFlight || state.uploadInFlight || state.hasUnsavedChanges ? "Salvando" : "Salvo", state.saveInFlight || state.uploadInFlight || state.hasUnsavedChanges ? "saving" : "saved");
+
+  // Re-renderizações podem mudar a altura dos painéis: o popup do passo a passo
+  // precisa reencontrar o elemento destacado.
+  if (state.wizard.active) {
+    applyWizardSpotlight(WIZARD_STEPS[state.wizard.index], { scroll: false });
+    requestAnimationFrame(positionWizardPopup);
+  }
 }
 
 function rebuildDynamicSections() {
@@ -1310,8 +1727,9 @@ function applySheetMode() {
     elements.openKitCatalog.classList.toggle("hidden", !isCreation);
   }
 
+  // O mestre pode corrigir os valores de atributo em qualquer modo da ficha.
   attributeDefinitions.forEach(({ key }) => {
-    setFieldReadonly(`${key}Valor`, isPlay || isEvolution);
+    setFieldReadonly(`${key}Valor`, (isPlay || isEvolution) && !masterUser);
   });
 
   document.querySelectorAll('#skillsTable input[data-field]').forEach((input) => {
@@ -1370,8 +1788,26 @@ function updateAttributePointsDisplay() {
     return acc + (parseInt(getFieldValue(`${key}Valor`) || "0", 10) || 0);
   }, 0);
   const remaining = 101 - sum;
-  elements.attributePointsValue.textContent = String(remaining);
+  const next = String(remaining);
+
+  if (elements.attributePointsValue.textContent !== next) {
+    bumpElement(elements.attributePointsValue);
+  }
+
+  elements.attributePointsValue.textContent = next;
   elements.attributePointsValue.classList.toggle("depleted", remaining < 0);
+}
+
+// Pequeno "pulo" do contador sempre que o número muda.
+function bumpElement(element) {
+  if (!element) {
+    return;
+  }
+
+  element.classList.remove("is-bumping");
+  void element.offsetWidth;
+  element.classList.add("is-bumping");
+  setTimeout(() => element.classList.remove("is-bumping"), 460);
 }
 
 function openSaveSheetDialog() {
@@ -1386,22 +1822,26 @@ function openSaveSheetDialog() {
   } else {
     return;
   }
-  elements.saveSheetDialog.showModal();
+  openDialogAnimated(elements.saveSheetDialog);
 }
 
 async function confirmSaveSheet() {
   if (!hasActiveCharacter()) {
-    elements.saveSheetDialog.close();
+    closeDialogAnimated(elements.saveSheetDialog);
     return;
   }
+  const wasCreation = getActiveCharacterMode() === "creation";
+
   mutateActiveCharacter((character) => {
     character.state = "play";
   });
   markCharacterDirty();
-  elements.saveSheetDialog.close();
+  closeDialogAnimated(elements.saveSheetDialog);
+  finishWizard({ silent: true });
   applySheetMode();
   updateEvolveButtonVisibility();
   await flushPendingChanges();
+  showToast(wasCreation ? "Ficha criada! Modo de Jogo ativado." : "Evolução salva com sucesso.", "success", wasCreation ? "☠️" : "⭐");
 }
 
 function recalculateSkillPoints() {
@@ -1439,14 +1879,31 @@ function recalculateAttributes() {
 
   attributeDefinitions.forEach(({ key }) => {
     const value = parseInt(getFieldValue(`${key}Valor`) || "0", 10) || 0;
-    const modifier = parseInt(getFieldValue(`${key}Mod`) || "0", 10) || 0;
-    const test = (value - modifier) * 4;
+    const modifier = parseSignedModifier(getFieldValue(`${key}Mod`));
+    const test = (value + modifier) * 4;
 
     setFieldValue(`${key}Teste`, String(test));
     total += value;
   });
 
   setFieldValue("atributosTotal", String(total));
+}
+
+// O modificador é lido pelo sinal digitado: "+2" soma 2, "-2" subtrai 2 e "2"
+// (sem sinal) também subtrai, que é o comportamento padrão da ficha.
+function parseSignedModifier(rawValue) {
+  const raw = String(rawValue ?? "").trim();
+  if (!raw) {
+    return 0;
+  }
+
+  const match = raw.match(/^([+-]?)(\d+)$/);
+  if (!match) {
+    return 0;
+  }
+
+  const magnitude = parseInt(match[2], 10) || 0;
+  return match[1] === "+" ? magnitude : -magnitude;
 }
 
 function recalculateStatusFields() {
@@ -1614,6 +2071,10 @@ async function loadUpgrades() {
   } catch {
     UPGRADES_CATALOG = [];
   }
+
+  // O catálogo carrega de forma assíncrona: as linhas já desenhadas precisam
+  // ganhar o ícone de descrição assim que ele estiver disponível.
+  decorateUpgradeInfoIcons();
 }
 
 async function loadSkills() {
@@ -1634,7 +2095,7 @@ function openKitCatalogDialog() {
   renderKitCatalogList();
   renderKitCatalogDetail();
   elements.confirmKitCatalog.disabled = true;
-  elements.kitCatalogDialog.showModal();
+  openDialogAnimated(elements.kitCatalogDialog);
 }
 
 function renderKitCatalogList() {
@@ -1833,7 +2294,8 @@ function confirmKitCatalogSelection() {
   hydrateForm();
   recalculateDerivedFields();
   applySheetMode();
-  elements.kitCatalogDialog.close();
+  closeDialogAnimated(elements.kitCatalogDialog);
+  showToast(`Kit "${kit.name}" aplicado à ficha.`, "success", "🎒");
 }
 
 function openUpgradeCatalogDialog() {
@@ -1844,18 +2306,24 @@ function openUpgradeCatalogDialog() {
   elements.upgradeCatalogTabBar.querySelectorAll(".catalog-tab").forEach((t) => {
     t.classList.toggle("is-active", t.dataset.tab === "positive");
   });
+
+  const restrictToPositive = getActiveCharacterMode() === "evolution" && !isMasterUser();
+  elements.upgradeCatalogTabBar.classList.toggle("hidden", restrictToPositive);
+
   elements.upgradeCatalogSearch.value = "";
   renderUpgradeCatalogList("");
   renderUpgradeCatalogDetail();
   elements.confirmUpgradeCatalog.disabled = true;
-  elements.upgradeCatalogDialog.showModal();
+  openDialogAnimated(elements.upgradeCatalogDialog);
   setTimeout(() => elements.upgradeCatalogSearch.focus(), 50);
 }
 
 function renderUpgradeCatalogList(filter) {
   const lower = (filter || "").trim().toLowerCase();
-  const isEvolution = getActiveCharacterMode() === "evolution";
-  const activeTab = isEvolution ? "positive" : state.upgradeCatalogTab;
+  // Na evolução o jogador só compra aprimoramentos positivos, mas o mestre
+  // continua com acesso às duas abas para corrigir qualquer ficha.
+  const restrictToPositive = getActiveCharacterMode() === "evolution" && !isMasterUser();
+  const activeTab = restrictToPositive ? "positive" : state.upgradeCatalogTab;
   const matches = UPGRADES_CATALOG.filter((entry) => {
     if (entry.type !== activeTab) return false;
     if (!lower) return true;
@@ -1962,7 +2430,13 @@ function computeUpgradePoolRemaining() {
 function updateUpgradePoolDisplay() {
   if (!elements.upgradePointsPoolValue) return;
   const remaining = computeUpgradePoolRemaining();
-  elements.upgradePointsPoolValue.textContent = String(remaining);
+  const next = String(remaining);
+
+  if (elements.upgradePointsPoolValue.textContent !== next) {
+    bumpElement(elements.upgradePointsPoolValue);
+  }
+
+  elements.upgradePointsPoolValue.textContent = next;
   elements.upgradePointsPoolValue.classList.toggle("depleted", remaining < 0);
 }
 
@@ -1997,7 +2471,8 @@ function confirmUpgradeCatalogSelection() {
       valor: String(signedCost),
       isPlaceholder: false,
     });
-    if (isEvolutionMode) {
+    // Aprimoramentos negativos não consomem pontos de evolução — eles devolvem pontos.
+    if (isEvolutionMode && isPositive) {
       character.evolutionUpgradePoints = Math.max(0, (character.evolutionUpgradePoints || 0) - entry.cost);
     }
   });
@@ -2007,7 +2482,8 @@ function confirmUpgradeCatalogSelection() {
   hydrateForm();
   recalculateDerivedFields();
   applySheetMode();
-  elements.upgradeCatalogDialog.close();
+  closeDialogAnimated(elements.upgradeCatalogDialog);
+  showToast(`Aprimoramento "${entry.name}" adicionado.`, "success", "🧬");
 }
 
 function openSkillCatalogDialog() {
@@ -2018,7 +2494,7 @@ function openSkillCatalogDialog() {
   renderSkillCatalogList("");
   renderSkillCatalogDetail();
   elements.confirmSkillCatalog.disabled = true;
-  elements.skillCatalogDialog.showModal();
+  openDialogAnimated(elements.skillCatalogDialog);
   setTimeout(() => elements.skillCatalogSearch.focus(), 50);
 }
 
@@ -2180,7 +2656,8 @@ function confirmSkillCatalogSelection() {
   hydrateForm();
   recalculateDerivedFields();
   updateEvolveButtonVisibility();
-  elements.skillCatalogDialog.close();
+  closeDialogAnimated(elements.skillCatalogDialog);
+  showToast(`Perícia "${displayName}" adicionada.`, "success", "🎯");
 }
 
 function openCombatSkillCatalogDialog() {
@@ -2191,7 +2668,7 @@ function openCombatSkillCatalogDialog() {
   renderCombatSkillCatalogList("");
   elements.combatSkillCatalogDetail.innerHTML = `<p class="skill-catalog-empty">Selecione uma perícia à esquerda</p>`;
   elements.confirmCombatSkillCatalog.disabled = true;
-  elements.combatSkillCatalogDialog.showModal();
+  openDialogAnimated(elements.combatSkillCatalogDialog);
   setTimeout(() => elements.combatSkillCatalogSearch.focus(), 50);
 }
 
@@ -2443,7 +2920,8 @@ function confirmCombatSkillCatalogSelection() {
   hydrateForm();
   recalculateDerivedFields();
   updateEvolveButtonVisibility();
-  elements.combatSkillCatalogDialog.close();
+  closeDialogAnimated(elements.combatSkillCatalogDialog);
+  showToast(`Perícia de combate "${displayName}" adicionada.`, "success", "🔪");
 }
 
 function convertPlaceholderRow(row) {
@@ -2554,13 +3032,21 @@ function addInventoryItemRow() {
   });
 
   markCharacterDirty();
-  renderInventory();
+  // Abrir antes de focar: o drawer fechado fica com visibility:hidden e os
+  // campos dentro dele não aceitam foco.
   openInventoryDrawer();
+  renderInventory();
 
-  const newField = elements.inventoryRows.querySelector(`[data-inventory-id="${itemId}"][data-inventory-field="item"]`);
-  if (newField) {
+  requestAnimationFrame(() => {
+    const newField = elements.inventoryRows.querySelector(`[data-inventory-id="${itemId}"][data-inventory-field="item"]`);
+    if (!newField) {
+      return;
+    }
+
     newField.focus();
-  }
+    // A lista agora rola: leva o item recém-criado para a área visível.
+    newField.closest(".inventory-row")?.scrollIntoView({ block: "nearest" });
+  });
 }
 
 function removeInventoryItemRow(itemId) {
@@ -2780,6 +3266,8 @@ function subscribeToCharacters() {
       ) {
         renderCharacterWorkspace();
       }
+
+      maybeAutoStartWizard();
     },
     (error) => {
       console.error(error);
@@ -3401,8 +3889,10 @@ function resetAppState() {
   state.saveInFlight = false;
   state.uploadInFlight = false;
   state.lastRenderedSignature = null;
+  state.wizard.offered.clear();
 
   closeAllDrawers();
+  hideUpgradeTooltip();
   hydrateForm();
   renderPortrait();
   renderInventory();
@@ -3439,6 +3929,19 @@ function sanitizeIntegerInput(value) {
   return String(value || "")
     .replace(/[^\d-]/g, "")
     .replace(/(?!^)-/g, "");
+}
+
+// Aceita apenas dígitos com, no máximo, um sinal + ou - na primeira posição.
+function sanitizeModifierInput(value) {
+  const raw = String(value || "");
+  const sign = raw.startsWith("+") ? "+" : (raw.startsWith("-") ? "-" : "");
+  const digits = raw.replace(/[^\d]/g, "");
+
+  if (!digits) {
+    return sign;
+  }
+
+  return `${sign}${digits}`;
 }
 
 function sanitizeDamageInput(value) {
@@ -3620,6 +4123,265 @@ function escapeAttribute(text) {
     .replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+/* ==========================================================================
+   Passo a passo de criação de personagem
+   ========================================================================== */
+
+function startWizard(characterId) {
+  if (!elements.wizardOverlay || !elements.wizardPopup) {
+    return;
+  }
+
+  state.wizard.active = true;
+  state.wizard.index = 0;
+  state.wizard.characterId = characterId || state.selectedCharacterId;
+  state.wizard.spotlight = null;
+
+  if (state.wizard.characterId) {
+    state.wizard.offered.add(state.wizard.characterId);
+  }
+
+  document.body.classList.add("wizard-active");
+  elements.wizardOverlay.classList.add("is-active");
+  elements.wizardOverlay.setAttribute("aria-hidden", "false");
+  elements.wizardPopup.setAttribute("aria-hidden", "false");
+
+  renderWizardDots();
+  renderWizardStep({ animate: true });
+}
+
+/**
+ * Abre o passo a passo sozinho quando o jogador cai numa ficha em branco recém
+ * criada (por exemplo, logo após o cadastro, onde ele nunca clica em "Nova Ficha").
+ * Só dispara uma vez por ficha em cada sessão e nunca para fichas de outros donos.
+ */
+function maybeAutoStartWizard() {
+  if (state.wizard.active) {
+    return;
+  }
+
+  const character = getActiveCharacter();
+  if (!character || character.state !== "creation") {
+    return;
+  }
+
+  if (state.wizard.offered.has(character.id)) {
+    return;
+  }
+
+  if (character.ownerId !== state.profile?.id) {
+    return;
+  }
+
+  const isUntouched = String(character.nome || "").trim() === ""
+    && attributeDefinitions.every(({ key }) => String(character[`${key}Valor`] || "").trim() === "");
+
+  if (!isUntouched) {
+    state.wizard.offered.add(character.id);
+    return;
+  }
+
+  startWizard(character.id);
+}
+
+function advanceWizard(direction) {
+  if (!state.wizard.active) {
+    return;
+  }
+
+  const currentStep = WIZARD_STEPS[state.wizard.index];
+  const nextIndex = state.wizard.index + direction;
+
+  if (nextIndex < 0) {
+    return;
+  }
+
+  if (nextIndex >= WIZARD_STEPS.length) {
+    finishWizard({ completed: true });
+    return;
+  }
+
+  const nextStep = WIZARD_STEPS[nextIndex];
+  if (currentStep?.onLeave && nextStep?.id !== currentStep.id) {
+    currentStep.onLeave();
+  }
+
+  state.wizard.index = nextIndex;
+  renderWizardStep({ animate: true });
+}
+
+function finishWizard({ completed = false, skipped = false, silent = false } = {}) {
+  if (!state.wizard.active) {
+    return;
+  }
+
+  const currentStep = WIZARD_STEPS[state.wizard.index];
+  currentStep?.onLeave?.();
+
+  clearWizardSpotlight();
+  state.wizard.active = false;
+  state.wizard.index = 0;
+  state.wizard.characterId = null;
+
+  document.body.classList.remove("wizard-active");
+  elements.wizardOverlay?.classList.remove("is-active");
+  elements.wizardOverlay?.setAttribute("aria-hidden", "true");
+  elements.wizardPopup?.classList.remove("is-active", "is-centered", "is-swapping");
+  elements.wizardPopup?.setAttribute("aria-hidden", "true");
+
+  if (silent) {
+    return;
+  }
+
+  if (completed) {
+    showToast("Passo a passo concluído. Revise a ficha à vontade.", "success", "🧟");
+  } else if (skipped) {
+    showToast("Passo a passo encerrado. Você pode preencher a ficha livremente.", "", "🕯️");
+  }
+}
+
+function renderWizardDots() {
+  if (!elements.wizardDots) {
+    return;
+  }
+
+  elements.wizardDots.innerHTML = "";
+  WIZARD_STEPS.forEach(() => {
+    const dot = document.createElement("span");
+    dot.className = "wizard-dot";
+    elements.wizardDots.appendChild(dot);
+  });
+}
+
+function renderWizardStep({ animate = false } = {}) {
+  const step = WIZARD_STEPS[state.wizard.index];
+  if (!step) {
+    return;
+  }
+
+  step.onEnter?.();
+
+  elements.wizardStepLabel.textContent = step.layout === "center"
+    ? step.label
+    : `Passo ${state.wizard.index} de ${countWizardFormSteps()} · ${step.label}`;
+  elements.wizardTitle.textContent = step.title;
+  elements.wizardText.textContent = step.text;
+  elements.wizardBack.disabled = state.wizard.index === 0;
+  elements.wizardNext.textContent = step.nextLabel || "Avançar →";
+  elements.wizardSkip.classList.toggle("hidden", state.wizard.index === WIZARD_STEPS.length - 1);
+
+  Array.from(elements.wizardDots.children).forEach((dot, index) => {
+    dot.classList.toggle("is-done", index < state.wizard.index);
+    dot.classList.toggle("is-current", index === state.wizard.index);
+  });
+
+  if (animate && elements.wizardPopup) {
+    elements.wizardPopup.classList.remove("is-swapping");
+    void elements.wizardPopup.offsetWidth;
+    elements.wizardPopup.classList.add("is-swapping");
+  }
+
+  applyWizardSpotlight(step);
+  elements.wizardPopup.classList.add("is-active");
+
+  // A posição depende do tamanho já renderizado do popup e do scroll suave.
+  requestAnimationFrame(() => {
+    positionWizardPopup();
+    setTimeout(() => {
+      positionWizardPopup();
+      step.focus?.()?.focus?.();
+    }, 380);
+  });
+}
+
+function countWizardFormSteps() {
+  return WIZARD_STEPS.filter((step) => step.layout !== "center").length;
+}
+
+function applyWizardSpotlight(step, { scroll = true } = {}) {
+  clearWizardSpotlight();
+
+  const target = step?.target?.() || null;
+  state.wizard.spotlight = target;
+
+  if (!target) {
+    elements.wizardPopup.classList.add("is-centered");
+    return;
+  }
+
+  elements.wizardPopup.classList.remove("is-centered");
+  target.classList.add("wizard-spotlight");
+
+  // Drawers já ficam no canto da tela; só a ficha precisa rolar até o painel.
+  // Re-renderizações do Firestore reaplicam o destaque sem rolar de novo.
+  if (scroll && !target.classList.contains("inventory-drawer")) {
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
+function clearWizardSpotlight() {
+  document.querySelectorAll(".wizard-spotlight").forEach((element) => {
+    element.classList.remove("wizard-spotlight");
+  });
+  state.wizard.spotlight = null;
+}
+
+/**
+ * Coloca o popup ao lado do elemento em destaque, escolhendo o primeiro lado com
+ * espaço livre (direita, esquerda, baixo, cima) para nunca cobrir o campo que
+ * está sendo preenchido. Sem alvo, o popup fica centralizado na tela.
+ */
+function positionWizardPopup() {
+  const popup = elements.wizardPopup;
+  if (!popup || !state.wizard.active) {
+    return;
+  }
+
+  const target = state.wizard.spotlight;
+  // offsetWidth/Height são medidas de layout: não sofrem com o scale da animação
+  // de zoom do popup, que distorceria getBoundingClientRect.
+  const width = popup.offsetWidth || 340;
+  const height = popup.offsetHeight || 260;
+  const margin = 16;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  if (!target) {
+    popup.style.left = `${Math.max(margin, (viewportWidth - width) / 2)}px`;
+    popup.style.top = `${Math.max(margin, (viewportHeight - height) / 2)}px`;
+    return;
+  }
+
+  const rect = target.getBoundingClientRect();
+  let left;
+  let top;
+
+  if (viewportWidth - rect.right >= width + margin * 2) {
+    left = rect.right + margin;
+    top = rect.top + (rect.height / 2) - (height / 2);
+  } else if (rect.left >= width + margin * 2) {
+    left = rect.left - width - margin;
+    top = rect.top + (rect.height / 2) - (height / 2);
+  } else if (viewportHeight - rect.bottom >= height + margin * 2) {
+    left = rect.left + (rect.width / 2) - (width / 2);
+    top = rect.bottom + margin;
+  } else if (rect.top >= height + margin * 2) {
+    left = rect.left + (rect.width / 2) - (width / 2);
+    top = rect.top - height - margin;
+  } else {
+    // Sem folga em nenhum lado: encosta no rodapé, ainda fora do centro do campo.
+    left = rect.left + (rect.width / 2) - (width / 2);
+    top = viewportHeight - height - margin;
+  }
+
+  popup.style.left = `${Math.round(clampValue(left, margin, Math.max(margin, viewportWidth - width - margin)))}px`;
+  popup.style.top = `${Math.round(clampValue(top, margin, Math.max(margin, viewportHeight - height - margin)))}px`;
+}
+
+function clampValue(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function clearFieldSavedStates() {

@@ -266,6 +266,24 @@
             <textarea id="historyTextarea" rows="16" placeholder="Digite aqui a história do personagem..."></textarea>
           </label>
         </aside>
+
+        <div id="wizardOverlay" class="wizard-overlay" aria-hidden="true"></div>
+
+        <div id="wizardPopup" class="wizard-popup" role="dialog" aria-labelledby="wizardTitle" aria-hidden="true">
+          <div class="wizard-popup-inner">
+            <span id="wizardStepLabel" class="wizard-step-label"></span>
+            <h3 id="wizardTitle" class="wizard-title"></h3>
+            <p id="wizardText" class="wizard-text"></p>
+            <div id="wizardDots" class="wizard-dots" aria-hidden="true"></div>
+
+            <div class="wizard-actions">
+              <button type="button" id="wizardBack" class="btn btn-secondary wizard-btn">Voltar</button>
+              <button type="button" id="wizardNext" class="btn btn-primary wizard-btn">Avançar</button>
+            </div>
+
+            <button type="button" id="wizardSkip" class="wizard-skip">Pular passo a passo</button>
+          </div>
+        </div>
       </section>
     </main>
   </div>
@@ -421,6 +439,9 @@
       </footer>
     </form>
   </dialog>
+
+  <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+  <div id="upgradeTooltip" class="upgrade-tooltip" role="tooltip" aria-hidden="true"></div>
 
   <script type="module" src="./script.js"></script>
 </body>
