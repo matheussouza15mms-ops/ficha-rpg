@@ -158,7 +158,7 @@ const WIZARD_STEPS = [
     label: "O começo",
     title: "🧟‍♂️ Um novo sobrevivente desperta 🩸",
     text: "O mundo já não é o mesmo. Entre os escombros e os gemidos ao longe, alguém ainda respira — e essa pessoa é sua.\n\nVou te guiar passo a passo na criação da ficha. A qualquer momento você pode voltar e refazer o que não gostou.",
-    nextLabel: "Começar ☠️",
+    nextLabel: "Iniciar criação ☠️",
   },
   {
     id: "identificacao",
@@ -4270,7 +4270,11 @@ function renderWizardStep({ animate = false } = {}) {
     : `Passo ${state.wizard.index} de ${countWizardFormSteps()} · ${step.label}`;
   elements.wizardTitle.textContent = step.title;
   elements.wizardText.textContent = step.text;
-  elements.wizardBack.disabled = state.wizard.index === 0;
+  // Na tela de boas-vindas só existe um caminho: iniciar. O "Voltar" some em vez
+  // de aparecer desabilitado.
+  const isWelcomeStep = state.wizard.index === 0;
+  elements.wizardBack.disabled = isWelcomeStep;
+  elements.wizardBack.classList.toggle("hidden", isWelcomeStep);
   elements.wizardNext.textContent = step.nextLabel || "Avançar →";
   elements.wizardSkip.classList.toggle("hidden", state.wizard.index === WIZARD_STEPS.length - 1);
 
