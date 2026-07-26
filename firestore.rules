@@ -26,5 +26,16 @@ service cloud.firestore {
         && (request.resource.data.ownerId == request.auth.uid || isMaster());
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isMaster());
     }
+
+    // Contador dos números de retrato (counters/characterPortrait). Só pode
+    // crescer: um número já entregue a uma ficha nunca volta a ser sorteado,
+    // então excluir personagem não faz outro herdar a imagem dele.
+    match /counters/{counterId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.lastPortraitNumber is int
+        && request.resource.data.lastPortraitNumber > 0;
+      allow update: if isSignedIn() && request.resource.data.lastPortraitNumber is int
+        && request.resource.data.lastPortraitNumber > resource.data.lastPortraitNumber;
+    }
   }
 }

@@ -23,6 +23,7 @@ import {
   setDoc,
   onSnapshot,
   deleteDoc,
+  runTransaction,
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 const FIREBASE_CONFIG = {
@@ -37,6 +38,17 @@ const FIREBASE_CONFIG = {
 const MASTER_EMAILS = [
   "matheus.souza15.mms@gmail.com",
 ];
+
+// Retrato por numeração fixa da ficha.
+//
+// Cada personagem recebe, na criação, um `portraitNumber` que nunca muda e
+// nunca é reaproveitado (vem de um contador transacional em
+// counters/characterPortrait). O retrato exibido é o arquivo
+// imagens/personagens/img_<numero>.png. Como o número é do documento, e não da
+// posição na lista, excluir uma ficha não faz as outras trocarem de imagem.
+const PORTRAIT_IMAGE_DIR = "./imagens/personagens";
+const PORTRAIT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
+const PORTRAIT_COUNTER_PATH = ["counters", "characterPortrait"];
 
 const MASTER_DEFAULT_PROFILES = {
   "matheus.souza15.mms@gmail.com": {
@@ -133,6 +145,9 @@ const state = {
   uploadInFlight: false,
   unsubscribeCharacters: null,
   lastRenderedSignature: null,
+  portraitAttempt: 0,
+  portraitNumberRequests: new Set(),
+  portraitBackfillInFlight: false,
   skillCatalogSelection: null,
   combatSkillCatalogSelection: null,
   upgradeCatalogSelection: null,
@@ -289,6 +304,8 @@ function cacheElements() {
   elements.portraitImage = document.getElementById("portraitImage");
   elements.portraitPlaceholder = document.getElementById("portraitPlaceholder");
   elements.removePortraitButton = document.getElementById("removePortraitButton");
+  elements.portraitCodeBadge = document.getElementById("portraitCodeBadge");
+  elements.portraitFileHint = document.getElementById("portraitFileHint");
   elements.upgradesGrid = document.getElementById("upgradesGrid");
   elements.skillsTable = document.getElementById("skillsTable");
   elements.addUpgradeRow = document.getElementById("addUpgradeRow");
@@ -1208,6 +1225,7 @@ async function handleCreateCharacter() {
 
   try {
     await setDoc(characterRef, serializeCharacterForWrite(optimisticCharacter));
+    await ensurePortraitNumber(characterRef.id);
     queueStatus("Salvo", "saved");
   } catch (error) {
     console.error(error);
@@ -1651,18 +1669,104 @@ function renderSessionSummary() {
   elements.sessionSummary.classList.remove("hidden");
 }
 
-function renderPortrait() {
-  const character = getActiveCharacter();
-  const portrait = character?.portraitDataUrl || "";
-
-  if (portrait) {
-    elements.portraitImage.src = portrait;
-  } else {
-    elements.portraitImage.removeAttribute("src");
+function formatPortraitCode(portraitNumber) {
+  const value = Math.floor(Number(portraitNumber));
+  if (!Number.isFinite(value) || value <= 0) {
+    return "";
   }
 
-  elements.portraitFrame.classList.toggle("has-image", Boolean(portrait));
-  elements.removePortraitButton.classList.toggle("hidden", !portrait);
+  return String(value).padStart(3, "0");
+}
+
+function buildPortraitFileName(portraitNumber, extension) {
+  const code = formatPortraitCode(portraitNumber);
+  return code ? `img_${code}.${extension}` : "";
+}
+
+function buildPortraitCandidates(portraitNumber) {
+  const code = formatPortraitCode(portraitNumber);
+  if (!code) {
+    return [];
+  }
+
+  return PORTRAIT_IMAGE_EXTENSIONS.map((extension) => `${PORTRAIT_IMAGE_DIR}/img_${code}.${extension}`);
+}
+
+function clearPortraitImage() {
+  elements.portraitImage.removeAttribute("src");
+  elements.portraitFrame.classList.remove("has-image");
+}
+
+// Tenta as extensões em ordem (png, jpg, jpeg, webp) e só desiste depois da
+// última: assim a pasta aceita qualquer um desses formatos sem configuração.
+// O token evita que uma imagem lenta de outra ficha apareça depois da troca.
+function loadPortraitCandidates(candidates, attempt) {
+  const image = elements.portraitImage;
+  let index = 0;
+
+  const tryNext = () => {
+    if (attempt !== state.portraitAttempt) {
+      return;
+    }
+
+    if (index >= candidates.length) {
+      image.onerror = null;
+      image.onload = null;
+      clearPortraitImage();
+      return;
+    }
+
+    image.onerror = tryNext;
+    image.onload = () => {
+      if (attempt === state.portraitAttempt) {
+        elements.portraitFrame.classList.add("has-image");
+      }
+    };
+    image.src = candidates[index];
+    index += 1;
+  };
+
+  tryNext();
+}
+
+function renderPortrait() {
+  const character = getActiveCharacter();
+  const legacyPortrait = character?.portraitDataUrl || "";
+  const portraitNumber = character?.portraitNumber;
+  const code = formatPortraitCode(portraitNumber);
+
+  state.portraitAttempt += 1;
+  const attempt = state.portraitAttempt;
+  elements.portraitImage.onerror = null;
+  elements.portraitImage.onload = null;
+  clearPortraitImage();
+
+  if (code) {
+    elements.portraitCodeBadge.textContent = `#${code}`;
+    elements.portraitCodeBadge.classList.remove("hidden");
+  } else {
+    elements.portraitCodeBadge.textContent = "";
+    elements.portraitCodeBadge.classList.add("hidden");
+  }
+
+  const showFileHint = Boolean(code) && !legacyPortrait;
+  if (showFileHint) {
+    elements.portraitFileHint.textContent = `imagens/personagens/${buildPortraitFileName(portraitNumber, "png")}`;
+  } else {
+    elements.portraitFileHint.textContent = "";
+  }
+  elements.portraitFileHint.classList.toggle("hidden", !showFileHint);
+
+  // O botão de remover só vale para retratos antigos salvos na própria ficha;
+  // imagem da pasta se troca trocando o arquivo.
+  elements.removePortraitButton.classList.toggle("hidden", !legacyPortrait);
+
+  if (legacyPortrait) {
+    loadPortraitCandidates([legacyPortrait], attempt);
+    return;
+  }
+
+  loadPortraitCandidates(buildPortraitCandidates(portraitNumber), attempt);
 }
 
 function renderCharacterWorkspace() {
@@ -3273,7 +3377,97 @@ async function ensureOwnerHasAtLeastOneCharacter(profile) {
 
   const characterRef = doc(collection(db, "characters"));
   const character = createDefaultCharacter(profile, 1);
+  character.portraitNumber = await allocatePortraitNumber().catch((error) => {
+    console.error(error);
+    return 0;
+  });
   await setDoc(characterRef, serializeCharacterForWrite({ ...character, id: characterRef.id }));
+}
+
+function highestKnownPortraitNumber() {
+  return Object.values(state.charactersMap).reduce((highest, character) => {
+    const value = Math.floor(Number(character?.portraitNumber));
+    return Number.isFinite(value) && value > highest ? value : highest;
+  }, 0);
+}
+
+// O contador só cresce: um número entregue nunca volta para a fila. É isso que
+// impede a imagem de um personagem de "escorregar" para outro quando alguma
+// ficha é excluída. O maior número conhecido serve de piso caso o documento do
+// contador se perca.
+async function allocatePortraitNumber() {
+  const counterRef = doc(db, ...PORTRAIT_COUNTER_PATH);
+
+  return runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(counterRef);
+    const stored = Math.floor(Number(snapshot.exists() ? snapshot.data().lastPortraitNumber : 0));
+    const lastPortraitNumber = Number.isFinite(stored) && stored > 0 ? stored : 0;
+    const portraitNumber = Math.max(lastPortraitNumber, highestKnownPortraitNumber()) + 1;
+
+    transaction.set(counterRef, {
+      lastPortraitNumber: portraitNumber,
+      updatedAtMs: Date.now(),
+    }, { merge: true });
+
+    return portraitNumber;
+  });
+}
+
+async function ensurePortraitNumber(characterId) {
+  const character = state.charactersMap[characterId];
+  if (!character || formatPortraitCode(character.portraitNumber) || state.portraitNumberRequests.has(characterId)) {
+    return;
+  }
+
+  state.portraitNumberRequests.add(characterId);
+
+  try {
+    const portraitNumber = await allocatePortraitNumber();
+    await setDoc(
+      doc(db, "characters", characterId),
+      { portraitNumber, updatedAtMs: Date.now() },
+      { merge: true },
+    );
+
+    const localCharacter = state.charactersMap[characterId];
+    if (localCharacter && !formatPortraitCode(localCharacter.portraitNumber)) {
+      localCharacter.portraitNumber = portraitNumber;
+      if (characterId === state.selectedCharacterId) {
+        renderPortrait();
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    state.portraitNumberRequests.delete(characterId);
+  }
+}
+
+// Fichas criadas antes dessa numeração recebem o número aqui, na ordem de
+// criação. Roda uma de cada vez para não disputar o contador com si mesma.
+async function backfillMissingPortraitNumbers() {
+  if (state.portraitBackfillInFlight) {
+    return;
+  }
+
+  const pending = Object.values(state.charactersMap)
+    .filter((character) => character
+      && !formatPortraitCode(character.portraitNumber)
+      && !state.portraitNumberRequests.has(character.id))
+    .sort((a, b) => (a.createdAtMs || 0) - (b.createdAtMs || 0));
+
+  if (!pending.length) {
+    return;
+  }
+
+  state.portraitBackfillInFlight = true;
+
+  try {
+    for (const character of pending) {
+      await ensurePortraitNumber(character.id);
+    }
+  } finally {
+    state.portraitBackfillInFlight = false;
+  }
 }
 
 function subscribeToCharacters() {
@@ -3319,6 +3513,7 @@ function subscribeToCharacters() {
       }
 
       maybeAutoStartWizard();
+      backfillMissingPortraitNumbers();
     },
     (error) => {
       console.error(error);
@@ -3447,6 +3642,7 @@ function createDefaultCharacter(ownerProfile, ordinal) {
     ownerEmail: ownerProfile.email || "",
     portraitDataUrl: "",
     portraitStoragePath: "",
+    portraitNumber: 0,
     nome: "",
     classeSocialProfissao: "",
     nascimento: "",
@@ -3519,6 +3715,14 @@ function normalizeCharacter(rawCharacter, characterId) {
 
 function serializeCharacterForWrite(character) {
   const { id, ...payload } = character;
+
+  // Nunca gravar portraitNumber vazio por cima de um número já atribuído: o
+  // número pode ter sido gerado em outra aba/sessão enquanto esta ficha estava
+  // aberta, e regravá-lo como 0 faria a ficha perder o retrato.
+  if (!formatPortraitCode(payload.portraitNumber)) {
+    delete payload.portraitNumber;
+  }
+
   return {
     ...payload,
     dynamicUpgrades: sanitizeUpgradeRows(payload.dynamicUpgrades || []),

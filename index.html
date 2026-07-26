@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
   <!-- O ?v= força o navegador a baixar a versão nova em vez de reaproveitar a
        do cache do GitHub Pages. Suba o número sempre que mexer no CSS/JS. -->
-  <link rel="stylesheet" href="./styles.css?v=4">
+  <link rel="stylesheet" href="./styles.css?v=5">
 </head>
 <body>
   <div class="page-art page-art-top" aria-hidden="true"></div>
@@ -89,8 +89,9 @@
         <section class="sheet-layout">
           <div class="sheet-column left-column">
             <article class="card panel">
-              <div class="section-heading">
+              <div class="section-heading portrait-heading">
                 <h2>Retrato</h2>
+                <span id="portraitCodeBadge" class="portrait-code-badge hidden" title="Número da ficha: use este nome de arquivo na pasta imagens/personagens"></span>
               </div>
 
               <div id="portraitFrame" class="portrait-frame">
@@ -99,6 +100,7 @@
               </div>
 
               <div class="portrait-actions">
+                <span id="portraitFileHint" class="portrait-file-hint hidden"></span>
                 <button type="button" id="removePortraitButton" class="remove-link hidden">Remover imagem</button>
               </div>
             </article>
@@ -458,6 +460,6 @@
   <div id="toastStack" class="toast-stack" aria-live="polite"></div>
   <div id="upgradeTooltip" class="upgrade-tooltip" role="tooltip" aria-hidden="true"></div>
 
-  <script type="module" src="./script.js?v=4"></script>
+  <script type="module" src="./script.js?v=5"></script>
 </body>
 </html>
