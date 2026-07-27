@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
   <!-- O ?v= força o navegador a baixar a versão nova em vez de reaproveitar a
        do cache do GitHub Pages. Suba o número sempre que mexer no CSS/JS. -->
-  <link rel="stylesheet" href="./styles.css?v=8">
+  <link rel="stylesheet" href="./styles.css?v=9">
 </head>
 <body>
   <div class="page-art page-art-top" aria-hidden="true"></div>
@@ -242,17 +242,42 @@
             <button type="button" id="closeInventoryDrawer" class="btn btn-secondary">Fechar</button>
           </div>
 
-          <div class="inventory-table">
-            <div class="inventory-row inventory-row-header">
-              <span>Item</span>
-              <span>Quant.</span>
-              <span>Peso</span>
-              <span>Valor</span>
-            </div>
-            <div id="inventoryRows" class="inventory-rows"></div>
-          </div>
+          <div class="inventory-scroll">
+            <section class="gear-section">
+              <div class="gear-section-title">
+                <span class="gear-section-label">Equipamento</span>
+                <span class="gear-section-hint">Toque no slot para escolher a arma</span>
+              </div>
+              <div id="equipmentSlots" class="equipment-grid"></div>
+            </section>
 
-          <button type="button" id="addInventoryItem" class="btn btn-add-row">+ Adicionar item</button>
+            <section class="gear-section">
+              <div class="gear-section-title">
+                <span class="gear-section-label">Mochila</span>
+                <label class="backpack-size">
+                  <span>Capacidade</span>
+                  <select id="backpackSize">
+                    <option value="pequena">Pequena · 8 slots</option>
+                    <option value="media">Média · 16 slots</option>
+                    <option value="grande">Grande · 24 slots</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="inventory-table">
+                <div class="inventory-row inventory-row-header">
+                  <span aria-hidden="true">#</span>
+                  <span>Item</span>
+                  <span>Quant.</span>
+                  <span>Peso</span>
+                  <span>Valor</span>
+                </div>
+                <div id="inventoryRows" class="inventory-rows"></div>
+              </div>
+
+              <p id="backpackFooter" class="backpack-footer"></p>
+            </section>
+          </div>
         </aside>
 
         <aside id="notesDrawer" class="inventory-drawer notes-drawer" aria-hidden="true">
@@ -467,9 +492,32 @@
     </form>
   </dialog>
 
+  <dialog id="weaponPickerDialog" class="register-dialog weapon-picker-dialog">
+    <div class="weapon-picker-content">
+      <div class="section-heading">
+        <h2>Escolher arma</h2>
+      </div>
+      <p id="weaponPickerSlotLabel" class="dialog-copy weapon-picker-slot"></p>
+
+      <div id="weaponPickerFilters" class="weapon-picker-filters" role="tablist">
+        <button type="button" class="weapon-filter is-active" data-weapon-filter="all">Todas</button>
+        <button type="button" class="weapon-filter" data-weapon-filter="firearm">Armas de fogo</button>
+        <button type="button" class="weapon-filter" data-weapon-filter="melee">Armas brancas</button>
+      </div>
+
+      <div id="weaponPickerGrid" class="weapon-picker-grid" role="listbox" aria-label="Ícones de armas"></div>
+
+      <footer class="dialog-actions">
+        <button type="button" id="clearWeaponPicker" class="btn btn-secondary">Esvaziar slot</button>
+        <button type="button" id="cancelWeaponPicker" class="btn btn-secondary">Cancelar</button>
+        <button type="button" id="confirmWeaponPicker" class="btn btn-primary" disabled>Equipar</button>
+      </footer>
+    </div>
+  </dialog>
+
   <div id="toastStack" class="toast-stack" aria-live="polite"></div>
   <div id="upgradeTooltip" class="upgrade-tooltip" role="tooltip" aria-hidden="true"></div>
 
-  <script type="module" src="./script.js?v=8"></script>
+  <script type="module" src="./script.js?v=9"></script>
 </body>
 </html>

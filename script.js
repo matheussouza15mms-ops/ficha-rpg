@@ -130,6 +130,113 @@ const statusFields = [
   ["pvAtual", "PV Atual"],
 ];
 
+/* ==========================================================================
+   Equipamento: slots de arma e mochila
+   ========================================================================== */
+
+const EQUIPMENT_SLOT_DEFS = [
+  { key: "primary", label: "Arma Principal", hint: "Fuzis, escopetas, espadas" },
+  { key: "secondary", label: "Arma Secundária", hint: "Apoio ou reserva" },
+  { key: "holsterRight", label: "Coldre Direito", hint: "Saque rápido" },
+  { key: "holsterLeft", label: "Coldre Esquerdo", hint: "Saque rápido" },
+];
+
+const BACKPACK_SIZES = {
+  pequena: { label: "Pequena", slots: 8 },
+  media: { label: "Média", slots: 16 },
+  grande: { label: "Grande", slots: 24 },
+};
+
+const DEFAULT_BACKPACK_SIZE = "media";
+
+// Ícones genéricos desenhados em SVG (viewBox 0 0 64 64, preenchidos com
+// currentColor). São silhuetas: servem para identificar o tipo da arma no slot,
+// não para representar um modelo específico.
+const WEAPON_ICONS = [
+  {
+    id: "pistola", label: "Pistola", kind: "firearm",
+    shape: `<rect x="6" y="16" width="46" height="10" rx="2"/><rect x="48" y="12" width="3" height="4"/><rect x="6" y="26" width="30" height="4"/><polygon points="24,30 34,30 32,36 26,36"/><polygon points="8,30 24,30 18,53 2,53"/>`,
+  },
+  {
+    id: "revolver", label: "Revólver", kind: "firearm",
+    shape: `<rect x="34" y="20" width="26" height="6" rx="1"/><rect x="34" y="26" width="22" height="3"/><rect x="10" y="18" width="26" height="10" rx="2"/><circle cx="26" cy="27" r="9"/><polygon points="8,14 15,14 15,20 8,20"/><polygon points="8,28 20,28 16,53 2,51"/>`,
+  },
+  {
+    id: "smg", label: "Submetralhadora", kind: "firearm",
+    shape: `<rect x="8" y="18" width="36" height="11" rx="2"/><rect x="44" y="21" width="16" height="5" rx="1"/><polygon points="2,20 8,20 8,29 2,31"/><rect x="12" y="13" width="4" height="5"/><rect x="18" y="29" width="8" height="21" rx="2"/><polygon points="32,29 40,29 37,43 30,43"/>`,
+  },
+  {
+    id: "carabina", label: "Carabina", kind: "firearm",
+    shape: `<polygon points="2,24 20,19 20,33 10,39 2,37"/><rect x="20" y="22" width="22" height="8" rx="1"/><rect x="34" y="16" width="4" height="6" rx="1"/><rect x="42" y="24" width="12" height="6" rx="2"/><rect x="54" y="25" width="8" height="4" rx="1"/><polygon points="24,30 30,30 28,38 23,38"/>`,
+  },
+  {
+    id: "fuzil", label: "Fuzil de Assalto", kind: "firearm",
+    shape: `<polygon points="2,20 14,20 14,30 6,35 2,33"/><rect x="14" y="19" width="32" height="11" rx="2"/><rect x="18" y="13" width="9" height="6" rx="1"/><rect x="46" y="22" width="16" height="5" rx="1"/><path d="M24 30h9l4 16-10 3-3-19Z"/><polygon points="34,30 42,30 39,44 32,44"/>`,
+  },
+  {
+    id: "sniper", label: "Fuzil de Precisão", kind: "firearm",
+    shape: `<polygon points="2,26 18,22 18,34 8,40 2,38"/><rect x="18" y="24" width="26" height="9" rx="2"/><rect x="44" y="26" width="18" height="4" rx="1"/><rect x="22" y="11" width="22" height="8" rx="4"/><rect x="26" y="19" width="3" height="5"/><rect x="37" y="19" width="3" height="5"/><polygon points="24,33 30,33 28,40 23,40"/><polygon points="47,30 50,30 55,46 52,46"/><polygon points="47,30 50,30 45,46 42,46"/>`,
+  },
+  {
+    id: "shotgun", label: "Escopeta", kind: "firearm",
+    shape: `<polygon points="2,20 20,15 20,35 8,41 2,39"/><rect x="20" y="19" width="42" height="5" rx="1"/><rect x="20" y="26" width="42" height="5" rx="1"/><rect x="32" y="31" width="15" height="5" rx="2"/><polygon points="23,31 29,31 27,39 22,39"/>`,
+  },
+  {
+    id: "metralhadora", label: "Metralhadora", kind: "firearm",
+    shape: `<polygon points="2,20 14,20 14,30 6,35 2,33"/><rect x="14" y="18" width="32" height="12" rx="2"/><rect x="20" y="11" width="18" height="5" rx="2"/><rect x="46" y="21" width="16" height="5" rx="1"/><rect x="15" y="30" width="17" height="13" rx="2"/><polygon points="36,30 44,30 41,44 34,44"/><polygon points="52,26 55,26 59,44 56,44"/><polygon points="52,26 55,26 51,44 48,44"/>`,
+  },
+  {
+    id: "arco", label: "Arco", kind: "firearm",
+    shape: `<path d="M22 4c15 11 15 45 0 56l-6-3c13-11 13-39 0-50l6-3Z"/><rect x="20" y="6" width="2.5" height="52" rx="1"/><rect x="24" y="30" width="30" height="3.5" rx="1"/><polygon points="53,25 63,31.5 53,38"/><polygon points="24,26 31,31.5 24,37"/>`,
+  },
+  {
+    id: "besta", label: "Besta", kind: "firearm",
+    shape: `<path d="M3 15C18 7 46 7 61 15l-2 6C46 14 18 14 5 21l-2-6Z"/><polygon points="6,17 32,31 58,17 58,21 32,35 6,21"/><rect x="28" y="18" width="8" height="40" rx="3"/><polygon points="32,3 37,15 27,15"/>`,
+  },
+  {
+    id: "faca", label: "Faca", kind: "melee",
+    shape: `<g transform="rotate(-40 32 32)"><path d="M27 14c0-3 2-5 5-5s5 2 5 5v22H27V14Z"/><rect x="22" y="36" width="20" height="3.5" rx="1"/><rect x="27" y="39" width="10" height="17" rx="4"/></g>`,
+  },
+  {
+    id: "punhal", label: "Punhal", kind: "melee",
+    shape: `<g transform="rotate(-40 32 32)"><path d="M32 4l5 12v20H27V16l5-12Z"/><rect x="19" y="36" width="26" height="4.5" rx="2"/><rect x="29" y="40" width="6" height="13" rx="3"/><rect x="25" y="52" width="14" height="5" rx="2"/></g>`,
+  },
+  {
+    id: "katana", label: "Katana", kind: "melee",
+    shape: `<g transform="rotate(-40 32 32)"><path d="M26 38C24 24 26 12 33 3c2 11 3 23 3 35H26Z"/><rect x="21" y="38" width="19" height="4" rx="2"/><rect x="26" y="42" width="9" height="19" rx="4"/></g>`,
+  },
+  {
+    id: "espada", label: "Espada", kind: "melee",
+    shape: `<g transform="rotate(-40 32 32)"><path d="M32 2l6 14v22H26V16l6-14Z"/><rect x="15" y="38" width="34" height="5" rx="2"/><rect x="29" y="43" width="6" height="13" rx="2"/><circle cx="32" cy="58" r="4.5"/></g>`,
+  },
+  {
+    id: "sabre", label: "Sabre", kind: "melee",
+    shape: `<g transform="rotate(-35 32 32)"><path d="M24 40C20 26 24 12 37 2c-3 13-2 27 2 38H24Z"/><rect x="19" y="40" width="21" height="4" rx="2"/><path d="M37 43c5 6 5 13-2 17h-5c6-4 6-11 1-17h6Z"/><rect x="25" y="44" width="8" height="14" rx="3"/></g>`,
+  },
+  {
+    id: "machete", label: "Facão", kind: "melee",
+    shape: `<g transform="rotate(-40 32 32)"><path d="M25 5h7c6 12 9 23 9 33H25V5Z"/><rect x="24" y="38" width="13" height="19" rx="5"/></g>`,
+  },
+  {
+    id: "machado", label: "Machado", kind: "melee",
+    shape: `<g transform="rotate(-22 32 32)"><rect x="27" y="6" width="8" height="52" rx="4"/><path d="M34 7c11 1 19 7 21 16-2 10-10 16-21 17V7Z"/></g>`,
+  },
+  {
+    id: "lanca", label: "Lança", kind: "melee",
+    shape: `<g transform="rotate(-35 32 32)"><rect x="29" y="17" width="6" height="45" rx="3"/><path d="M32 1l9 17H23l9-17Z"/><rect x="26" y="18" width="12" height="4.5" rx="2"/></g>`,
+  },
+  {
+    id: "porrete", label: "Porrete", kind: "melee",
+    shape: `<g transform="rotate(-35 32 32)"><path d="M32 3c9 0 16 7 16 16s-7 15-16 15-16-6-16-15S23 3 32 3Z"/><rect x="27" y="32" width="9" height="26" rx="4"/><rect x="24" y="54" width="15" height="5" rx="2"/></g>`,
+  },
+  {
+    id: "soco", label: "Soco-inglês", kind: "melee",
+    shape: `<path fill-rule="evenodd" d="M9 21h46a9 9 0 0 1 0 22H9a9 9 0 0 1 0-22Zm5 5a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm13 0a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm13 0a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm13 0a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z"/>`,
+  },
+];
+
+const WEAPON_ICON_MAP = new Map(WEAPON_ICONS.map((icon) => [icon.id, icon]));
+
 const state = {
   authUser: null,
   profile: null,
@@ -153,6 +260,7 @@ const state = {
   upgradeCatalogSelection: null,
   upgradeCatalogTab: "positive",
   kitCatalogSelection: null,
+  weaponPicker: { slotKey: null, iconId: "", filter: "all" },
   kits: [],
   viewportFrame: 0,
   wizard: {
@@ -225,7 +333,7 @@ const WIZARD_STEPS = [
     id: "pertences",
     label: "Pertences",
     title: "🎒 O que cabe na mochila",
-    text: "Liste armas, munição, remédios e tudo que seu personagem carrega, com quantidade, peso e valor.\n\nA lista rola sozinha: adicione quantos itens precisar.",
+    text: "No topo ficam os quatro slots de arma: principal, secundária e os dois coldres. Toque em um slot vazio para escolher o ícone e depois preencha nome, dano, cadência e munição.\n\nLogo abaixo está a mochila. Escolha a capacidade (pequena, média ou grande) e vá preenchendo os slots com o que o personagem carrega.",
     target: () => elements.inventoryDrawer,
     onEnter: () => openInventoryDrawer(),
     onLeave: () => closeInventoryDrawer(),
@@ -324,7 +432,16 @@ function cacheElements() {
   elements.inventoryDrawer = document.getElementById("inventoryDrawer");
   elements.closeInventoryDrawer = document.getElementById("closeInventoryDrawer");
   elements.inventoryRows = document.getElementById("inventoryRows");
-  elements.addInventoryItem = document.getElementById("addInventoryItem");
+  elements.equipmentSlots = document.getElementById("equipmentSlots");
+  elements.backpackSize = document.getElementById("backpackSize");
+  elements.backpackFooter = document.getElementById("backpackFooter");
+  elements.weaponPickerDialog = document.getElementById("weaponPickerDialog");
+  elements.weaponPickerSlotLabel = document.getElementById("weaponPickerSlotLabel");
+  elements.weaponPickerFilters = document.getElementById("weaponPickerFilters");
+  elements.weaponPickerGrid = document.getElementById("weaponPickerGrid");
+  elements.cancelWeaponPicker = document.getElementById("cancelWeaponPicker");
+  elements.confirmWeaponPicker = document.getElementById("confirmWeaponPicker");
+  elements.clearWeaponPicker = document.getElementById("clearWeaponPicker");
   elements.notesFab = document.getElementById("notesFab");
   elements.notesDrawer = document.getElementById("notesDrawer");
   elements.closeNotesDrawer = document.getElementById("closeNotesDrawer");
@@ -881,7 +998,15 @@ function registerEvents() {
   });
   elements.inventoryFab.addEventListener("click", openInventoryDrawer);
   elements.closeInventoryDrawer.addEventListener("click", closeInventoryDrawer);
-  elements.addInventoryItem.addEventListener("click", addInventoryItemRow);
+  elements.equipmentSlots.addEventListener("click", handleEquipmentClick);
+  elements.equipmentSlots.addEventListener("input", handleEquipmentInput);
+  elements.inventoryRows.addEventListener("input", handleBackpackInput);
+  elements.backpackSize.addEventListener("change", handleBackpackSizeChange);
+  elements.weaponPickerFilters.addEventListener("click", handleWeaponFilterClick);
+  elements.weaponPickerGrid.addEventListener("click", handleWeaponOptionClick);
+  elements.cancelWeaponPicker.addEventListener("click", () => closeDialogAnimated(elements.weaponPickerDialog));
+  elements.confirmWeaponPicker.addEventListener("click", confirmWeaponPickerSelection);
+  elements.clearWeaponPicker.addEventListener("click", clearWeaponPickerSlot);
   elements.notesFab.addEventListener("click", openNotesDrawer);
   elements.closeNotesDrawer.addEventListener("click", closeNotesDrawer);
   elements.notesTextarea.addEventListener("input", handleNotesInput);
@@ -1445,43 +1570,6 @@ function isDynamicModelRowEmpty(type, modelRow) {
   return isBlank(modelRow.nome) && isBlank(modelRow.atributo) && isBlank(modelRow.valor);
 }
 
-function handleInventoryRowFocusOut(event) {
-  const row = event.currentTarget;
-  const nextTarget = event.relatedTarget;
-
-  if (nextTarget && row.contains(nextTarget)) {
-    return;
-  }
-
-  const hasContent = Array.from(row.querySelectorAll("[data-inventory-id]"))
-    .some((field) => String(field.value || "").trim() !== "");
-
-  if (!hasContent) {
-    removeInventoryItemRow(row.dataset.inventoryRowId);
-  }
-}
-
-function handleInventoryInput(field, isNumeric) {
-  if (!hasActiveCharacter()) {
-    return;
-  }
-
-  if (isNumeric) {
-    field.value = sanitizeIntegerInput(field.value);
-  }
-
-  mutateActiveCharacter((character) => {
-    const item = (character.inventoryItems || []).find((entry) => entry.id === field.dataset.inventoryId);
-    if (!item) {
-      return;
-    }
-
-    item[field.dataset.inventoryField] = field.value;
-  });
-
-  markCharacterDirty();
-}
-
 function handleNotesInput() {
   if (!hasActiveCharacter()) {
     return;
@@ -1579,23 +1667,8 @@ function closeAllDrawers() {
 }
 
 function renderInventory() {
-  const items = getActiveCharacter()?.inventoryItems || [];
-  elements.inventoryRows.innerHTML = "";
-
-  items.forEach((item) => {
-    const row = document.createElement("div");
-    row.className = "inventory-row";
-    row.dataset.inventoryRowId = item.id;
-    row.innerHTML = `
-      <input type="text" value="${escapeAttribute(item.item || "")}" data-inventory-id="${item.id}" data-inventory-field="item" aria-label="Item">
-      <input type="text" inputmode="numeric" value="${escapeAttribute(item.quantidade || "")}" data-inventory-id="${item.id}" data-inventory-field="quantidade" aria-label="Quantidade">
-      <input type="text" inputmode="numeric" value="${escapeAttribute(item.peso || "")}" data-inventory-id="${item.id}" data-inventory-field="peso" aria-label="Peso">
-      <input type="text" inputmode="numeric" value="${escapeAttribute(item.valor || "")}" data-inventory-id="${item.id}" data-inventory-field="valor" aria-label="Valor">
-    `;
-    elements.inventoryRows.appendChild(row);
-  });
-
-  bindInventoryEvents();
+  renderEquipmentSlots();
+  renderBackpack();
 }
 
 function renderNotes() {
@@ -1606,25 +1679,543 @@ function renderHistory() {
   elements.historyTextarea.value = getActiveCharacter()?.historyText || "";
 }
 
-function bindInventoryEvents() {
-  elements.inventoryRows.querySelectorAll(".inventory-row").forEach((row) => {
-    if (row.dataset.rowBound === "true") {
+/* ==========================================================================
+   Slots de equipamento
+   ========================================================================== */
+
+function getEquipmentSlots(character) {
+  if (!character) {
+    return sanitizeEquipmentSlots(null);
+  }
+
+  if (!character.equipmentSlots || typeof character.equipmentSlots !== "object") {
+    character.equipmentSlots = sanitizeEquipmentSlots(null);
+  }
+
+  return character.equipmentSlots;
+}
+
+function renderEquipmentSlots() {
+  const slots = getEquipmentSlots(getActiveCharacter());
+  elements.equipmentSlots.innerHTML = EQUIPMENT_SLOT_DEFS
+    .map((def) => buildEquipmentSlotMarkup(def, slots[def.key] || createEquipmentSlot()))
+    .join("");
+}
+
+function buildWeaponIconSvg(iconId, className = "weapon-icon") {
+  const icon = WEAPON_ICON_MAP.get(iconId);
+  if (!icon) {
+    return "";
+  }
+
+  return `<svg class="${className}" viewBox="0 0 64 64" fill="currentColor" role="img" aria-label="${escapeAttribute(icon.label)}">${icon.shape}</svg>`;
+}
+
+function buildEquipmentSlotMarkup(def, slot) {
+  const icon = WEAPON_ICON_MAP.get(slot.iconId);
+
+  if (!icon) {
+    return `
+      <article class="gear-slot is-empty" data-slot-key="${def.key}">
+        <header class="gear-slot-head">
+          <span class="gear-slot-name">${escapeHtml(def.label)}</span>
+        </header>
+        <button type="button" class="gear-slot-empty" data-slot-pick="${def.key}">
+          <span class="gear-slot-plus" aria-hidden="true">+</span>
+          <span class="gear-slot-empty-label">Equipar arma</span>
+          <span class="gear-slot-empty-hint">${escapeHtml(def.hint)}</span>
+        </button>
+      </article>`;
+  }
+
+  const isFirearm = icon.kind === "firearm";
+  const field = (name, label, value, placeholder, numeric) => `
+    <label class="gear-field">
+      <span>${escapeHtml(label)}</span>
+      <input type="text" value="${escapeAttribute(value || "")}" placeholder="${escapeAttribute(placeholder)}"
+        data-slot-key="${def.key}" data-slot-field="${name}"${numeric ? ' inputmode="numeric" data-numeric="true"' : ""}
+        aria-label="${escapeAttribute(`${label} — ${def.label}`)}">
+    </label>`;
+
+  return `
+    <article class="gear-slot is-filled" data-slot-key="${def.key}" data-weapon-kind="${icon.kind}">
+      <header class="gear-slot-head">
+        <span class="gear-slot-name">${escapeHtml(def.label)}</span>
+        <span class="gear-slot-kind">${escapeHtml(icon.label)}</span>
+        <button type="button" class="gear-slot-clear" data-slot-clear="${def.key}" title="Esvaziar slot" aria-label="${escapeAttribute(`Esvaziar ${def.label}`)}">✕</button>
+      </header>
+
+      <div class="gear-slot-body">
+        <button type="button" class="gear-icon-btn" data-slot-pick="${def.key}" title="Trocar arma" aria-label="${escapeAttribute(`Trocar arma — ${def.label}`)}">
+          ${buildWeaponIconSvg(slot.iconId)}
+        </button>
+
+        <div class="gear-fields">
+          ${field("nome", "Nome", slot.nome, isFirearm ? "Ex.: AK-47" : "Ex.: Katana", false)}
+          <div class="gear-stats">
+            ${field("dano", "Dano", slot.dano, "1d10", false)}
+            ${isFirearm ? field("rof", "RoF", slot.rof, "1/3", false) : ""}
+            ${isFirearm ? field("carregador", "Carreg.", slot.carregador, "30", true) : ""}
+          </div>
+        </div>
+      </div>
+
+      ${isFirearm ? buildAmmoBlockMarkup(def, slot) : ""}
+    </article>`;
+}
+
+function buildAmmoBlockMarkup(def, slot) {
+  return `
+    <div class="gear-ammo" data-ammo-slot="${def.key}">
+      <div class="ammo-track">${buildAmmoPipsMarkup(slot)}</div>
+      <div class="ammo-controls">
+        <span class="ammo-count">${buildAmmoCountMarkup(slot)}</span>
+        <button type="button" class="ammo-btn" data-ammo-action="fire" data-slot-key="${def.key}" title="Disparar" aria-label="Disparar">−</button>
+        <button type="button" class="ammo-btn" data-ammo-action="add" data-slot-key="${def.key}" title="Inserir munição" aria-label="Inserir munição">+</button>
+        <button type="button" class="ammo-btn ammo-reload" data-ammo-action="reload" data-slot-key="${def.key}">⟳ Recarregar</button>
+        <label class="gear-field ammo-reserve">
+          <span>Reserva</span>
+          <input type="text" inputmode="numeric" data-numeric="true" value="${escapeAttribute(slot.reserva || "")}"
+            placeholder="0" data-slot-key="${def.key}" data-slot-field="reserva" aria-label="${escapeAttribute(`Munição reserva — ${def.label}`)}">
+        </label>
+      </div>
+    </div>`;
+}
+
+function buildAmmoPipsMarkup(slot) {
+  const capacity = toPositiveInt(slot.carregador);
+  const loaded = Math.min(toPositiveInt(slot.municao), capacity || Infinity);
+
+  if (!capacity || capacity > 40) {
+    return "";
+  }
+
+  let pips = "";
+  for (let index = 0; index < capacity; index += 1) {
+    pips += `<span class="ammo-pip${index < loaded ? " is-loaded" : ""}"></span>`;
+  }
+
+  return pips;
+}
+
+function buildAmmoCountMarkup(slot) {
+  const capacity = toPositiveInt(slot.carregador);
+  const loaded = toPositiveInt(slot.municao);
+  return `<strong>${loaded}</strong>/${capacity || "—"}`;
+}
+
+function refreshAmmoDisplay(slotKey) {
+  const block = elements.equipmentSlots.querySelector(`[data-ammo-slot="${slotKey}"]`);
+  if (!block) {
+    return;
+  }
+
+  const slot = getEquipmentSlots(getActiveCharacter())[slotKey];
+  block.querySelector(".ammo-track").innerHTML = buildAmmoPipsMarkup(slot);
+  block.querySelector(".ammo-count").innerHTML = buildAmmoCountMarkup(slot);
+
+  const reserveField = block.querySelector('[data-slot-field="reserva"]');
+  if (reserveField && document.activeElement !== reserveField) {
+    reserveField.value = slot.reserva || "";
+  }
+}
+
+function handleEquipmentInput(event) {
+  const field = event.target.closest("[data-slot-field]");
+  if (!field || !hasActiveCharacter()) {
+    return;
+  }
+
+  if (field.dataset.numeric === "true") {
+    field.value = sanitizeIntegerInput(field.value).replace(/-/g, "");
+  }
+
+  const slotKey = field.dataset.slotKey;
+  const fieldName = field.dataset.slotField;
+
+  mutateActiveCharacter((character) => {
+    const slot = getEquipmentSlots(character)[slotKey];
+    if (!slot) {
       return;
     }
 
-    row.dataset.rowBound = "true";
-    row.addEventListener("focusout", handleInventoryRowFocusOut);
+    slot[fieldName] = field.value;
+
+    if (fieldName === "carregador") {
+      const capacity = toPositiveInt(slot.carregador);
+      if (capacity && toPositiveInt(slot.municao) > capacity) {
+        slot.municao = String(capacity);
+      }
+    }
   });
 
-  elements.inventoryRows.querySelectorAll("[data-inventory-id]").forEach((field) => {
-    if (field.dataset.bound === "true") {
+  if (fieldName === "carregador" || fieldName === "reserva") {
+    refreshAmmoDisplay(slotKey);
+  }
+
+  markCharacterDirty();
+}
+
+function handleEquipmentClick(event) {
+  const pick = event.target.closest("[data-slot-pick]");
+  if (pick) {
+    openWeaponPicker(pick.dataset.slotPick);
+    return;
+  }
+
+  const clear = event.target.closest("[data-slot-clear]");
+  if (clear) {
+    // Esvaziar apaga nome, dano e munição já digitados, então exige dois
+    // cliques: o primeiro só arma o botão.
+    if (clear.dataset.armed === "true") {
+      emptyEquipmentSlot(clear.dataset.slotClear);
+    } else {
+      armSlotClearButton(clear);
+    }
+    return;
+  }
+
+  const ammo = event.target.closest("[data-ammo-action]");
+  if (ammo) {
+    handleAmmoAction(ammo.dataset.slotKey, ammo.dataset.ammoAction);
+  }
+}
+
+function handleAmmoAction(slotKey, action) {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  let feedback = "";
+
+  mutateActiveCharacter((character) => {
+    const slot = getEquipmentSlots(character)[slotKey];
+    if (!slot) {
       return;
     }
 
-    field.dataset.bound = "true";
-    const isNumeric = field.hasAttribute("inputmode");
-    field.addEventListener("input", () => handleInventoryInput(field, isNumeric));
+    const capacity = toPositiveInt(slot.carregador);
+    const loaded = toPositiveInt(slot.municao);
+    const reserve = toPositiveInt(slot.reserva);
+
+    if (action === "fire") {
+      if (!loaded) {
+        feedback = "Carregador vazio";
+        return;
+      }
+      slot.municao = String(loaded - 1);
+      return;
+    }
+
+    if (action === "add") {
+      if (capacity && loaded >= capacity) {
+        feedback = "Carregador cheio";
+        return;
+      }
+      slot.municao = String(loaded + 1);
+      return;
+    }
+
+    if (action === "reload") {
+      if (!capacity) {
+        feedback = "Defina a capacidade do carregador";
+        return;
+      }
+      const needed = capacity - loaded;
+      if (needed <= 0) {
+        feedback = "Carregador cheio";
+        return;
+      }
+      const taken = Math.min(needed, reserve);
+      if (!taken) {
+        feedback = "Sem munição na reserva";
+        return;
+      }
+      slot.municao = String(loaded + taken);
+      slot.reserva = String(reserve - taken);
+      feedback = `+${taken} no carregador`;
+    }
   });
+
+  refreshAmmoDisplay(slotKey);
+  markCharacterDirty();
+
+  if (feedback) {
+    showToast(feedback, "", "🔫");
+  }
+}
+
+let slotClearTimer = null;
+
+function armSlotClearButton(button) {
+  elements.equipmentSlots.querySelectorAll('[data-armed="true"]').forEach(resetSlotClearButton);
+
+  button.dataset.armed = "true";
+  button.classList.add("is-armed");
+  button.textContent = "?";
+  button.title = "Clique de novo para esvaziar";
+
+  clearTimeout(slotClearTimer);
+  slotClearTimer = setTimeout(() => resetSlotClearButton(button), 3000);
+}
+
+function resetSlotClearButton(button) {
+  delete button.dataset.armed;
+  button.classList.remove("is-armed");
+  button.textContent = "✕";
+  button.title = "Esvaziar slot";
+}
+
+function emptyEquipmentSlot(slotKey) {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  mutateActiveCharacter((character) => {
+    getEquipmentSlots(character)[slotKey] = createEquipmentSlot();
+  });
+
+  renderEquipmentSlots();
+  markCharacterDirty();
+  showToast("Slot esvaziado", "", "🎒");
+}
+
+/* ==========================================================================
+   Seleção de ícone de arma
+   ========================================================================== */
+
+function openWeaponPicker(slotKey) {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  const def = EQUIPMENT_SLOT_DEFS.find((entry) => entry.key === slotKey);
+  const slot = getEquipmentSlots(getActiveCharacter())[slotKey] || createEquipmentSlot();
+
+  state.weaponPicker = { slotKey, iconId: slot.iconId || "", filter: "all" };
+  elements.weaponPickerSlotLabel.textContent = def ? def.label : "";
+  elements.clearWeaponPicker.classList.toggle("hidden", !slot.iconId);
+
+  renderWeaponPickerFilters();
+  renderWeaponPickerGrid();
+  elements.weaponPickerDialog.showModal();
+}
+
+function renderWeaponPickerFilters() {
+  elements.weaponPickerFilters.querySelectorAll("[data-weapon-filter]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.weaponFilter === state.weaponPicker.filter);
+  });
+}
+
+function renderWeaponPickerGrid() {
+  const { filter, iconId } = state.weaponPicker;
+  const icons = WEAPON_ICONS.filter((icon) => filter === "all" || icon.kind === filter);
+
+  elements.weaponPickerGrid.innerHTML = icons.map((icon) => `
+    <button type="button" class="weapon-option${icon.id === iconId ? " is-selected" : ""}"
+      data-weapon-id="${icon.id}" role="option" aria-selected="${icon.id === iconId}">
+      ${buildWeaponIconSvg(icon.id, "weapon-icon weapon-icon-lg")}
+      <span class="weapon-option-label">${escapeHtml(icon.label)}</span>
+    </button>`).join("");
+
+  elements.confirmWeaponPicker.disabled = !iconId;
+}
+
+function handleWeaponFilterClick(event) {
+  const button = event.target.closest("[data-weapon-filter]");
+  if (!button) {
+    return;
+  }
+
+  state.weaponPicker.filter = button.dataset.weaponFilter;
+  renderWeaponPickerFilters();
+  renderWeaponPickerGrid();
+}
+
+function handleWeaponOptionClick(event) {
+  const option = event.target.closest("[data-weapon-id]");
+  if (!option) {
+    return;
+  }
+
+  state.weaponPicker.iconId = option.dataset.weaponId;
+  renderWeaponPickerGrid();
+}
+
+function confirmWeaponPickerSelection() {
+  const { slotKey, iconId } = state.weaponPicker;
+  const icon = WEAPON_ICON_MAP.get(iconId);
+
+  if (!slotKey || !icon || !hasActiveCharacter()) {
+    return;
+  }
+
+  // Trocar o ícone nunca apaga o que já foi digitado: nome, dano e munição
+  // permanecem, inclusive ao alternar entre arma de fogo e arma branca.
+  mutateActiveCharacter((character) => {
+    const slot = getEquipmentSlots(character)[slotKey];
+    slot.iconId = iconId;
+    slot.kind = icon.kind;
+  });
+
+  renderEquipmentSlots();
+  markCharacterDirty();
+  closeDialogAnimated(elements.weaponPickerDialog);
+}
+
+function clearWeaponPickerSlot() {
+  const { slotKey } = state.weaponPicker;
+  if (!slotKey) {
+    return;
+  }
+
+  emptyEquipmentSlot(slotKey);
+  closeDialogAnimated(elements.weaponPickerDialog);
+}
+
+/* ==========================================================================
+   Mochila
+   ========================================================================== */
+
+// Fichas antigas não têm tamanho de mochila gravado. Nesse caso escolhemos a
+// menor mochila que comporta o que o jogador já tinha anotado, para ninguém
+// abrir a ficha e encontrar os próprios itens marcados como excedentes.
+function normalizeBackpackSize(size, itemCount = 0) {
+  if (BACKPACK_SIZES[size]) {
+    return size;
+  }
+
+  if (!itemCount) {
+    return DEFAULT_BACKPACK_SIZE;
+  }
+
+  const keys = Object.keys(BACKPACK_SIZES);
+  return keys.find((key) => BACKPACK_SIZES[key].slots >= itemCount) || keys[keys.length - 1];
+}
+
+function getBackpackCapacity(character) {
+  return BACKPACK_SIZES[normalizeBackpackSize(character?.backpackSize)].slots;
+}
+
+function isEmptyInventoryItem(item) {
+  return [item?.item, item?.quantidade, item?.peso, item?.valor]
+    .every((value) => String(value ?? "").trim() === "");
+}
+
+function createInventoryItem() {
+  return { id: crypto.randomUUID(), item: "", quantidade: "", peso: "", valor: "" };
+}
+
+function renderBackpack() {
+  const character = getActiveCharacter();
+  const items = character?.inventoryItems || [];
+  const capacity = getBackpackCapacity(character);
+  // Slots além da capacidade continuam visíveis: reduzir a mochila nunca joga
+  // fora item que o jogador já tinha anotado.
+  const total = Math.max(capacity, items.length);
+
+  elements.backpackSize.value = normalizeBackpackSize(character?.backpackSize);
+
+  let html = "";
+  for (let index = 0; index < total; index += 1) {
+    const item = items[index] || {};
+    const overflow = index >= capacity;
+    const empty = isEmptyInventoryItem(item);
+    const cell = (name, label, value, numeric) => `
+      <input type="text" value="${escapeAttribute(value || "")}"
+        data-inventory-index="${index}" data-inventory-field="${name}"${numeric ? ' inputmode="numeric" data-numeric="true"' : ""}
+        aria-label="${escapeAttribute(`${label} — slot ${index + 1}`)}">`;
+
+    html += `
+      <div class="inventory-row inventory-slot${overflow ? " is-overflow" : ""}${empty ? " is-empty" : ""}" data-slot-index="${index}">
+        <span class="slot-index">${overflow ? "!" : index + 1}</span>
+        ${cell("item", "Item", item.item, false)}
+        ${cell("quantidade", "Quantidade", item.quantidade, true)}
+        ${cell("peso", "Peso", item.peso, true)}
+        ${cell("valor", "Valor", item.valor, true)}
+      </div>`;
+  }
+
+  elements.inventoryRows.innerHTML = html;
+  updateBackpackFooter();
+}
+
+function updateBackpackFooter() {
+  const character = getActiveCharacter();
+  const items = character?.inventoryItems || [];
+  const capacity = getBackpackCapacity(character);
+  const filled = items.filter((item) => !isEmptyInventoryItem(item));
+
+  const totals = filled.reduce((acc, item) => {
+    const quantidade = toPositiveInt(item.quantidade) || 1;
+    acc.peso += toPositiveInt(item.peso) * quantidade;
+    acc.valor += toPositiveInt(item.valor) * quantidade;
+    return acc;
+  }, { peso: 0, valor: 0 });
+
+  const overflow = Math.max(0, items.length - capacity);
+  const parts = [
+    `Slots ${filled.length}/${capacity}`,
+    `Peso ${totals.peso}`,
+    `Valor ${totals.valor}`,
+  ];
+
+  elements.backpackFooter.textContent = overflow
+    ? `${parts.join(" · ")} · ⚠ ${overflow} ${overflow === 1 ? "item excedente" : "itens excedentes"}`
+    : parts.join(" · ");
+  elements.backpackFooter.classList.toggle("is-overloaded", overflow > 0);
+}
+
+function handleBackpackInput(event) {
+  const field = event.target.closest("[data-inventory-index]");
+  if (!field || !hasActiveCharacter()) {
+    return;
+  }
+
+  if (field.dataset.numeric === "true") {
+    field.value = sanitizeIntegerInput(field.value);
+  }
+
+  const index = Number(field.dataset.inventoryIndex);
+  const fieldName = field.dataset.inventoryField;
+
+  mutateActiveCharacter((character) => {
+    if (!Array.isArray(character.inventoryItems)) {
+      character.inventoryItems = [];
+    }
+
+    while (character.inventoryItems.length <= index) {
+      character.inventoryItems.push(createInventoryItem());
+    }
+
+    character.inventoryItems[index][fieldName] = field.value;
+  });
+
+  const row = field.closest(".inventory-slot");
+  if (row) {
+    const stillEmpty = Array.from(row.querySelectorAll("[data-inventory-index]"))
+      .every((input) => String(input.value || "").trim() === "");
+    row.classList.toggle("is-empty", stillEmpty);
+  }
+
+  updateBackpackFooter();
+  markCharacterDirty();
+}
+
+function handleBackpackSizeChange() {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  const size = normalizeBackpackSize(elements.backpackSize.value);
+
+  mutateActiveCharacter((character) => {
+    character.backpackSize = size;
+  });
+
+  renderBackpack();
+  markCharacterDirty();
+  showToast(`Mochila ${BACKPACK_SIZES[size].label.toLowerCase()} · ${BACKPACK_SIZES[size].slots} slots`, "", "🎒");
 }
 
 function renderSheetSelector() {
@@ -3171,55 +3762,6 @@ function clearDynamicFieldState(type, rowId) {
   });
 }
 
-function addInventoryItemRow() {
-  if (!hasActiveCharacter()) {
-    return;
-  }
-
-  const itemId = crypto.randomUUID();
-
-  mutateActiveCharacter((character) => {
-    character.inventoryItems = character.inventoryItems || [];
-    character.inventoryItems.push({
-      id: itemId,
-      item: "",
-      quantidade: "",
-      peso: "",
-      valor: "",
-    });
-  });
-
-  markCharacterDirty();
-  // Abrir antes de focar: o drawer fechado fica com visibility:hidden e os
-  // campos dentro dele não aceitam foco.
-  openInventoryDrawer();
-  renderInventory();
-
-  requestAnimationFrame(() => {
-    const newField = elements.inventoryRows.querySelector(`[data-inventory-id="${itemId}"][data-inventory-field="item"]`);
-    if (!newField) {
-      return;
-    }
-
-    newField.focus();
-    // A lista agora rola: leva o item recém-criado para a área visível.
-    newField.closest(".inventory-row")?.scrollIntoView({ block: "nearest" });
-  });
-}
-
-function removeInventoryItemRow(itemId) {
-  if (!hasActiveCharacter()) {
-    return;
-  }
-
-  mutateActiveCharacter((character) => {
-    character.inventoryItems = (character.inventoryItems || []).filter((entry) => entry.id !== itemId);
-  });
-
-  markCharacterDirty();
-  renderInventory();
-}
-
 function mutateActiveCharacter(mutator) {
   const character = getActiveCharacter();
   if (!character) {
@@ -3321,6 +3863,8 @@ function normalizeCharacterCollections(character) {
   character.dynamicSkills = sanitizeSkillRows(character.dynamicSkills || []);
   character.dynamicCombatSkills = sanitizeCombatSkillRows(character.dynamicCombatSkills || []);
   character.inventoryItems = sanitizeInventoryItems(character.inventoryItems || []);
+  character.backpackSize = normalizeBackpackSize(character.backpackSize, character.inventoryItems.length);
+  character.equipmentSlots = sanitizeEquipmentSlots(character.equipmentSlots);
 }
 
 async function ensureUserProfile(user) {
@@ -3671,6 +4215,8 @@ function createDefaultCharacter(ownerProfile, ordinal) {
     pendingUpgradePoint: 0,
     evolutionUpgradePoints: 0,
     inventoryItems: [],
+    backpackSize: DEFAULT_BACKPACK_SIZE,
+    equipmentSlots: sanitizeEquipmentSlots(null),
     dynamicUpgrades: [createUpgradePlaceholder()],
     dynamicSkills: [createSkillPlaceholder()],
     dynamicCombatSkills: [createCombatSkillPlaceholder()],
@@ -3709,6 +4255,8 @@ function normalizeCharacter(rawCharacter, characterId) {
   normalized.dynamicSkills = sanitizeSkillRows(rawCharacter.dynamicSkills || normalized.dynamicSkills);
   normalized.dynamicCombatSkills = sanitizeCombatSkillRows(rawCharacter.dynamicCombatSkills || normalized.dynamicCombatSkills);
   normalized.inventoryItems = sanitizeInventoryItems(rawCharacter.inventoryItems || normalized.inventoryItems);
+  normalized.backpackSize = normalizeBackpackSize(rawCharacter.backpackSize, normalized.inventoryItems.length);
+  normalized.equipmentSlots = sanitizeEquipmentSlots(rawCharacter.equipmentSlots);
   if (!normalized.state || !["creation", "play", "evolution"].includes(normalized.state)) {
     normalized.state = rawCharacter.state || "play";
   }
@@ -3732,6 +4280,8 @@ function serializeCharacterForWrite(character) {
     dynamicSkills: sanitizeSkillRows(payload.dynamicSkills || []),
     dynamicCombatSkills: sanitizeCombatSkillRows(payload.dynamicCombatSkills || []),
     inventoryItems: sanitizeInventoryItems(payload.inventoryItems || []),
+    backpackSize: normalizeBackpackSize(payload.backpackSize, (payload.inventoryItems || []).length),
+    equipmentSlots: sanitizeEquipmentSlots(payload.equipmentSlots),
   };
 }
 
@@ -3832,13 +4382,58 @@ function createCombatSkillPlaceholder() {
 }
 
 function sanitizeInventoryItems(rows) {
-  return (Array.isArray(rows) ? rows : []).map((row) => ({
+  const items = (Array.isArray(rows) ? rows : []).map((row) => ({
     id: row.id || crypto.randomUUID(),
     item: row.item ?? "",
     quantidade: row.quantidade ?? "",
     peso: row.peso ?? "",
     valor: row.valor ?? "",
   }));
+
+  // Slots vazios no meio da mochila são posição, e por isso ficam. Só a cauda
+  // vazia é descartada, para o documento não crescer a cada digitação.
+  let last = items.length - 1;
+  while (last >= 0 && isEmptyInventoryItem(items[last])) {
+    last -= 1;
+  }
+
+  return items.slice(0, last + 1);
+}
+
+function createEquipmentSlot() {
+  return {
+    iconId: "",
+    kind: "",
+    nome: "",
+    dano: "",
+    rof: "",
+    carregador: "",
+    municao: "",
+    reserva: "",
+  };
+}
+
+function sanitizeEquipmentSlots(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const slots = {};
+
+  EQUIPMENT_SLOT_DEFS.forEach(({ key }) => {
+    const stored = source[key] && typeof source[key] === "object" ? source[key] : {};
+    const icon = WEAPON_ICON_MAP.get(stored.iconId);
+
+    slots[key] = {
+      iconId: icon ? stored.iconId : "",
+      kind: icon ? icon.kind : "",
+      nome: stored.nome ?? "",
+      dano: stored.dano ?? "",
+      rof: stored.rof ?? "",
+      carregador: stored.carregador ?? "",
+      municao: stored.municao ?? "",
+      reserva: stored.reserva ?? "",
+    };
+  });
+
+  return slots;
 }
 
 function ensureDynamicRowsForActiveCharacter() {
@@ -4183,6 +4778,11 @@ function queueStatus(text, variant) {
   }
 }
 
+function toPositiveInt(value) {
+  const parsed = parseInt(String(value ?? "").replace(/[^\d]/g, ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
 function sanitizeIntegerInput(value) {
   return String(value || "")
     .replace(/[^\d-]/g, "")
@@ -4504,6 +5104,7 @@ ${buildPrintAttributesSection(character)}
 ${buildPrintSkillsSection(character)}
 ${buildPrintCombatSkillsSection(character)}
 ${buildPrintUpgradesSection(character)}
+${buildPrintEquipmentSection(character)}
 ${buildPrintInventorySection(character)}
 ${buildPrintTextSection("Anotações", character.notesText)}
 ${buildPrintTextSection("História", character.historyText)}
@@ -4828,8 +5429,46 @@ function buildPrintUpgradesSection(character) {
 </section>`;
 }
 
+function buildPrintEquipmentSection(character) {
+  const slots = sanitizeEquipmentSlots(character.equipmentSlots);
+  const rows = EQUIPMENT_SLOT_DEFS
+    .map((def) => ({ def, slot: slots[def.key], icon: WEAPON_ICON_MAP.get(slots[def.key].iconId) }))
+    .filter(({ slot, icon }) => icon || [slot.nome, slot.dano].some((value) => String(value ?? "").trim() !== ""));
+
+  const body = rows.map(({ def, slot, icon }) => {
+    const isFirearm = icon?.kind === "firearm";
+    const ammo = isFirearm && toPositiveInt(slot.carregador)
+      ? `${toPositiveInt(slot.municao)}/${toPositiveInt(slot.carregador)}`
+      : "—";
+
+    return `
+    <tr>
+      <td>${escapeHtml(def.label)}</td>
+      <td>${printCell(slot.nome)}</td>
+      <td>${escapeHtml(icon ? icon.label : "—")}</td>
+      <td class="num">${printCell(slot.dano)}</td>
+      <td class="num">${isFirearm ? printCell(slot.rof) : "—"}</td>
+      <td class="num">${escapeHtml(ammo)}</td>
+      <td class="num">${isFirearm ? printCell(slot.reserva) : "—"}</td>
+    </tr>`;
+  }).join("");
+
+  return `
+<section class="print-section">
+  <h2>Equipamento</h2>
+  ${rows.length ? `
+  <table>
+    <thead>
+      <tr><th>Slot</th><th>Arma</th><th>Tipo</th><th class="num">Dano</th><th class="num">RoF</th><th class="num">Carreg.</th><th class="num">Reserva</th></tr>
+    </thead>
+    <tbody>${body}</tbody>
+  </table>` : `<p class="print-empty">Nenhuma arma equipada.</p>`}
+</section>`;
+}
+
 function buildPrintInventorySection(character) {
   const rows = (character.inventoryItems || []).filter(isPrintableInventoryRow);
+  const backpack = BACKPACK_SIZES[normalizeBackpackSize(character.backpackSize)];
 
   const totals = rows.reduce((acc, row) => {
     const quantidade = parseInt(row.quantidade || "0", 10) || 0;
@@ -4850,7 +5489,7 @@ function buildPrintInventorySection(character) {
 
   return `
 <section class="print-section">
-  <h2>Pertences</h2>
+  <h2>Mochila (${escapeHtml(backpack.label)} · ${backpack.slots} slots)</h2>
   ${rows.length ? `
   <table>
     <thead>
@@ -4911,7 +5550,7 @@ function startWizard(characterId, { stepId = null } = {}) {
 
 // Áreas que continuam rolando: o próprio popup, as gavetas, os catálogos e
 // qualquer campo de texto. O resto da página fica parado.
-const WIZARD_SCROLLABLE_AREAS = ".wizard-popup-inner, .inventory-drawer, dialog, textarea, .skill-catalog-list, .skill-catalog-detail, .inventory-rows";
+const WIZARD_SCROLLABLE_AREAS = ".wizard-popup-inner, .inventory-drawer, dialog, textarea, .skill-catalog-list, .skill-catalog-detail, .inventory-rows, .inventory-scroll, .weapon-picker-grid";
 const WIZARD_SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ", "Spacebar"]);
 
 /**
