@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
   <!-- O ?v= força o navegador a baixar a versão nova em vez de reaproveitar a
        do cache do GitHub Pages. Suba o número sempre que mexer no CSS/JS. -->
-  <link rel="stylesheet" href="./styles.css?v=10">
+  <link rel="stylesheet" href="./styles.css?v=11">
 </head>
 <body>
   <div class="page-art page-art-top" aria-hidden="true"></div>
@@ -255,9 +255,17 @@
             <section class="gear-section">
               <div class="gear-section-title">
                 <span class="gear-section-label">Equipamento</span>
-                <span class="gear-section-hint">Toque no slot para escolher a arma</span>
+                <span class="gear-section-hint">Toque no slot para escolher a arma · arraste armas entre slots, mochila e baú</span>
               </div>
               <div id="equipmentSlots" class="equipment-grid"></div>
+            </section>
+
+            <section class="gear-section">
+              <div class="gear-section-title">
+                <span class="gear-section-label">Veículo</span>
+                <span class="gear-section-hint">Toque no ícone para escolher o veículo</span>
+              </div>
+              <div id="vehicleSlot" class="vehicle-slot-wrap"></div>
             </section>
 
             <section class="gear-section">
@@ -285,6 +293,15 @@
               </div>
 
               <p id="backpackFooter" class="backpack-footer"></p>
+            </section>
+
+            <section class="gear-section">
+              <div class="gear-section-title">
+                <span class="gear-section-label">Baú</span>
+                <span class="gear-section-hint">Arraste itens da mochila ou armas dos slots para guardar aqui</span>
+              </div>
+              <div id="chestGrid" class="chest-grid"></div>
+              <p id="chestFooter" class="backpack-footer"></p>
             </section>
           </div>
         </aside>
@@ -607,15 +624,11 @@
   <dialog id="weaponPickerDialog" class="register-dialog weapon-picker-dialog">
     <div class="weapon-picker-content">
       <div class="section-heading">
-        <h2>Escolher arma</h2>
+        <h2 id="weaponPickerTitle">Escolher arma</h2>
       </div>
       <p id="weaponPickerSlotLabel" class="dialog-copy weapon-picker-slot"></p>
 
-      <div id="weaponPickerFilters" class="weapon-picker-filters" role="tablist">
-        <button type="button" class="weapon-filter is-active" data-weapon-filter="all">Todas</button>
-        <button type="button" class="weapon-filter" data-weapon-filter="firearm">Armas de fogo</button>
-        <button type="button" class="weapon-filter" data-weapon-filter="melee">Armas brancas</button>
-      </div>
+      <div id="weaponPickerFilters" class="weapon-picker-filters" role="tablist"></div>
 
       <div id="weaponPickerGrid" class="weapon-picker-grid" role="listbox" aria-label="Ícones de armas"></div>
 
@@ -630,6 +643,6 @@
   <div id="toastStack" class="toast-stack" aria-live="polite"></div>
   <div id="upgradeTooltip" class="upgrade-tooltip" role="tooltip" aria-hidden="true"></div>
 
-  <script type="module" src="./script.js?v=10"></script>
+  <script type="module" src="./script.js?v=11"></script>
 </body>
 </html>

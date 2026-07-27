@@ -50,6 +50,13 @@ const PORTRAIT_IMAGE_DIR = "./imagens/personagens";
 const PORTRAIT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
 const PORTRAIT_COUNTER_PATH = ["counters", "characterPortrait"];
 
+// Ícones de arma e de veículo são arquivos PNG cujo nome é o id do catálogo
+// (imagens/Armas/pistola.png, imagens/Veiculos/carro.png, ...). Enquanto o PNG
+// não existe, a silhueta SVG embutida continua aparecendo no lugar — nada
+// quebra se a pasta estiver vazia ou incompleta.
+const WEAPON_IMAGE_DIR = "./imagens/Armas";
+const VEHICLE_IMAGE_DIR = "./imagens/Veiculos";
+
 // Foto de contato segue a mesma ideia do retrato: cada contato criado recebe um
 // `photoNumber` de um contador transacional (counters/contactPhoto) e a imagem
 // exibida é imagens/contatos/img_ctt_<numero>.png. Como o número é global e
@@ -250,6 +257,142 @@ const WEAPON_ICONS = [
 
 const WEAPON_ICON_MAP = new Map(WEAPON_ICONS.map((icon) => [icon.id, icon]));
 
+// Veículos seguem exatamente a mesma ideia das armas: silhueta SVG embutida como
+// base e um PNG opcional em imagens/Veiculos/<id>.png por cima.
+const VEHICLE_ICONS = [
+  {
+    id: "bicicleta", label: "Bicicleta", kind: "terrestre",
+    shape: `<path d="M14 34a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm0 5a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm36-5a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm0 5a7 7 0 1 1 0 14 7 7 0 0 1 0-14Z"/><path d="M20 12h8v4h-4l3 6h14l5-8h5v4h-2.8L42 30H30l4 8h-4l-6-12-6 20h-4l8-26h-2v-4Z"/>`,
+  },
+  {
+    id: "moto", label: "Motocicleta", kind: "terrestre",
+    shape: `<path d="M13 34a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm0 6a6 6 0 1 1 0 12 6 6 0 0 1 0-12Zm38-6a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm0 6a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z"/><path d="M18 14h11v5h-4l6 9h13l4-6h8v5h-5l-5 8H33l4 6H21l-4-11-4 8H8l8-16 2 2Z"/>`,
+  },
+  {
+    id: "carro", label: "Carro", kind: "terrestre",
+    shape: `<path d="M12 30l5-12c1-3 3-4 6-4h18c3 0 5 1 6 4l5 12h3c2 0 3 1 3 3v11c0 2-1 3-3 3h-2v3c0 2-1 3-3 3h-4c-2 0-3-1-3-3v-3H21v3c0 2-1 3-3 3h-4c-2 0-3-1-3-3v-3H9c-2 0-3-1-3-3V33c0-2 1-3 3-3h3Zm7-2h26l-3.5-8H22.5L19 28Zm-3 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm32 0a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/>`,
+  },
+  {
+    id: "suv", label: "SUV / Caminhonete", kind: "terrestre",
+    shape: `<path d="M6 34l4-16c1-3 3-4 6-4h20c3 0 4 1 5 3l4 9h9c3 0 4 1 4 4v12c0 2-1 3-3 3h-3a7 7 0 0 1-14 0H23a7 7 0 0 1-14 0H7c-2 0-3-1-3-3V38c0-2 1-4 2-4Zm10-6h18l-3-8H18l-2 8Zm0 20a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm32 0a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/>`,
+  },
+  {
+    id: "jipe", label: "Jipe 4x4", kind: "terrestre",
+    shape: `<path d="M8 28h48c3 0 4 2 4 4v10c0 2-1 3-3 3h-2a8 8 0 0 1-16 0H25a8 8 0 0 1-16 0H7c-2 0-3-1-3-3V32c0-3 1-4 4-4Zm6-14h36l5 12H9l5-12Zm3 34a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm30 0a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><rect x="18" y="18" width="10" height="6" rx="1"/><rect x="34" y="18" width="10" height="6" rx="1"/>`,
+  },
+  {
+    id: "van", label: "Van", kind: "terrestre",
+    shape: `<path d="M6 20c0-3 2-5 5-5h30c3 0 5 1 6 4l6 12h2c3 0 4 2 4 4v9c0 2-1 3-3 3h-3a7 7 0 0 1-14 0H24a7 7 0 0 1-14 0H8c-2 0-3-1-3-3V20Zm12 2v10h10V22H18Zm16 0v10h13l-5-10h-8Zm-17 26a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm31 0a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/>`,
+  },
+  {
+    id: "caminhao", label: "Caminhão", kind: "terrestre",
+    shape: `<path d="M4 16h30v28H4V16Zm34 6h10l10 12v10h-4a7 7 0 0 1-14 0h-2V22Zm4 5v8h11l-6-8h-5ZM14 44a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm0 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm34-4a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm0 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/>`,
+  },
+  {
+    id: "onibus", label: "Ônibus", kind: "terrestre",
+    shape: `<path d="M8 10h48c2 0 3 1 3 3v34c0 2-1 3-3 3h-3a7 7 0 0 1-14 0H25a7 7 0 0 1-14 0H8c-2 0-3-1-3-3V13c0-2 1-3 3-3Zm3 8v12h14V18H11Zm18 0v12h14V18H29Zm18 0v12h9V18h-9ZM18 44a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm28 0a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/>`,
+  },
+  {
+    id: "viatura", label: "Viatura", kind: "terrestre",
+    shape: `<rect x="24" y="6" width="16" height="6" rx="2"/><path d="M12 32l5-12c1-3 3-4 6-4h18c3 0 5 1 6 4l5 12h3c2 0 3 1 3 3v10c0 2-1 3-3 3h-2a7 7 0 0 1-14 0H25a7 7 0 0 1-14 0H9c-2 0-3-1-3-3V35c0-2 1-3 3-3h3Zm7-2h26l-3.5-8H22.5L19 30Zm-3 16a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm32 0a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/>`,
+  },
+  {
+    id: "blindado", label: "Blindado", kind: "terrestre",
+    shape: `<path d="M4 34h56c2 0 3 1 3 3v10c0 2-1 3-3 3H4c-2 0-3-1-3-3V37c0-2 1-3 3-3Zm4 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm16 0a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm16 0a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm16 0a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/><path d="M12 18h30c3 0 5 2 5 5v8H8v-8c0-3 2-5 4-5Zm26 6v5h20v-5H38Z"/>`,
+  },
+  {
+    id: "quadriciclo", label: "Quadriciclo", kind: "terrestre",
+    shape: `<path d="M13 36a11 11 0 1 0 0 22 11 11 0 0 0 0-22Zm0 6a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm38-6a11 11 0 1 0 0 22 11 11 0 0 0 0-22Zm0 6a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z"/><path d="M18 16h10l4 6h14l6 8v6H14v-6l4-6-4-2 4-6Z"/>`,
+  },
+  {
+    id: "trator", label: "Trator", kind: "terrestre",
+    shape: `<path d="M20 30a16 16 0 1 0 0 32 16 16 0 0 0 0-32Zm0 8a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm30 8a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"/><path d="M18 10h14l4 14h12v10H36l-4-10H18V10Z"/>`,
+  },
+  {
+    id: "lancha", label: "Lancha", kind: "aquatico",
+    shape: `<path d="M4 40h56l-8 12H12L4 40Zm22-24h14c3 0 4 1 5 3l5 13H20l6-16Zm-4 6-4 10h-6l10-10Z"/><path d="M2 56c6 0 6 4 12 4s6-4 12-4 6 4 12 4 6-4 12-4 6 4 12 4v4c-6 0-6-4-12-4s-6 4-12 4-6-4-12-4-6 4-12 4-6-4-12-4v-4Z"/>`,
+  },
+  {
+    id: "jetski", label: "Jet Ski", kind: "aquatico",
+    shape: `<path d="M8 36h12l6-10h14l6 6h12l-6 14H14L8 36Z"/><path d="M26 20h8l6 8h-8l-6-8Z"/><path d="M2 54c6 0 6 4 12 4s6-4 12-4 6 4 12 4 6-4 12-4 6 4 12 4v5c-6 0-6-4-12-4s-6 4-12 4-6-4-12-4-6 4-12 4-6-4-12-4v-5Z"/>`,
+  },
+  {
+    id: "navio", label: "Navio", kind: "aquatico",
+    shape: `<path d="M6 40h52l-9 13H15L6 40Zm10-16h24c2 0 3 1 3 3v9H16V24Zm6-12h14v8H22v-8Z"/><path d="M2 56c6 0 6 4 12 4s6-4 12-4 6 4 12 4 6-4 12-4 6 4 12 4v4c-6 0-6-4-12-4s-6 4-12 4-6-4-12-4-6 4-12 4-6-4-12-4v-4Z"/>`,
+  },
+  {
+    id: "submarino", label: "Submarino", kind: "aquatico",
+    shape: `<path d="M20 24c16 0 26 6 32 14-6 8-16 14-32 14C10 52 4 45 4 38s6-14 16-14Zm-4 10a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm14 0a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><rect x="24" y="12" width="10" height="12" rx="2"/><rect x="27" y="4" width="4" height="9"/><path d="M52 34h10v8H52v-8Z"/>`,
+  },
+  {
+    id: "helicoptero", label: "Helicóptero", kind: "aereo",
+    shape: `<path d="M4 12h56v4H34v6h6c8 0 14 5 14 12v6H22c-8 0-14-5-14-12s6-12 14-12h8v-6H4v-4Zm50 24 8-4v18l-8-4v-10Z"/><rect x="30" y="6" width="4" height="8"/><path d="M14 50h30v4H14v-4Zm2-4h4v6h-4v-6Zm22 0h4v6h-4v-6Z"/>`,
+  },
+  {
+    id: "aviao", label: "Avião", kind: "aereo",
+    shape: `<path d="M30 2c3 0 5 3 5 8v14l25 14v6l-25-8v12l8 6v5l-13-4-13 4v-5l8-6V36L0 44v-6l25-14V10c0-5 2-8 5-8Z"/>`,
+  },
+  {
+    id: "jato", label: "Jato", kind: "aereo",
+    shape: `<path d="M62 32c0 3-4 5-10 6l-14 2-8 14h-6l3-13-10 1-5 6h-5l2-8-2-8h5l5 6 10 1-3-13h6l8 14 14 2c6 1 10 3 10 6Z"/>`,
+  },
+  {
+    id: "drone", label: "Drone", kind: "aereo",
+    shape: `<path d="M24 24h16c3 0 4 2 4 4v8c0 2-1 4-4 4H24c-3 0-4-2-4-4v-8c0-2 1-4 4-4Z"/><path d="M20 28 8 16l3-3 12 12-3 3Zm24 0 12-12-3-3-12 12 3 3ZM20 36 8 48l3 3 12-12-3-3Zm24 0 12 12-3 3-12-12 3-3Z"/><circle cx="8" cy="12" r="7"/><circle cx="56" cy="12" r="7"/><circle cx="8" cy="52" r="7"/><circle cx="56" cy="52" r="7"/>`,
+  },
+  {
+    id: "montaria", label: "Montaria", kind: "outro",
+    shape: `<path d="M12 20c4-6 10-10 18-10 4 0 6 2 10 2 6 0 8-4 12-4l4 8-6 4-2 10 6 12v18h-8V44l-6-8-10 4v20h-8V38l-8 4-6 16H2l6-20 4-18Z"/>`,
+  },
+  {
+    id: "carroca", label: "Carroça", kind: "outro",
+    shape: `<path d="M18 34a13 13 0 1 0 0 26 13 13 0 0 0 0-26Zm0 5a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm30-5a13 13 0 1 0 0 26 13 13 0 0 0 0-26Zm0 5a8 8 0 1 1 0 16 8 8 0 0 1 0-16Z"/><path d="M6 12h10l4 14h34v10H16L6 12Z"/>`,
+  },
+];
+
+const VEHICLE_ICON_MAP = new Map(VEHICLE_ICONS.map((icon) => [icon.id, icon]));
+
+const WEAPON_FILTERS = [
+  { value: "all", label: "Todas" },
+  { value: "firearm", label: "Armas de fogo" },
+  { value: "melee", label: "Armas brancas" },
+];
+
+const VEHICLE_FILTERS = [
+  { value: "all", label: "Todos" },
+  { value: "terrestre", label: "Terrestres" },
+  { value: "aquatico", label: "Aquáticos" },
+  { value: "aereo", label: "Aéreos" },
+  { value: "outro", label: "Outros" },
+];
+
+// O mesmo <dialog> serve para escolher arma e veículo: muda só o catálogo, o
+// título e os filtros.
+const ICON_PICKER_MODES = {
+  weapon: {
+    title: "Escolher arma",
+    confirmLabel: "Equipar",
+    clearLabel: "Esvaziar slot",
+    icons: WEAPON_ICONS,
+    map: WEAPON_ICON_MAP,
+    filters: WEAPON_FILTERS,
+    dir: WEAPON_IMAGE_DIR,
+  },
+  vehicle: {
+    title: "Escolher veículo",
+    confirmLabel: "Usar veículo",
+    clearLabel: "Remover veículo",
+    icons: VEHICLE_ICONS,
+    map: VEHICLE_ICON_MAP,
+    filters: VEHICLE_FILTERS,
+    dir: VEHICLE_IMAGE_DIR,
+  },
+};
+
+const CHEST_MIN_SLOTS = 12;
+const CHEST_SPARE_SLOTS = 4;
+const DEFAULT_FUEL_TANK = "60";
+
 const state = {
   authUser: null,
   profile: null,
@@ -275,7 +418,8 @@ const state = {
   upgradeCatalogSelection: null,
   upgradeCatalogTab: "positive",
   kitCatalogSelection: null,
-  weaponPicker: { slotKey: null, iconId: "", filter: "all" },
+  iconPicker: { mode: "weapon", slotKey: null, iconId: "", filter: "all" },
+  gearDrag: null,
   kits: [],
   viewportFrame: 0,
   wizard: {
@@ -448,9 +592,13 @@ function cacheElements() {
   elements.closeInventoryDrawer = document.getElementById("closeInventoryDrawer");
   elements.inventoryRows = document.getElementById("inventoryRows");
   elements.equipmentSlots = document.getElementById("equipmentSlots");
+  elements.vehicleSlot = document.getElementById("vehicleSlot");
+  elements.chestGrid = document.getElementById("chestGrid");
+  elements.chestFooter = document.getElementById("chestFooter");
   elements.backpackSize = document.getElementById("backpackSize");
   elements.backpackFooter = document.getElementById("backpackFooter");
   elements.weaponPickerDialog = document.getElementById("weaponPickerDialog");
+  elements.weaponPickerTitle = document.getElementById("weaponPickerTitle");
   elements.weaponPickerSlotLabel = document.getElementById("weaponPickerSlotLabel");
   elements.weaponPickerFilters = document.getElementById("weaponPickerFilters");
   elements.weaponPickerGrid = document.getElementById("weaponPickerGrid");
@@ -1034,8 +1182,12 @@ function registerEvents() {
   elements.closeInventoryDrawer.addEventListener("click", closeInventoryDrawer);
   elements.equipmentSlots.addEventListener("click", handleEquipmentClick);
   elements.equipmentSlots.addEventListener("input", handleEquipmentInput);
+  elements.vehicleSlot.addEventListener("click", handleVehicleClick);
+  elements.vehicleSlot.addEventListener("input", handleVehicleInput);
+  elements.chestGrid.addEventListener("click", handleChestClick);
   elements.inventoryRows.addEventListener("input", handleBackpackInput);
   elements.backpackSize.addEventListener("change", handleBackpackSizeChange);
+  [elements.equipmentSlots, elements.inventoryRows, elements.chestGrid].forEach(registerGearDragZone);
   elements.weaponPickerFilters.addEventListener("click", handleWeaponFilterClick);
   elements.weaponPickerGrid.addEventListener("click", handleWeaponOptionClick);
   elements.cancelWeaponPicker.addEventListener("click", () => closeDialogAnimated(elements.weaponPickerDialog));
@@ -2129,7 +2281,9 @@ function sanitizeContacts(rows) {
 
 function renderInventory() {
   renderEquipmentSlots();
+  renderVehicleSlot();
   renderBackpack();
+  renderChest();
 }
 
 function renderNotes() {
@@ -2163,21 +2317,45 @@ function renderEquipmentSlots() {
     .join("");
 }
 
-function buildWeaponIconSvg(iconId, className = "weapon-icon") {
-  const icon = WEAPON_ICON_MAP.get(iconId);
+/**
+ * Um ícone de arma/veículo é sempre a dupla PNG + silhueta SVG. O PNG
+ * (imagens/Armas/<id>.png ou imagens/Veiculos/<id>.png) fica por cima; se o
+ * arquivo não existir, o `error` da imagem marca o invólucro e a silhueta
+ * aparece no lugar. Assim a pasta pode ser preenchida aos poucos.
+ */
+function buildIconMarkup(mode, iconId, className = "weapon-icon") {
+  const config = ICON_PICKER_MODES[mode];
+  const icon = config?.map.get(iconId);
   if (!icon) {
     return "";
   }
 
-  return `<svg class="${className}" viewBox="0 0 64 64" fill="currentColor" role="img" aria-label="${escapeAttribute(icon.label)}">${icon.shape}</svg>`;
+  const label = escapeAttribute(icon.label);
+  return `<span class="icon-shell ${className}" data-icon-shell>
+      <img class="icon-photo" src="${escapeAttribute(`${config.dir}/${icon.id}.png`)}" alt="${label}" draggable="false" data-icon-photo>
+      <svg class="icon-glyph" viewBox="0 0 64 64" fill="currentColor" role="img" aria-label="${label}">${icon.shape}</svg>
+    </span>`;
 }
+
+function buildWeaponIconSvg(iconId, className = "weapon-icon") {
+  return buildIconMarkup("weapon", iconId, className);
+}
+
+// `error` de <img> não borbulha, mas é capturável: um único ouvinte cobre todos
+// os ícones, inclusive os que ainda serão renderizados.
+document.addEventListener("error", (event) => {
+  const image = event.target;
+  if (image instanceof HTMLImageElement && image.hasAttribute("data-icon-photo")) {
+    image.closest("[data-icon-shell]")?.classList.add("is-fallback");
+  }
+}, true);
 
 function buildEquipmentSlotMarkup(def, slot) {
   const icon = WEAPON_ICON_MAP.get(slot.iconId);
 
   if (!icon) {
     return `
-      <article class="gear-slot is-empty" data-slot-key="${def.key}">
+      <article class="gear-slot is-empty" data-slot-key="${def.key}" data-drop-zone="equipment">
         <header class="gear-slot-head">
           <span class="gear-slot-name">${escapeHtml(def.label)}</span>
         </header>
@@ -2199,7 +2377,7 @@ function buildEquipmentSlotMarkup(def, slot) {
     </label>`;
 
   return `
-    <article class="gear-slot is-filled" data-slot-key="${def.key}" data-weapon-kind="${icon.kind}">
+    <article class="gear-slot is-filled" data-slot-key="${def.key}" data-weapon-kind="${icon.kind}" data-drop-zone="equipment">
       <header class="gear-slot-head">
         <span class="gear-slot-name">${escapeHtml(def.label)}</span>
         <span class="gear-slot-kind">${escapeHtml(icon.label)}</span>
@@ -2207,7 +2385,9 @@ function buildEquipmentSlotMarkup(def, slot) {
       </header>
 
       <div class="gear-slot-body">
-        <button type="button" class="gear-icon-btn" data-slot-pick="${def.key}" title="Trocar arma" aria-label="${escapeAttribute(`Trocar arma — ${def.label}`)}">
+        <button type="button" class="gear-icon-btn" data-slot-pick="${def.key}" draggable="true"
+          data-drag-source="equipment" data-slot-key="${def.key}"
+          title="Trocar arma · arraste para mover" aria-label="${escapeAttribute(`Trocar arma — ${def.label}`)}">
           ${buildWeaponIconSvg(slot.iconId)}
         </button>
 
@@ -2409,12 +2589,13 @@ function handleAmmoAction(slotKey, action) {
 let slotClearTimer = null;
 
 function armSlotClearButton(button) {
-  elements.equipmentSlots.querySelectorAll('[data-armed="true"]').forEach(resetSlotClearButton);
+  document.querySelectorAll('[data-armed="true"]').forEach(resetSlotClearButton);
 
   button.dataset.armed = "true";
+  button.dataset.idleTitle = button.title;
   button.classList.add("is-armed");
   button.textContent = "?";
-  button.title = "Clique de novo para esvaziar";
+  button.title = "Clique de novo para confirmar";
 
   clearTimeout(slotClearTimer);
   slotClearTimer = setTimeout(() => resetSlotClearButton(button), 3000);
@@ -2424,7 +2605,8 @@ function resetSlotClearButton(button) {
   delete button.dataset.armed;
   button.classList.remove("is-armed");
   button.textContent = "✕";
-  button.title = "Esvaziar slot";
+  button.title = button.dataset.idleTitle || "Esvaziar slot";
+  delete button.dataset.idleTitle;
 }
 
 function emptyEquipmentSlot(slotKey) {
@@ -2442,40 +2624,56 @@ function emptyEquipmentSlot(slotKey) {
 }
 
 /* ==========================================================================
-   Seleção de ícone de arma
+   Seleção de ícone (armas e veículos)
    ========================================================================== */
 
 function openWeaponPicker(slotKey) {
+  const slot = getEquipmentSlots(getActiveCharacter())[slotKey] || createEquipmentSlot();
+  const def = EQUIPMENT_SLOT_DEFS.find((entry) => entry.key === slotKey);
+  openIconPicker("weapon", slotKey, slot.iconId, def ? def.label : "");
+}
+
+function openVehiclePicker() {
+  const vehicle = getVehicle(getActiveCharacter());
+  openIconPicker("vehicle", "vehicle", vehicle.iconId, "Veículo em uso");
+}
+
+function openIconPicker(mode, slotKey, iconId, slotLabel) {
   if (!hasActiveCharacter()) {
     return;
   }
 
-  const def = EQUIPMENT_SLOT_DEFS.find((entry) => entry.key === slotKey);
-  const slot = getEquipmentSlots(getActiveCharacter())[slotKey] || createEquipmentSlot();
+  const config = ICON_PICKER_MODES[mode];
+  state.iconPicker = { mode, slotKey, iconId: iconId || "", filter: "all" };
 
-  state.weaponPicker = { slotKey, iconId: slot.iconId || "", filter: "all" };
-  elements.weaponPickerSlotLabel.textContent = def ? def.label : "";
-  elements.clearWeaponPicker.classList.toggle("hidden", !slot.iconId);
+  elements.weaponPickerTitle.textContent = config.title;
+  elements.weaponPickerSlotLabel.textContent = slotLabel || "";
+  elements.confirmWeaponPicker.textContent = config.confirmLabel;
+  elements.clearWeaponPicker.textContent = config.clearLabel;
+  elements.clearWeaponPicker.classList.toggle("hidden", !iconId);
 
-  renderWeaponPickerFilters();
-  renderWeaponPickerGrid();
+  renderIconPickerFilters();
+  renderIconPickerGrid();
   elements.weaponPickerDialog.showModal();
 }
 
-function renderWeaponPickerFilters() {
-  elements.weaponPickerFilters.querySelectorAll("[data-weapon-filter]").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.weaponFilter === state.weaponPicker.filter);
-  });
+function renderIconPickerFilters() {
+  const { mode, filter } = state.iconPicker;
+  elements.weaponPickerFilters.innerHTML = ICON_PICKER_MODES[mode].filters
+    .map((entry) => `
+      <button type="button" class="weapon-filter${entry.value === filter ? " is-active" : ""}"
+        data-weapon-filter="${entry.value}">${escapeHtml(entry.label)}</button>`)
+    .join("");
 }
 
-function renderWeaponPickerGrid() {
-  const { filter, iconId } = state.weaponPicker;
-  const icons = WEAPON_ICONS.filter((icon) => filter === "all" || icon.kind === filter);
+function renderIconPickerGrid() {
+  const { mode, filter, iconId } = state.iconPicker;
+  const icons = ICON_PICKER_MODES[mode].icons.filter((icon) => filter === "all" || icon.kind === filter);
 
   elements.weaponPickerGrid.innerHTML = icons.map((icon) => `
     <button type="button" class="weapon-option${icon.id === iconId ? " is-selected" : ""}"
       data-weapon-id="${icon.id}" role="option" aria-selected="${icon.id === iconId}">
-      ${buildWeaponIconSvg(icon.id, "weapon-icon weapon-icon-lg")}
+      ${buildIconMarkup(mode, icon.id, "weapon-icon-lg")}
       <span class="weapon-option-label">${escapeHtml(icon.label)}</span>
     </button>`).join("");
 
@@ -2488,9 +2686,9 @@ function handleWeaponFilterClick(event) {
     return;
   }
 
-  state.weaponPicker.filter = button.dataset.weaponFilter;
-  renderWeaponPickerFilters();
-  renderWeaponPickerGrid();
+  state.iconPicker.filter = button.dataset.weaponFilter;
+  renderIconPickerFilters();
+  renderIconPickerGrid();
 }
 
 function handleWeaponOptionClick(event) {
@@ -2499,39 +2697,326 @@ function handleWeaponOptionClick(event) {
     return;
   }
 
-  state.weaponPicker.iconId = option.dataset.weaponId;
-  renderWeaponPickerGrid();
+  state.iconPicker.iconId = option.dataset.weaponId;
+  renderIconPickerGrid();
 }
 
 function confirmWeaponPickerSelection() {
-  const { slotKey, iconId } = state.weaponPicker;
-  const icon = WEAPON_ICON_MAP.get(iconId);
+  const { mode, slotKey, iconId } = state.iconPicker;
+  const icon = ICON_PICKER_MODES[mode].map.get(iconId);
 
   if (!slotKey || !icon || !hasActiveCharacter()) {
     return;
   }
 
-  // Trocar o ícone nunca apaga o que já foi digitado: nome, dano e munição
-  // permanecem, inclusive ao alternar entre arma de fogo e arma branca.
-  mutateActiveCharacter((character) => {
-    const slot = getEquipmentSlots(character)[slotKey];
-    slot.iconId = iconId;
-    slot.kind = icon.kind;
-  });
+  // Trocar o ícone nunca apaga o que já foi digitado: nome, dano, munição e
+  // combustível permanecem, inclusive ao alternar entre categorias.
+  if (mode === "vehicle") {
+    mutateActiveCharacter((character) => {
+      const vehicle = getVehicle(character);
+      vehicle.iconId = iconId;
+      vehicle.kind = icon.kind;
+    });
+    renderVehicleSlot();
+  } else {
+    mutateActiveCharacter((character) => {
+      const slot = getEquipmentSlots(character)[slotKey];
+      slot.iconId = iconId;
+      slot.kind = icon.kind;
+    });
+    renderEquipmentSlots();
+  }
 
-  renderEquipmentSlots();
   markCharacterDirty();
   closeDialogAnimated(elements.weaponPickerDialog);
 }
 
 function clearWeaponPickerSlot() {
-  const { slotKey } = state.weaponPicker;
+  const { mode, slotKey } = state.iconPicker;
   if (!slotKey) {
     return;
   }
 
-  emptyEquipmentSlot(slotKey);
+  if (mode === "vehicle") {
+    clearVehicle();
+  } else {
+    emptyEquipmentSlot(slotKey);
+  }
+
   closeDialogAnimated(elements.weaponPickerDialog);
+}
+
+/* ==========================================================================
+   Veículo e combustível
+   ========================================================================== */
+
+function getVehicle(character) {
+  if (!character) {
+    return createVehicle();
+  }
+
+  if (!character.vehicle || typeof character.vehicle !== "object") {
+    character.vehicle = sanitizeVehicle(null);
+  }
+
+  return character.vehicle;
+}
+
+function renderVehicleSlot() {
+  const vehicle = getVehicle(getActiveCharacter());
+  const icon = VEHICLE_ICON_MAP.get(vehicle.iconId);
+
+  if (!icon) {
+    elements.vehicleSlot.innerHTML = `
+      <article class="gear-slot vehicle-slot is-empty">
+        <button type="button" class="gear-slot-empty" data-vehicle-pick="true">
+          <span class="gear-slot-plus" aria-hidden="true">+</span>
+          <span class="gear-slot-empty-label">Escolher veículo</span>
+          <span class="gear-slot-empty-hint">Terrestre, aquático, aéreo ou montaria</span>
+        </button>
+      </article>`;
+    return;
+  }
+
+  const field = (name, label, value, placeholder, numeric) => `
+    <label class="gear-field">
+      <span>${escapeHtml(label)}</span>
+      <input type="text" value="${escapeAttribute(value || "")}" placeholder="${escapeAttribute(placeholder)}"
+        data-vehicle-field="${name}"${numeric ? ' inputmode="numeric" data-numeric="true"' : ""}
+        aria-label="${escapeAttribute(`${label} — veículo`)}">
+    </label>`;
+
+  elements.vehicleSlot.innerHTML = `
+    <article class="gear-slot vehicle-slot is-filled" data-vehicle-kind="${icon.kind}">
+      <header class="gear-slot-head">
+        <span class="gear-slot-name">Veículo</span>
+        <span class="gear-slot-kind">${escapeHtml(icon.label)}</span>
+        <button type="button" class="gear-slot-clear" data-vehicle-clear="true" title="Remover veículo" aria-label="Remover veículo">✕</button>
+      </header>
+
+      <div class="gear-slot-body">
+        <button type="button" class="gear-icon-btn vehicle-icon-btn" data-vehicle-pick="true" title="Trocar veículo" aria-label="Trocar veículo">
+          ${buildIconMarkup("vehicle", vehicle.iconId, "weapon-icon")}
+        </button>
+
+        <div class="gear-fields">
+          ${field("nome", "Modelo", vehicle.nome, "Ex.: Chevette 82", false)}
+          <div class="gear-stats">
+            ${field("placa", "Placa / ID", vehicle.placa, "ABC-1234", false)}
+            ${field("consumo", "Km/L", vehicle.consumo, "10", false)}
+          </div>
+        </div>
+      </div>
+
+      ${buildFuelBlockMarkup(vehicle)}
+    </article>`;
+}
+
+// Bomba de combustível: o líquido dentro do visor sobe e desce conforme o
+// tanque, mudando de cor ao entrar na reserva. É o mesmo desenho de controles da
+// munição (− / + / abastecer) para não inventar um segundo vocabulário.
+function buildFuelBlockMarkup(vehicle) {
+  return `
+    <div class="gear-fuel" data-fuel-block>
+      ${buildFuelGaugeMarkup(vehicle)}
+      <div class="ammo-controls fuel-controls">
+        <span class="fuel-count">${buildFuelCountMarkup(vehicle)}</span>
+        <button type="button" class="ammo-btn" data-fuel-action="spend" title="Gastar combustível" aria-label="Gastar combustível">−</button>
+        <button type="button" class="ammo-btn" data-fuel-action="add" title="Abastecer 1" aria-label="Abastecer um">+</button>
+        <button type="button" class="ammo-btn ammo-reload" data-fuel-action="fill">⛽ Encher</button>
+        <label class="gear-field ammo-reserve">
+          <span>Tanque</span>
+          <input type="text" inputmode="numeric" data-numeric="true" value="${escapeAttribute(vehicle.tanque || "")}"
+            placeholder="60" data-vehicle-field="tanque" aria-label="Capacidade do tanque">
+        </label>
+      </div>
+    </div>`;
+}
+
+function getFuelRatio(vehicle) {
+  const capacity = toPositiveInt(vehicle.tanque);
+  if (!capacity) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(1, toPositiveInt(vehicle.combustivel) / capacity));
+}
+
+function fuelLevelName(ratio) {
+  if (ratio <= 0.001) {
+    return "empty";
+  }
+  return ratio <= 0.25 ? "low" : ratio <= 0.5 ? "half" : "full";
+}
+
+// O líquido é sempre o visor inteiro, achatado por scaleY a partir da base.
+// Escalar transita em todos os navegadores; animar os atributos `y`/`height` do
+// <rect> não.
+function buildFuelGaugeMarkup(vehicle) {
+  const ratio = getFuelRatio(vehicle);
+
+  return `
+    <div class="fuel-gauge" data-fuel-level="${fuelLevelName(ratio)}">
+      <svg class="fuel-pump" viewBox="0 0 64 64" role="img" aria-label="Bomba de combustível">
+        <path class="fuel-shell" d="M8 12c0-3 2-5 5-5h22c3 0 5 2 5 5v46H8V12Z"/>
+        <rect class="fuel-window" x="13" y="26" width="17" height="26" rx="2"/>
+        <rect class="fuel-liquid" x="13" y="26" width="17" height="26" rx="2" style="transform:scaleY(${ratio.toFixed(4)})"/>
+        <rect class="fuel-display" x="13" y="13" width="17" height="9" rx="2"/>
+        <path class="fuel-hose" d="M40 20h6c4 0 7 3 7 7v20a4 4 0 0 1-8 0V30h-5v-10Z"/>
+        <rect class="fuel-base" x="4" y="56" width="36" height="5" rx="2"/>
+      </svg>
+      <div class="fuel-bar"><span class="fuel-bar-fill" style="width:${(ratio * 100).toFixed(1)}%"></span></div>
+    </div>`;
+}
+
+function buildFuelCountMarkup(vehicle) {
+  const capacity = toPositiveInt(vehicle.tanque);
+  const current = toPositiveInt(vehicle.combustivel);
+  return `<strong>${current}</strong>/${capacity || "—"} L`;
+}
+
+function refreshFuelDisplay() {
+  const block = elements.vehicleSlot.querySelector("[data-fuel-block]");
+  if (!block) {
+    return;
+  }
+
+  const vehicle = getVehicle(getActiveCharacter());
+  const gauge = block.querySelector(".fuel-gauge");
+  const ratio = getFuelRatio(vehicle);
+
+  gauge.dataset.fuelLevel = fuelLevelName(ratio);
+  gauge.querySelector(".fuel-liquid").style.transform = `scaleY(${ratio.toFixed(4)})`;
+  gauge.querySelector(".fuel-bar-fill").style.width = `${(ratio * 100).toFixed(1)}%`;
+  block.querySelector(".fuel-count").innerHTML = buildFuelCountMarkup(vehicle);
+
+  gauge.classList.remove("is-pumping");
+  void gauge.offsetWidth;
+  gauge.classList.add("is-pumping");
+
+  const tankField = block.querySelector('[data-vehicle-field="tanque"]');
+  if (tankField && document.activeElement !== tankField) {
+    tankField.value = vehicle.tanque || "";
+  }
+}
+
+function handleVehicleClick(event) {
+  if (event.target.closest("[data-vehicle-pick]")) {
+    openVehiclePicker();
+    return;
+  }
+
+  const clear = event.target.closest("[data-vehicle-clear]");
+  if (clear) {
+    if (clear.dataset.armed === "true") {
+      clearVehicle();
+    } else {
+      armSlotClearButton(clear);
+    }
+    return;
+  }
+
+  const fuel = event.target.closest("[data-fuel-action]");
+  if (fuel) {
+    handleFuelAction(fuel.dataset.fuelAction);
+  }
+}
+
+function handleVehicleInput(event) {
+  const field = event.target.closest("[data-vehicle-field]");
+  if (!field || !hasActiveCharacter()) {
+    return;
+  }
+
+  if (field.dataset.numeric === "true") {
+    field.value = sanitizeIntegerInput(field.value).replace(/-/g, "");
+  }
+
+  const fieldName = field.dataset.vehicleField;
+
+  mutateActiveCharacter((character) => {
+    const vehicle = getVehicle(character);
+    vehicle[fieldName] = field.value;
+
+    if (fieldName === "tanque") {
+      const capacity = toPositiveInt(vehicle.tanque);
+      if (capacity && toPositiveInt(vehicle.combustivel) > capacity) {
+        vehicle.combustivel = String(capacity);
+      }
+    }
+  });
+
+  if (fieldName === "tanque") {
+    refreshFuelDisplay();
+  }
+
+  markCharacterDirty();
+}
+
+function handleFuelAction(action) {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  let feedback = "";
+
+  mutateActiveCharacter((character) => {
+    const vehicle = getVehicle(character);
+    const capacity = toPositiveInt(vehicle.tanque);
+    const current = toPositiveInt(vehicle.combustivel);
+
+    if (action === "spend") {
+      if (!current) {
+        feedback = "Tanque vazio";
+        return;
+      }
+      vehicle.combustivel = String(current - 1);
+      return;
+    }
+
+    if (action === "add") {
+      if (capacity && current >= capacity) {
+        feedback = "Tanque cheio";
+        return;
+      }
+      vehicle.combustivel = String(current + 1);
+      return;
+    }
+
+    if (action === "fill") {
+      if (!capacity) {
+        feedback = "Defina a capacidade do tanque";
+        return;
+      }
+      if (current >= capacity) {
+        feedback = "Tanque cheio";
+        return;
+      }
+      vehicle.combustivel = String(capacity);
+      feedback = `Tanque cheio · ${capacity} L`;
+    }
+  });
+
+  refreshFuelDisplay();
+  markCharacterDirty();
+
+  if (feedback) {
+    showToast(feedback, "", "⛽");
+  }
+}
+
+function clearVehicle() {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  mutateActiveCharacter((character) => {
+    character.vehicle = createVehicle();
+  });
+
+  renderVehicleSlot();
+  markCharacterDirty();
+  showToast("Veículo removido", "", "🚗");
 }
 
 /* ==========================================================================
@@ -2588,8 +3073,10 @@ function renderBackpack() {
         aria-label="${escapeAttribute(`${label} — slot ${index + 1}`)}">`;
 
     html += `
-      <div class="inventory-row inventory-slot${overflow ? " is-overflow" : ""}${empty ? " is-empty" : ""}" data-slot-index="${index}">
-        <span class="slot-index">${overflow ? "!" : index + 1}</span>
+      <div class="inventory-row inventory-slot${overflow ? " is-overflow" : ""}${empty ? " is-empty" : ""}"
+        data-slot-index="${index}" data-drop-zone="backpack">
+        <span class="slot-index" draggable="true" data-drag-source="backpack" data-slot-index="${index}"
+          title="Arraste para o baú ou para um slot de arma">${overflow ? "!" : index + 1}</span>
         ${cell("item", "Item", item.item, false)}
         ${cell("quantidade", "Quantidade", item.quantidade, true)}
         ${cell("peso", "Peso", item.peso, true)}
@@ -2677,6 +3164,446 @@ function handleBackpackSizeChange() {
   renderBackpack();
   markCharacterDirty();
   showToast(`Mochila ${BACKPACK_SIZES[size].label.toLowerCase()} · ${BACKPACK_SIZES[size].slots} slots`, "", "🎒");
+}
+
+/* ==========================================================================
+   Baú
+   ==========================================================================
+   O baú não tem colunas nem tipos fixos: guarda tanto uma linha da mochila
+   quanto uma arma inteira (com munição, dano e ícone). Cada célula é ao mesmo
+   tempo origem e destino de arrasto. */
+
+function getChestItems(character) {
+  if (!character) {
+    return [];
+  }
+
+  if (!Array.isArray(character.chestItems)) {
+    character.chestItems = sanitizeChestItems(character.chestItems);
+  }
+
+  return character.chestItems;
+}
+
+function renderChest() {
+  const entries = getChestItems(getActiveCharacter());
+  const total = Math.max(CHEST_MIN_SLOTS, entries.length + CHEST_SPARE_SLOTS);
+
+  let html = "";
+  for (let index = 0; index < total; index += 1) {
+    html += buildChestSlotMarkup(entries[index], index);
+  }
+
+  elements.chestGrid.innerHTML = html;
+  updateChestFooter();
+}
+
+function buildChestSlotMarkup(entry, index) {
+  if (!entry) {
+    return `
+      <div class="chest-slot is-empty" data-chest-index="${index}" data-drop-zone="chest">
+        <span class="chest-empty-mark" aria-hidden="true">+</span>
+      </div>`;
+  }
+
+  const isWeapon = entry.kind === "weapon";
+  const icon = isWeapon ? WEAPON_ICON_MAP.get(entry.iconId) : null;
+  const name = String(entry.nome || "").trim() || (icon ? icon.label : "Item");
+
+  const meta = isWeapon
+    ? [icon ? icon.label : "Arma", entry.dano && `Dano ${entry.dano}`, entry.carregador && `${toPositiveInt(entry.municao)}/${entry.carregador}`]
+    : [entry.quantidade && `×${entry.quantidade}`, entry.peso && `${entry.peso} pe`, entry.valor && `$${entry.valor}`];
+
+  const visual = icon
+    ? buildIconMarkup("weapon", entry.iconId, "chest-icon-art")
+    : `<svg class="chest-icon-art" viewBox="0 0 64 64" fill="currentColor" role="img" aria-label="Item">
+         <path d="M32 4 58 16v32L32 60 6 48V16L32 4Zm0 6L14 18l18 8 18-8-18-8ZM10 22v23l19 9V31L10 22Zm44 0-19 9v23l19-9V22Z"/>
+       </svg>`;
+
+  return `
+    <article class="chest-slot is-filled ${isWeapon ? "is-weapon" : "is-item"}" data-chest-index="${index}"
+      data-drop-zone="chest" data-drag-source="chest" draggable="true" title="${escapeAttribute(name)}">
+      <button type="button" class="chest-remove" data-chest-remove="${index}" title="Descartar" aria-label="${escapeAttribute(`Descartar ${name}`)}">✕</button>
+      <span class="chest-icon">${visual}</span>
+      <span class="chest-name">${escapeHtml(name)}</span>
+      <span class="chest-meta">${escapeHtml(meta.filter(Boolean).join(" · ") || "—")}</span>
+    </article>`;
+}
+
+function updateChestFooter() {
+  const entries = getChestItems(getActiveCharacter());
+  const weapons = entries.filter((entry) => entry.kind === "weapon").length;
+  const items = entries.length - weapons;
+
+  elements.chestFooter.textContent = entries.length
+    ? `Guardado ${entries.length} · ${weapons} ${weapons === 1 ? "arma" : "armas"} · ${items} ${items === 1 ? "item" : "itens"}`
+    : "Baú vazio · arraste algo da mochila ou dos slots de arma";
+}
+
+function handleChestClick(event) {
+  const remove = event.target.closest("[data-chest-remove]");
+  if (!remove || !hasActiveCharacter()) {
+    return;
+  }
+
+  // Descartar apaga de vez, então exige dois cliques como o esvaziar dos slots.
+  if (remove.dataset.armed !== "true") {
+    armSlotClearButton(remove);
+    return;
+  }
+
+  const index = Number(remove.dataset.chestRemove);
+  mutateActiveCharacter((character) => {
+    getChestItems(character).splice(index, 1);
+  });
+
+  renderChest();
+  markCharacterDirty();
+  showToast("Removido do baú", "", "📦");
+}
+
+/* ==========================================================================
+   Arrastar e soltar entre mochila, slots de arma e baú
+   ==========================================================================
+   O que viaja é sempre um "pacote" neutro: ou uma arma completa, ou uma linha
+   de item. Cada destino sabe traduzir o pacote para o seu próprio formato — e
+   recusa o que não sabe representar, em vez de descartar informação em
+   silêncio. */
+
+function gearPayloadFromEquipment(slot) {
+  return {
+    kind: "weapon",
+    iconId: slot.iconId || "",
+    weaponKind: slot.kind || "",
+    nome: slot.nome || "",
+    dano: slot.dano || "",
+    rof: slot.rof || "",
+    carregador: slot.carregador || "",
+    municao: slot.municao || "",
+    reserva: slot.reserva || "",
+  };
+}
+
+function gearPayloadFromInventory(item) {
+  return {
+    kind: "item",
+    nome: item?.item || "",
+    quantidade: item?.quantidade || "",
+    peso: item?.peso || "",
+    valor: item?.valor || "",
+  };
+}
+
+function gearPayloadFromChest(entry) {
+  return entry.kind === "weapon"
+    ? { ...entry, kind: "weapon" }
+    : { kind: "item", nome: entry.nome || "", quantidade: entry.quantidade || "", peso: entry.peso || "", valor: entry.valor || "" };
+}
+
+function chestEntryFromPayload(payload) {
+  return payload.kind === "weapon"
+    ? {
+        id: crypto.randomUUID(),
+        kind: "weapon",
+        iconId: payload.iconId || "",
+        weaponKind: payload.weaponKind || "",
+        nome: payload.nome || "",
+        dano: payload.dano || "",
+        rof: payload.rof || "",
+        carregador: payload.carregador || "",
+        municao: payload.municao || "",
+        reserva: payload.reserva || "",
+      }
+    : {
+        id: crypto.randomUUID(),
+        kind: "item",
+        nome: payload.nome || "",
+        quantidade: payload.quantidade || "",
+        peso: payload.peso || "",
+        valor: payload.valor || "",
+      };
+}
+
+function inventoryItemFromPayload(payload) {
+  return {
+    id: crypto.randomUUID(),
+    item: payload.nome || "",
+    quantidade: payload.quantidade || "",
+    peso: payload.peso || "",
+    valor: payload.valor || "",
+  };
+}
+
+// Um item da mochila arrastado para um slot de arma não traz ícone. Antes de
+// abrir o seletor, tentamos adivinhar pelo nome ("Katana enferrujada" → katana),
+// porque na maioria das vezes o jogador escreveu o tipo da arma ali.
+function foldAccents(text) {
+  return String(text || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function guessWeaponIconId(name) {
+  const normalized = foldAccents(name).trim();
+  if (!normalized) {
+    return "";
+  }
+
+  const match = WEAPON_ICONS.find((icon) =>
+    normalized.includes(icon.id) || normalized.includes(foldAccents(icon.label)));
+
+  return match ? match.id : "";
+}
+
+function equipmentSlotFromPayload(payload) {
+  const iconId = payload.kind === "weapon" ? payload.iconId : guessWeaponIconId(payload.nome);
+  const icon = WEAPON_ICON_MAP.get(iconId);
+
+  return {
+    iconId: icon ? iconId : "",
+    kind: icon ? icon.kind : "",
+    nome: payload.nome || "",
+    dano: payload.dano || "",
+    rof: payload.rof || "",
+    carregador: payload.carregador || "",
+    municao: payload.municao || "",
+    reserva: payload.reserva || "",
+  };
+}
+
+function isEmptyEquipmentSlot(slot) {
+  return !slot.iconId && [slot.nome, slot.dano, slot.rof, slot.carregador, slot.municao, slot.reserva]
+    .every((value) => String(value ?? "").trim() === "");
+}
+
+function handleGearDragStart(event) {
+  const source = event.target.closest("[data-drag-source]");
+  if (!source || !hasActiveCharacter()) {
+    return;
+  }
+
+  const character = getActiveCharacter();
+  const origin = source.dataset.dragSource;
+  let payload = null;
+
+  if (origin === "equipment") {
+    const slot = getEquipmentSlots(character)[source.dataset.slotKey];
+    if (!slot || isEmptyEquipmentSlot(slot)) {
+      event.preventDefault();
+      return;
+    }
+    payload = gearPayloadFromEquipment(slot);
+  } else if (origin === "backpack") {
+    const item = (character.inventoryItems || [])[Number(source.dataset.slotIndex)];
+    if (!item || isEmptyInventoryItem(item)) {
+      event.preventDefault();
+      return;
+    }
+    payload = gearPayloadFromInventory(item);
+  } else if (origin === "chest") {
+    const entry = getChestItems(character)[Number(source.dataset.chestIndex)];
+    if (!entry) {
+      event.preventDefault();
+      return;
+    }
+    payload = gearPayloadFromChest(entry);
+  }
+
+  if (!payload) {
+    event.preventDefault();
+    return;
+  }
+
+  state.gearDrag = {
+    origin,
+    slotKey: source.dataset.slotKey || "",
+    index: Number(source.dataset.slotIndex ?? source.dataset.chestIndex ?? -1),
+    payload,
+  };
+
+  source.classList.add("is-dragging");
+  event.dataTransfer.effectAllowed = "move";
+  // Firefox só inicia o arrasto se algum dado for gravado.
+  event.dataTransfer.setData("text/plain", payload.nome || "item");
+  document.body.classList.add("is-gear-dragging");
+  document.body.classList.toggle("is-dragging-weapon", payload.kind === "weapon");
+}
+
+function handleGearDragEnd() {
+  document.querySelectorAll(".is-dragging").forEach((node) => node.classList.remove("is-dragging"));
+  document.querySelectorAll(".is-drop-target").forEach((node) => node.classList.remove("is-drop-target"));
+  document.body.classList.remove("is-gear-dragging", "is-dragging-weapon");
+  state.gearDrag = null;
+}
+
+function findGearDropZone(event) {
+  return event.target.closest("[data-drop-zone]");
+}
+
+function canDropGear(zone) {
+  const drag = state.gearDrag;
+  if (!drag || !zone) {
+    return false;
+  }
+
+  const target = zone.dataset.dropZone;
+
+  // A mochila só guarda linha de item: uma arma perderia munição e ícone ali.
+  if (target === "backpack" && drag.payload.kind === "weapon") {
+    return false;
+  }
+
+  if (target === "equipment" && drag.origin === "equipment"
+    && zone.dataset.slotKey === drag.slotKey) {
+    return false;
+  }
+
+  if (target === "chest" && drag.origin === "chest"
+    && Number(zone.dataset.chestIndex) === drag.index) {
+    return false;
+  }
+
+  return true;
+}
+
+function handleGearDragOver(event) {
+  const zone = findGearDropZone(event);
+  if (!canDropGear(zone)) {
+    return;
+  }
+
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+
+  if (!zone.classList.contains("is-drop-target")) {
+    document.querySelectorAll(".is-drop-target").forEach((node) => node.classList.remove("is-drop-target"));
+    zone.classList.add("is-drop-target");
+  }
+}
+
+function handleGearDragLeave(event) {
+  const zone = findGearDropZone(event);
+  if (zone && !zone.contains(event.relatedTarget)) {
+    zone.classList.remove("is-drop-target");
+  }
+}
+
+function handleGearDrop(event) {
+  const zone = findGearDropZone(event);
+  if (!canDropGear(zone) || !hasActiveCharacter()) {
+    return;
+  }
+
+  event.preventDefault();
+  const drag = state.gearDrag;
+  const target = zone.dataset.dropZone;
+  let feedback = "";
+  let openPickerFor = "";
+
+  mutateActiveCharacter((character) => {
+    const incoming = drag.payload;
+    // O que estava no destino volta pela mesma porta por onde o pacote saiu:
+    // nada some por ser sobrescrito.
+    let displaced = null;
+
+    if (target === "equipment") {
+      const slotKey = zone.dataset.slotKey;
+      const slots = getEquipmentSlots(character);
+      const current = slots[slotKey];
+      if (!isEmptyEquipmentSlot(current)) {
+        displaced = gearPayloadFromEquipment(current);
+      }
+      slots[slotKey] = equipmentSlotFromPayload(incoming);
+      if (!slots[slotKey].iconId) {
+        openPickerFor = slotKey;
+      }
+      feedback = "Arma equipada";
+    } else if (target === "chest") {
+      const entries = getChestItems(character);
+      const index = Number(zone.dataset.chestIndex);
+      if (index < entries.length && entries[index]) {
+        displaced = gearPayloadFromChest(entries[index]);
+        entries[index] = chestEntryFromPayload(incoming);
+      } else {
+        entries.push(chestEntryFromPayload(incoming));
+      }
+      feedback = "Guardado no baú";
+    } else if (target === "backpack") {
+      const index = Number(zone.dataset.slotIndex);
+      if (!Array.isArray(character.inventoryItems)) {
+        character.inventoryItems = [];
+      }
+      while (character.inventoryItems.length <= index) {
+        character.inventoryItems.push(createInventoryItem());
+      }
+      const current = character.inventoryItems[index];
+      if (!isEmptyInventoryItem(current)) {
+        displaced = gearPayloadFromInventory(current);
+      }
+      character.inventoryItems[index] = inventoryItemFromPayload(incoming);
+      feedback = "Guardado na mochila";
+    }
+
+    releaseGearSource(character, drag, displaced);
+  });
+
+  renderInventory();
+  markCharacterDirty();
+  // O elemento arrastado deixa de existir no re-render, e com ele o `dragend`.
+  // A limpeza vem antes do popup para o corpo não ficar em modo de arrasto.
+  handleGearDragEnd();
+
+  if (openPickerFor) {
+    // Item virando arma: falta escolher o ícone, então o seletor já abre.
+    openWeaponPicker(openPickerFor);
+  } else if (feedback) {
+    showToast(feedback, "", "🎒");
+  }
+}
+
+// Esvazia a origem do arrasto e, se o destino estava ocupado, devolve o antigo
+// conteúdo para o lugar que acabou de vagar. Quando a origem não comporta o que
+// foi deslocado (uma arma não cabe numa linha de mochila), o excedente vai para
+// o baú em vez de ser perdido.
+function releaseGearSource(character, drag, displaced) {
+  if (drag.origin === "equipment") {
+    const slots = getEquipmentSlots(character);
+    slots[drag.slotKey] = displaced && displaced.kind === "weapon"
+      ? equipmentSlotFromPayload(displaced)
+      : createEquipmentSlot();
+    if (displaced && displaced.kind === "item") {
+      getChestItems(character).push(chestEntryFromPayload(displaced));
+    }
+    return;
+  }
+
+  if (drag.origin === "chest") {
+    const entries = getChestItems(character);
+    if (displaced) {
+      entries[drag.index] = chestEntryFromPayload(displaced);
+    } else {
+      entries.splice(drag.index, 1);
+    }
+    return;
+  }
+
+  if (drag.origin === "backpack") {
+    const items = character.inventoryItems || [];
+    if (displaced && displaced.kind === "item") {
+      items[drag.index] = inventoryItemFromPayload(displaced);
+    } else {
+      items[drag.index] = createInventoryItem();
+      if (displaced) {
+        getChestItems(character).push(chestEntryFromPayload(displaced));
+      }
+    }
+  }
+}
+
+function registerGearDragZone(container) {
+  container.addEventListener("dragstart", handleGearDragStart);
+  container.addEventListener("dragend", handleGearDragEnd);
+  container.addEventListener("dragover", handleGearDragOver);
+  container.addEventListener("dragleave", handleGearDragLeave);
+  container.addEventListener("drop", handleGearDrop);
 }
 
 function renderSheetSelector() {
@@ -4327,6 +5254,8 @@ function normalizeCharacterCollections(character) {
   character.inventoryItems = sanitizeInventoryItems(character.inventoryItems || []);
   character.backpackSize = normalizeBackpackSize(character.backpackSize, character.inventoryItems.length);
   character.equipmentSlots = sanitizeEquipmentSlots(character.equipmentSlots);
+  character.vehicle = sanitizeVehicle(character.vehicle);
+  character.chestItems = sanitizeChestItems(character.chestItems);
   character.contacts = sanitizeContacts(character.contacts || []);
 }
 
@@ -4681,6 +5610,8 @@ function createDefaultCharacter(ownerProfile, ordinal) {
     inventoryItems: [],
     backpackSize: DEFAULT_BACKPACK_SIZE,
     equipmentSlots: sanitizeEquipmentSlots(null),
+    vehicle: createVehicle(),
+    chestItems: [],
     dynamicUpgrades: [createUpgradePlaceholder()],
     dynamicSkills: [createSkillPlaceholder()],
     dynamicCombatSkills: [createCombatSkillPlaceholder()],
@@ -4721,6 +5652,8 @@ function normalizeCharacter(rawCharacter, characterId) {
   normalized.inventoryItems = sanitizeInventoryItems(rawCharacter.inventoryItems || normalized.inventoryItems);
   normalized.backpackSize = normalizeBackpackSize(rawCharacter.backpackSize, normalized.inventoryItems.length);
   normalized.equipmentSlots = sanitizeEquipmentSlots(rawCharacter.equipmentSlots);
+  normalized.vehicle = sanitizeVehicle(rawCharacter.vehicle);
+  normalized.chestItems = sanitizeChestItems(rawCharacter.chestItems);
   normalized.contacts = sanitizeContacts(rawCharacter.contacts || normalized.contacts);
   if (!normalized.state || !["creation", "play", "evolution"].includes(normalized.state)) {
     normalized.state = rawCharacter.state || "play";
@@ -4747,6 +5680,8 @@ function serializeCharacterForWrite(character) {
     inventoryItems: sanitizeInventoryItems(payload.inventoryItems || []),
     backpackSize: normalizeBackpackSize(payload.backpackSize, (payload.inventoryItems || []).length),
     equipmentSlots: sanitizeEquipmentSlots(payload.equipmentSlots),
+    vehicle: sanitizeVehicle(payload.vehicle),
+    chestItems: sanitizeChestItems(payload.chestItems),
     contacts: sanitizeContacts(payload.contacts || []),
   };
 }
@@ -4877,6 +5812,69 @@ function createEquipmentSlot() {
     municao: "",
     reserva: "",
   };
+}
+
+function createVehicle() {
+  return {
+    iconId: "",
+    kind: "",
+    nome: "",
+    placa: "",
+    consumo: "",
+    tanque: DEFAULT_FUEL_TANK,
+    combustivel: "",
+  };
+}
+
+function sanitizeVehicle(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const icon = VEHICLE_ICON_MAP.get(source.iconId);
+
+  const vehicle = {
+    iconId: icon ? source.iconId : "",
+    kind: icon ? icon.kind : "",
+    nome: source.nome ?? "",
+    placa: source.placa ?? "",
+    consumo: source.consumo ?? "",
+    tanque: source.tanque ?? DEFAULT_FUEL_TANK,
+    combustivel: source.combustivel ?? "",
+  };
+
+  const capacity = toPositiveInt(vehicle.tanque);
+  if (capacity && toPositiveInt(vehicle.combustivel) > capacity) {
+    vehicle.combustivel = String(capacity);
+  }
+
+  return vehicle;
+}
+
+function sanitizeChestItems(rows) {
+  return (Array.isArray(rows) ? rows : []).map((row) => {
+    if (row?.kind === "weapon") {
+      const icon = WEAPON_ICON_MAP.get(row.iconId);
+      return {
+        id: row.id || crypto.randomUUID(),
+        kind: "weapon",
+        iconId: icon ? row.iconId : "",
+        weaponKind: icon ? icon.kind : "",
+        nome: row.nome ?? "",
+        dano: row.dano ?? "",
+        rof: row.rof ?? "",
+        carregador: row.carregador ?? "",
+        municao: row.municao ?? "",
+        reserva: row.reserva ?? "",
+      };
+    }
+
+    return {
+      id: row?.id || crypto.randomUUID(),
+      kind: "item",
+      nome: row?.nome ?? "",
+      quantidade: row?.quantidade ?? "",
+      peso: row?.peso ?? "",
+      valor: row?.valor ?? "",
+    };
+  });
 }
 
 function sanitizeEquipmentSlots(raw) {
@@ -5571,7 +6569,9 @@ ${buildPrintSkillsSection(character)}
 ${buildPrintCombatSkillsSection(character)}
 ${buildPrintUpgradesSection(character)}
 ${buildPrintEquipmentSection(character)}
+${buildPrintVehicleSection(character)}
 ${buildPrintInventorySection(character)}
+${buildPrintChestSection(character)}
 ${buildPrintContactsSection(character)}
 ${buildPrintTextSection("Anotações", character.notesText)}
 ${buildPrintTextSection("História", character.historyText)}
@@ -5938,6 +6938,76 @@ function buildPrintEquipmentSection(character) {
     </thead>
     <tbody>${body}</tbody>
   </table>` : `<p class="print-empty">Nenhuma arma equipada.</p>`}
+</section>`;
+}
+
+function buildPrintVehicleSection(character) {
+  const vehicle = sanitizeVehicle(character.vehicle);
+  const icon = VEHICLE_ICON_MAP.get(vehicle.iconId);
+  const hasData = icon || [vehicle.nome, vehicle.placa, vehicle.consumo, vehicle.combustivel]
+    .some((value) => String(value ?? "").trim() !== "");
+
+  if (!hasData) {
+    return "";
+  }
+
+  const capacity = toPositiveInt(vehicle.tanque);
+  const fuel = capacity ? `${toPositiveInt(vehicle.combustivel)}/${capacity} L` : "—";
+
+  return `
+<section class="print-section">
+  <h2>Veículo</h2>
+  <table>
+    <thead>
+      <tr><th>Tipo</th><th>Modelo</th><th>Placa / ID</th><th class="num">Km/L</th><th class="num">Combustível</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>${escapeHtml(icon ? icon.label : "—")}</td>
+        <td>${printCell(vehicle.nome)}</td>
+        <td>${printCell(vehicle.placa)}</td>
+        <td class="num">${printCell(vehicle.consumo)}</td>
+        <td class="num">${escapeHtml(fuel)}</td>
+      </tr>
+    </tbody>
+  </table>
+</section>`;
+}
+
+function buildPrintChestSection(character) {
+  const entries = sanitizeChestItems(character.chestItems);
+  if (!entries.length) {
+    return "";
+  }
+
+  const body = entries.map((entry) => {
+    const isWeapon = entry.kind === "weapon";
+    const icon = isWeapon ? WEAPON_ICON_MAP.get(entry.iconId) : null;
+    const detalhe = isWeapon
+      ? [entry.dano && `Dano ${entry.dano}`, entry.rof && `RoF ${entry.rof}`,
+         entry.carregador && `Carreg. ${toPositiveInt(entry.municao)}/${entry.carregador}`,
+         entry.reserva && `Reserva ${entry.reserva}`].filter(Boolean).join(" · ")
+      : [entry.quantidade && `Quant. ${entry.quantidade}`, entry.peso && `Peso ${entry.peso}`,
+         entry.valor && `Valor ${entry.valor}`].filter(Boolean).join(" · ");
+
+    return `
+    <tr>
+      <td>${escapeHtml(isWeapon ? "Arma" : "Item")}</td>
+      <td>${printCell(entry.nome)}</td>
+      <td>${escapeHtml(icon ? icon.label : "—")}</td>
+      <td>${escapeHtml(detalhe || "—")}</td>
+    </tr>`;
+  }).join("");
+
+  return `
+<section class="print-section">
+  <h2>Baú</h2>
+  <table>
+    <thead>
+      <tr><th>Categoria</th><th>Nome</th><th>Tipo</th><th>Detalhes</th></tr>
+    </thead>
+    <tbody>${body}</tbody>
+  </table>
 </section>`;
 }
 

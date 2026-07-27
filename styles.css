@@ -1161,6 +1161,38 @@ input[readonly] {
   height: 40px;
 }
 
+/* --- Ícones: PNG por cima, silhueta SVG por baixo ----------------------- */
+
+/* As duas camadas ocupam a mesma célula. A silhueta só aparece quando o PNG
+   correspondente não existe na pasta (o `error` da imagem marca .is-fallback),
+   então a arte pode ser adicionada aos poucos sem quebrar nada. */
+.icon-shell {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.icon-shell > .icon-photo,
+.icon-shell > .icon-glyph {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.icon-shell > .icon-glyph {
+  display: none;
+}
+
+.icon-shell.is-fallback > .icon-photo {
+  display: none;
+}
+
+.icon-shell.is-fallback > .icon-glyph {
+  display: block;
+}
+
 .gear-fields {
   flex: 1 1 auto;
   min-width: 0;
@@ -1294,6 +1326,147 @@ input[readonly] {
   text-align: center;
 }
 
+/* --- Veículo ------------------------------------------------------------ */
+
+.vehicle-slot-wrap {
+  display: block;
+}
+
+.vehicle-slot.is-filled {
+  border-color: rgba(141, 106, 29, 0.55);
+}
+
+.vehicle-icon-btn {
+  width: 74px;
+  height: 74px;
+  background: radial-gradient(circle at top, rgba(216, 167, 45, 0.2), rgba(20, 60, 78, 0.28));
+}
+
+/* --- Bomba de combustível ----------------------------------------------- */
+
+.gear-fuel {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(141, 106, 29, 0.4);
+}
+
+.fuel-gauge {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 58px;
+}
+
+.fuel-pump {
+  width: 52px;
+  height: 52px;
+}
+
+.fuel-shell {
+  fill: rgba(10, 10, 10, 0.85);
+  stroke: rgba(216, 167, 45, 0.65);
+  stroke-width: 2.5;
+}
+
+.fuel-base,
+.fuel-hose {
+  fill: rgba(216, 167, 45, 0.75);
+}
+
+.fuel-window {
+  fill: rgba(4, 4, 4, 0.9);
+  stroke: rgba(141, 106, 29, 0.5);
+  stroke-width: 1.2;
+}
+
+.fuel-display {
+  fill: rgba(216, 167, 45, 0.28);
+}
+
+/* O líquido sobe e desce com o tanque; a transição é o "esgotar" que se vê.
+   transform-box: fill-box faz o scaleY partir da base do próprio retângulo. */
+.fuel-liquid {
+  fill: #5abf78;
+  transform-box: fill-box;
+  transform-origin: bottom;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), fill 0.35s ease;
+}
+
+.fuel-gauge[data-fuel-level="half"] .fuel-liquid {
+  fill: #e0b83c;
+}
+
+.fuel-gauge[data-fuel-level="low"] .fuel-liquid {
+  fill: #df5a5a;
+}
+
+.fuel-gauge[data-fuel-level="empty"] .fuel-liquid {
+  fill: transparent;
+}
+
+.fuel-gauge[data-fuel-level="low"] .fuel-display,
+.fuel-gauge[data-fuel-level="empty"] .fuel-display {
+  fill: rgba(223, 90, 90, 0.5);
+  animation: fuelWarn 1.1s ease-in-out infinite;
+}
+
+.fuel-gauge.is-pumping .fuel-pump {
+  animation: fuelPump 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fuel-bar {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(8, 8, 8, 0.75);
+  border: 1px solid rgba(141, 106, 29, 0.45);
+  overflow: hidden;
+}
+
+.fuel-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #a8781a, #f0c350);
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fuel-gauge[data-fuel-level="low"] .fuel-bar-fill,
+.fuel-gauge[data-fuel-level="empty"] .fuel-bar-fill {
+  background: linear-gradient(90deg, #7e0f14, #df5a5a);
+}
+
+.fuel-controls {
+  flex: 1 1 auto;
+}
+
+.fuel-count {
+  color: var(--ink);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  padding-bottom: 6px;
+}
+
+.fuel-count strong {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+@keyframes fuelPump {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.09); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fuelWarn {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
 /* --- Mochila ------------------------------------------------------------ */
 
 .inventory-table {
@@ -1305,7 +1478,7 @@ input[readonly] {
 
 .inventory-row {
   display: grid;
-  grid-template-columns: 26px minmax(120px, 1fr) 60px 60px 60px;
+  grid-template-columns: 30px minmax(120px, 1fr) 60px 60px 60px;
   gap: 6px;
   align-items: center;
   width: 100%;
@@ -1388,6 +1561,172 @@ input[readonly] {
   color: var(--muted);
   font-size: 0.74rem;
   letter-spacing: 0.06em;
+}
+
+/* --- Baú ---------------------------------------------------------------- */
+
+/* Sem colunas nem categorias: cada célula aceita tanto uma linha da mochila
+   quanto uma arma inteira, e serve ao mesmo tempo de origem e destino. */
+.chest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.chest-slot {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  justify-items: center;
+  gap: 4px;
+  min-height: 108px;
+  padding: 10px 6px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(141, 106, 29, 0.35);
+  background: linear-gradient(180deg, rgba(32, 16, 16, 0.7), rgba(8, 8, 8, 0.7));
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.chest-slot.is-empty {
+  place-content: center;
+  border-style: dashed;
+  border-color: rgba(141, 106, 29, 0.22);
+  background: rgba(8, 8, 8, 0.35);
+}
+
+.chest-empty-mark {
+  font-size: 1.3rem;
+  line-height: 1;
+  color: rgba(216, 167, 45, 0.4);
+}
+
+.chest-slot.is-filled {
+  cursor: grab;
+}
+
+.chest-slot.is-filled:hover {
+  border-color: rgba(216, 167, 45, 0.7);
+  transform: translateY(-2px);
+}
+
+.chest-slot.is-weapon {
+  border-color: rgba(216, 167, 45, 0.45);
+}
+
+.chest-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--accent);
+}
+
+.chest-icon-art {
+  width: 44px;
+  height: 44px;
+}
+
+.chest-slot.is-item .chest-icon {
+  color: rgba(216, 167, 45, 0.62);
+}
+
+.chest-name {
+  max-width: 100%;
+  color: var(--ink);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  text-align: center;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.chest-meta {
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.chest-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(223, 90, 90, 0.4);
+  background: rgba(8, 8, 8, 0.72);
+  color: var(--danger);
+  font-size: 0.64rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s ease, background 0.18s ease;
+}
+
+.chest-slot:hover .chest-remove,
+.chest-remove.is-armed {
+  opacity: 1;
+}
+
+.chest-remove.is-armed {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #120a0a;
+  animation: armedPulse 0.9s ease-in-out infinite;
+}
+
+/* --- Arrastar equipamento ----------------------------------------------- */
+
+.slot-index[data-drag-source] {
+  cursor: grab;
+  border-radius: 6px;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.slot-index[data-drag-source]:hover {
+  background: rgba(216, 167, 45, 0.16);
+  color: var(--accent);
+}
+
+.gear-icon-btn[draggable="true"] {
+  cursor: grab;
+}
+
+.is-dragging {
+  opacity: 0.4;
+}
+
+/* Enquanto algo é arrastado, todo destino possível se anuncia. */
+.is-gear-dragging [data-drop-zone] {
+  outline: 1px dashed rgba(216, 167, 45, 0.35);
+  outline-offset: 2px;
+}
+
+.is-gear-dragging .inventory-row input,
+.is-gear-dragging .gear-field input {
+  pointer-events: none;
+}
+
+/* Uma linha da mochila não tem onde guardar ícone, munição nem reserva, então a
+   mochila se apaga como destino enquanto o que viaja é uma arma. */
+.is-dragging-weapon [data-drop-zone="backpack"] {
+  outline: none;
+  opacity: 0.45;
+}
+
+[data-drop-zone].is-drop-target {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  background: rgba(216, 167, 45, 0.12);
 }
 
 .backpack-footer.is-overloaded {
@@ -1801,8 +2140,15 @@ input[readonly] {
 
 /* --- Seletor de arma ---------------------------------------------------- */
 
+/* O <dialog> nasce com overflow:auto no navegador. Aqui ele nunca rola: quem
+   rola é a grade de ícones lá dentro. Sem isto, qualquer sobra de altura durante
+   a animação vira barra de rolagem no popup inteiro. O max-height precisa
+   acompanhar o do conteúdo — herdando os 640px de .register-dialog a grade
+   transbordava em telas altas. */
 .weapon-picker-dialog {
   width: min(680px, calc(100vw - 32px));
+  max-height: min(90vh, 700px);
+  overflow: hidden;
 }
 
 .weapon-picker-content {
@@ -2467,17 +2813,20 @@ textarea::-webkit-scrollbar-thumb:hover {
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Zoom in / zoom out dos popups */
+/* Zoom in / zoom out dos popups.
+   O quique é sempre para dentro (nunca passa de scale(1)): passar de 1 fazia o
+   conteúdo transbordar a caixa do <dialog> durante a animação e o navegador
+   pintava as duas barras de rolagem por uma fração de segundo. */
 @keyframes zoomIn {
   0% { opacity: 0; transform: scale(0.72); }
-  55% { opacity: 1; transform: scale(1.035); }
-  75% { transform: scale(0.99); }
+  55% { opacity: 1; transform: scale(1); }
+  74% { transform: scale(0.972); }
   100% { opacity: 1; transform: scale(1); }
 }
 
 @keyframes zoomOut {
   0% { opacity: 1; transform: scale(1); }
-  30% { transform: scale(1.03); }
+  30% { transform: scale(0.985); }
   100% { opacity: 0; transform: scale(0.68); }
 }
 
@@ -3236,7 +3585,15 @@ body.wizard-active {
   /* A mochila continua em grade: virar uma coluna por campo destruiria a
      leitura de slot. Só as colunas numéricas encolhem. */
   .inventory-row {
-    grid-template-columns: 22px minmax(80px, 1fr) 48px 48px 48px;
+    grid-template-columns: 26px minmax(80px, 1fr) 48px 48px 48px;
+  }
+
+  .chest-grid {
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  }
+
+  .gear-fuel {
+    flex-wrap: wrap;
   }
 
   .equipment-grid {
