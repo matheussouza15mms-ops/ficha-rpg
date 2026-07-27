@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
   <!-- O ?v= força o navegador a baixar a versão nova em vez de reaproveitar a
        do cache do GitHub Pages. Suba o número sempre que mexer no CSS/JS. -->
-  <link rel="stylesheet" href="./styles.css?v=9">
+  <link rel="stylesheet" href="./styles.css?v=10">
 </head>
 <body>
   <div class="page-art page-art-top" aria-hidden="true"></div>
@@ -234,6 +234,15 @@
           </span>
         </button>
 
+        <button type="button" id="contactsFab" class="inventory-fab contacts-fab" aria-label="Abrir contatos e aliados">
+          <span class="inventory-fab-label">Contatos</span>
+          <span class="inventory-fab-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="presentation" focusable="false">
+              <path d="M24 10c6 0 10 5 10 11s-4 11-10 11-10-5-10-11 4-11 10-11Zm0 6c-2 0-4 2-4 5s2 5 4 5 4-2 4-5-2-5-4-5ZM6 54v-4c0-7 8-12 18-12s18 5 18 12v4H6Zm8-6h20c-1-3-5-4-10-4s-9 1-10 4Zm31-32c4 0 8 4 8 9s-4 9-8 9c-1 0-2 0-3-1 2-2 3-5 3-8s-1-6-3-8c1-1 2-1 3-1Zm2 22c6 1 11 5 11 10v4h-8v-4c0-4-1-7-3-10Z" />
+            </svg>
+          </span>
+        </button>
+
         <aside id="inventoryDrawer" class="inventory-drawer" aria-hidden="true">
           <div class="inventory-drawer-header">
             <div class="section-heading">
@@ -304,6 +313,109 @@
           <label class="field notes-field">
             <textarea id="historyTextarea" rows="16" placeholder="Digite aqui a história do personagem..."></textarea>
           </label>
+        </aside>
+
+        <aside id="contactsDrawer" class="inventory-drawer contacts-drawer" aria-hidden="true">
+          <div class="inventory-drawer-header">
+            <div class="contacts-heading">
+              <button type="button" id="contactsBackButton" class="contacts-back hidden" aria-label="Voltar para a lista">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 4.6 8 12l7.4 7.4 1.6-1.6L11.2 12 17 6.2l-1.6-1.6Z"/></svg>
+              </button>
+              <div class="section-heading">
+                <h2 id="contactsDrawerTitle">Contatos e Aliados</h2>
+              </div>
+            </div>
+            <button type="button" id="closeContactsDrawer" class="btn btn-secondary">Fechar</button>
+          </div>
+
+          <div class="contacts-stage">
+            <section id="contactsListView" class="contacts-view is-active">
+              <div class="contacts-toolbar">
+                <label class="inline-field inline-select">
+                  <span>Tipo</span>
+                  <select id="contactTypeSelect">
+                    <option value="contato">Contato</option>
+                    <option value="aliado">Aliado</option>
+                    <option value="patrono">Patrono</option>
+                  </select>
+                </label>
+                <button type="button" id="addContactButton" class="btn btn-primary">+ Adicionar</button>
+              </div>
+
+              <div id="contactsList" class="contacts-list"></div>
+              <p id="contactsEmpty" class="contacts-empty hidden">Nenhum contato registrado. Escolha o tipo e toque em Adicionar.</p>
+            </section>
+
+            <section id="contactsDetailView" class="contacts-view contacts-detail" aria-hidden="true">
+              <div class="contact-card-top">
+                <div class="contact-photo-block">
+                  <div id="contactPhotoFrame" class="contact-photo-frame">
+                    <img id="contactPhotoImage" alt="Foto do contato">
+                    <div class="contact-photo-placeholder">
+                      <span class="contact-photo-placeholder-title">Sem foto</span>
+                      <span id="contactPhotoHint" class="contact-photo-hint hidden">
+                        <span id="contactPhotoFileName" class="contact-photo-file-name"></span>
+                        <span class="contact-photo-folder">na pasta imagens/contatos</span>
+                      </span>
+                    </div>
+                  </div>
+                  <span id="contactPhotoBadge" class="portrait-code-badge hidden" title="Código do contato: use este nome de arquivo na pasta imagens/contatos"></span>
+                </div>
+
+                <div class="contact-top-fields">
+                  <label class="field">
+                    <span>Nome</span>
+                    <input type="text" data-contact-field="nome" maxlength="80" placeholder="Nome do contato">
+                  </label>
+
+                  <label class="field">
+                    <span>Tipo</span>
+                    <select data-contact-field="tipo">
+                      <option value="contato">Contato</option>
+                      <option value="aliado">Aliado</option>
+                      <option value="patrono">Patrono</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="grid two contact-grid">
+                <label class="field">
+                  <span>Local de nascimento</span>
+                  <input type="text" data-contact-field="nascimento" maxlength="80" placeholder="Onde nasceu">
+                </label>
+
+                <label class="field">
+                  <span>Local de atuação</span>
+                  <input type="text" data-contact-field="atuacao" maxlength="80" placeholder="Onde age hoje">
+                </label>
+              </div>
+
+              <label class="field">
+                <span>Características</span>
+                <textarea data-contact-field="caracteristicas" rows="3" placeholder="Aparência, maneirismos, o que o denuncia numa multidão..."></textarea>
+              </label>
+
+              <label class="field">
+                <span>Descrição</span>
+                <textarea data-contact-field="descricao" rows="4" placeholder="Quem é, como o personagem o conheceu, o que ele quer em troca..."></textarea>
+              </label>
+
+              <div class="contact-infos-block">
+                <div class="gear-section-title">
+                  <span class="gear-section-label">Informações que pode fornecer</span>
+                  <span class="gear-section-hint">O que este contato consegue conseguir</span>
+                </div>
+
+                <div id="contactInfosList" class="contact-infos-list"></div>
+                <button type="button" id="addContactInfoButton" class="btn btn-add-row">+ Adicionar informação</button>
+              </div>
+
+              <div class="contact-detail-actions">
+                <button type="button" id="deleteContactButton" class="btn btn-danger">Excluir contato</button>
+              </div>
+            </section>
+          </div>
         </aside>
 
         <div id="wizardOverlay" class="wizard-overlay" aria-hidden="true"></div>
@@ -518,6 +630,6 @@
   <div id="toastStack" class="toast-stack" aria-live="polite"></div>
   <div id="upgradeTooltip" class="upgrade-tooltip" role="tooltip" aria-hidden="true"></div>
 
-  <script type="module" src="./script.js?v=9"></script>
+  <script type="module" src="./script.js?v=10"></script>
 </body>
 </html>

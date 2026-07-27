@@ -50,6 +50,19 @@ const PORTRAIT_IMAGE_DIR = "./imagens/personagens";
 const PORTRAIT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
 const PORTRAIT_COUNTER_PATH = ["counters", "characterPortrait"];
 
+// Foto de contato segue a mesma ideia do retrato: cada contato criado recebe um
+// `photoNumber` de um contador transacional (counters/contactPhoto) e a imagem
+// exibida é imagens/contatos/img_ctt_<numero>.png. Como o número é global e
+// nunca reaproveitado, excluir um contato não faz outro herdar a foto.
+const CONTACT_IMAGE_DIR = "./imagens/contatos";
+const CONTACT_COUNTER_PATH = ["counters", "contactPhoto"];
+const CONTACT_TYPES = ["contato", "aliado", "patrono"];
+const CONTACT_TYPE_LABELS = {
+  contato: "Contato",
+  aliado: "Aliado",
+  patrono: "Patrono",
+};
+
 const MASTER_DEFAULT_PROFILES = {
   "matheus.souza15.mms@gmail.com": {
     displayName: "Matheus",
@@ -255,6 +268,8 @@ const state = {
   portraitAttempt: 0,
   portraitNumberRequests: new Set(),
   portraitBackfillInFlight: false,
+  contactPhotoAttempt: 0,
+  selectedContactId: null,
   skillCatalogSelection: null,
   combatSkillCatalogSelection: null,
   upgradeCatalogSelection: null,
@@ -450,6 +465,25 @@ function cacheElements() {
   elements.historyDrawer = document.getElementById("historyDrawer");
   elements.closeHistoryDrawer = document.getElementById("closeHistoryDrawer");
   elements.historyTextarea = document.getElementById("historyTextarea");
+  elements.contactsFab = document.getElementById("contactsFab");
+  elements.contactsDrawer = document.getElementById("contactsDrawer");
+  elements.closeContactsDrawer = document.getElementById("closeContactsDrawer");
+  elements.contactsDrawerTitle = document.getElementById("contactsDrawerTitle");
+  elements.contactsBackButton = document.getElementById("contactsBackButton");
+  elements.contactsListView = document.getElementById("contactsListView");
+  elements.contactsDetailView = document.getElementById("contactsDetailView");
+  elements.contactsList = document.getElementById("contactsList");
+  elements.contactsEmpty = document.getElementById("contactsEmpty");
+  elements.contactTypeSelect = document.getElementById("contactTypeSelect");
+  elements.addContactButton = document.getElementById("addContactButton");
+  elements.contactPhotoFrame = document.getElementById("contactPhotoFrame");
+  elements.contactPhotoImage = document.getElementById("contactPhotoImage");
+  elements.contactPhotoHint = document.getElementById("contactPhotoHint");
+  elements.contactPhotoFileName = document.getElementById("contactPhotoFileName");
+  elements.contactPhotoBadge = document.getElementById("contactPhotoBadge");
+  elements.contactInfosList = document.getElementById("contactInfosList");
+  elements.addContactInfoButton = document.getElementById("addContactInfoButton");
+  elements.deleteContactButton = document.getElementById("deleteContactButton");
   elements.evolveButton = document.getElementById("evolveButton");
   elements.upgradePointBadge = document.getElementById("upgradePointBadge");
   elements.saveSheetButton = document.getElementById("saveSheetButton");
@@ -1017,6 +1051,15 @@ function registerEvents() {
   elements.historyFab.addEventListener("click", openHistoryDrawer);
   elements.closeHistoryDrawer.addEventListener("click", closeHistoryDrawer);
   elements.historyTextarea.addEventListener("input", handleHistoryInput);
+  elements.contactsFab.addEventListener("click", openContactsDrawer);
+  elements.closeContactsDrawer.addEventListener("click", closeContactsDrawer);
+  elements.contactsBackButton.addEventListener("click", showContactsListView);
+  elements.addContactButton.addEventListener("click", handleAddContact);
+  elements.contactsList.addEventListener("click", handleContactCardClick);
+  elements.contactsDetailView.addEventListener("input", handleContactFieldInput);
+  elements.contactInfosList.addEventListener("click", handleContactInfoRemove);
+  elements.addContactInfoButton.addEventListener("click", handleAddContactInfo);
+  elements.deleteContactButton.addEventListener("click", handleDeleteContact);
 
   elements.wizardNext.addEventListener("click", () => advanceWizard(1));
   elements.wizardBack.addEventListener("click", () => advanceWizard(-1));
@@ -1616,6 +1659,7 @@ function openInventoryDrawer() {
 
   closeNotesDrawer();
   closeHistoryDrawer();
+  closeContactsDrawer();
   renderInventory();
   elements.inventoryDrawer.classList.add("is-open");
   elements.inventoryDrawer.setAttribute("aria-hidden", "false");
@@ -1633,6 +1677,7 @@ function openNotesDrawer() {
 
   closeInventoryDrawer();
   closeHistoryDrawer();
+  closeContactsDrawer();
   renderNotes();
   elements.notesDrawer.classList.add("is-open");
   elements.notesDrawer.setAttribute("aria-hidden", "false");
@@ -1650,6 +1695,7 @@ function openHistoryDrawer() {
 
   closeInventoryDrawer();
   closeNotesDrawer();
+  closeContactsDrawer();
   renderHistory();
   elements.historyDrawer.classList.add("is-open");
   elements.historyDrawer.setAttribute("aria-hidden", "false");
@@ -1664,6 +1710,421 @@ function closeAllDrawers() {
   closeInventoryDrawer();
   closeNotesDrawer();
   closeHistoryDrawer();
+  closeContactsDrawer();
+}
+
+/* ==========================================================================
+   Contatos, aliados e patronos
+   ========================================================================== */
+
+function getContacts(character) {
+  const target = character ?? getActiveCharacter();
+  return Array.isArray(target?.contacts) ? target.contacts : [];
+}
+
+function getSelectedContact() {
+  return getContacts().find((contact) => contact.id === state.selectedContactId) || null;
+}
+
+function createContact(tipo) {
+  return {
+    id: crypto.randomUUID(),
+    photoNumber: 0,
+    tipo: CONTACT_TYPES.includes(tipo) ? tipo : "contato",
+    nome: "",
+    nascimento: "",
+    atuacao: "",
+    caracteristicas: "",
+    descricao: "",
+    infos: [],
+  };
+}
+
+function openContactsDrawer() {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  closeInventoryDrawer();
+  closeNotesDrawer();
+  closeHistoryDrawer();
+  showContactsListView();
+  elements.contactsDrawer.classList.add("is-open");
+  elements.contactsDrawer.setAttribute("aria-hidden", "false");
+}
+
+function closeContactsDrawer() {
+  elements.contactsDrawer.classList.remove("is-open");
+  elements.contactsDrawer.setAttribute("aria-hidden", "true");
+}
+
+function showContactsListView() {
+  state.selectedContactId = null;
+  disarmDeleteContact();
+  renderContactsList();
+  elements.contactsDrawerTitle.textContent = "Contatos e Aliados";
+  elements.contactsBackButton.classList.add("hidden");
+  elements.contactsListView.classList.add("is-active");
+  elements.contactsDetailView.classList.remove("is-active");
+  elements.contactsListView.setAttribute("aria-hidden", "false");
+  elements.contactsDetailView.setAttribute("aria-hidden", "true");
+}
+
+function openContactDetail(contactId) {
+  const contact = getContacts().find((item) => item.id === contactId);
+  if (!contact) {
+    return;
+  }
+
+  state.selectedContactId = contactId;
+  disarmDeleteContact();
+  renderContactDetail();
+  elements.contactsDrawerTitle.textContent = CONTACT_TYPE_LABELS[contact.tipo] || "Contato";
+  elements.contactsBackButton.classList.remove("hidden");
+  elements.contactsDetailView.classList.add("is-active");
+  elements.contactsListView.classList.remove("is-active");
+  elements.contactsDetailView.setAttribute("aria-hidden", "false");
+  elements.contactsListView.setAttribute("aria-hidden", "true");
+  elements.contactsDetailView.scrollTop = 0;
+}
+
+function renderContacts() {
+  if (state.selectedContactId && getSelectedContact()) {
+    renderContactDetail();
+  } else {
+    showContactsListView();
+  }
+}
+
+function renderContactsList() {
+  const contacts = getContacts();
+  elements.contactsEmpty.classList.toggle("hidden", contacts.length > 0);
+
+  elements.contactsList.innerHTML = contacts.map((contact) => {
+    const nome = String(contact.nome || "").trim() || "Sem nome";
+    const tipo = CONTACT_TYPE_LABELS[contact.tipo] || "Contato";
+    const meta = [contact.atuacao, contact.nascimento]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+      .join(" · ") || "Sem local definido";
+    const code = formatContactCode(contact.photoNumber);
+
+    return `
+      <button type="button" class="contact-card" data-contact-id="${escapeAttribute(contact.id)}">
+        <span class="contact-card-avatar" data-contact-photo="${escapeAttribute(code)}">
+          <span class="contact-card-initial">${escapeHtml(nome.charAt(0).toUpperCase())}</span>
+        </span>
+        <span class="contact-card-body">
+          <span class="contact-card-name">${escapeHtml(nome)}</span>
+          <span class="contact-card-meta">${escapeHtml(meta)}</span>
+        </span>
+        <span class="contact-card-tag is-${escapeAttribute(contact.tipo)}">${escapeHtml(tipo)}</span>
+      </button>`;
+  }).join("");
+
+  hydrateContactAvatars();
+}
+
+// A miniatura só aparece se o arquivo existir na pasta; enquanto não existir,
+// a inicial do nome fica no lugar dela.
+function hydrateContactAvatars() {
+  elements.contactsList.querySelectorAll("[data-contact-photo]").forEach((avatar) => {
+    const code = avatar.dataset.contactPhoto;
+    if (!code) {
+      return;
+    }
+
+    const candidates = PORTRAIT_IMAGE_EXTENSIONS.map(
+      (extension) => `${CONTACT_IMAGE_DIR}/img_ctt_${code}.${extension}`,
+    );
+
+    let index = 0;
+    const probe = new Image();
+    probe.onload = () => {
+      const image = document.createElement("img");
+      image.src = probe.src;
+      image.alt = "";
+      avatar.append(image);
+      avatar.classList.add("has-image");
+    };
+    probe.onerror = () => {
+      index += 1;
+      if (index < candidates.length) {
+        probe.src = candidates[index];
+      }
+    };
+    probe.src = candidates[index];
+  });
+}
+
+function renderContactDetail() {
+  const contact = getSelectedContact();
+  if (!contact) {
+    return;
+  }
+
+  elements.contactsDetailView.querySelectorAll("[data-contact-field]").forEach((field) => {
+    field.value = contact[field.dataset.contactField] ?? "";
+  });
+
+  renderContactInfos(contact);
+  renderContactPhoto(contact);
+}
+
+function renderContactInfos(contact) {
+  const infos = Array.isArray(contact.infos) ? contact.infos : [];
+
+  elements.contactInfosList.innerHTML = infos.map((info, index) => `
+    <div class="contact-info-row">
+      <input type="text" value="${escapeAttribute(info || "")}" data-contact-info-index="${index}"
+        maxlength="160" placeholder="Ex.: consegue plantas de prédios da zona portuária"
+        aria-label="Informação ${index + 1}">
+      <button type="button" class="contact-info-remove" data-contact-info-remove="${index}"
+        aria-label="Remover informação ${index + 1}">✕</button>
+    </div>`).join("");
+}
+
+function formatContactCode(photoNumber) {
+  const value = Math.floor(Number(photoNumber));
+  if (!Number.isFinite(value) || value <= 0) {
+    return "";
+  }
+
+  return String(value).padStart(3, "0");
+}
+
+function buildContactPhotoCandidates(photoNumber) {
+  const code = formatContactCode(photoNumber);
+  if (!code) {
+    return [];
+  }
+
+  return PORTRAIT_IMAGE_EXTENSIONS.map((extension) => `${CONTACT_IMAGE_DIR}/img_ctt_${code}.${extension}`);
+}
+
+function renderContactPhoto(contact) {
+  const code = formatContactCode(contact.photoNumber);
+  const image = elements.contactPhotoImage;
+
+  state.contactPhotoAttempt += 1;
+  const attempt = state.contactPhotoAttempt;
+  image.onerror = null;
+  image.onload = null;
+  image.removeAttribute("src");
+  elements.contactPhotoFrame.classList.remove("has-image");
+
+  elements.contactPhotoBadge.textContent = code ? `#${code}` : "";
+  elements.contactPhotoBadge.classList.toggle("hidden", !code);
+  elements.contactPhotoFileName.textContent = code ? `img_ctt_${code}.png` : "";
+  elements.contactPhotoHint.classList.toggle("hidden", !code);
+
+  const candidates = buildContactPhotoCandidates(contact.photoNumber);
+  let index = 0;
+
+  const tryNext = () => {
+    if (attempt !== state.contactPhotoAttempt) {
+      return;
+    }
+
+    if (index >= candidates.length) {
+      image.onerror = null;
+      image.onload = null;
+      return;
+    }
+
+    image.onerror = tryNext;
+    image.onload = () => {
+      if (attempt === state.contactPhotoAttempt) {
+        elements.contactPhotoFrame.classList.add("has-image");
+      }
+    };
+    image.src = candidates[index];
+    index += 1;
+  };
+
+  tryNext();
+}
+
+async function handleAddContact() {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  const contact = createContact(elements.contactTypeSelect.value);
+  contact.photoNumber = await allocateContactPhotoNumber().catch((error) => {
+    console.error(error);
+    return 0;
+  });
+
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  mutateActiveCharacter((character) => {
+    if (!Array.isArray(character.contacts)) {
+      character.contacts = [];
+    }
+    character.contacts.push(contact);
+  });
+
+  markCharacterDirty();
+  openContactDetail(contact.id);
+}
+
+function handleContactCardClick(event) {
+  const card = event.target.closest("[data-contact-id]");
+  if (card) {
+    openContactDetail(card.dataset.contactId);
+  }
+}
+
+function handleContactFieldInput(event) {
+  const field = event.target.closest("[data-contact-field], [data-contact-info-index]");
+  if (!field || !hasActiveCharacter() || !state.selectedContactId) {
+    return;
+  }
+
+  const contactId = state.selectedContactId;
+
+  mutateActiveCharacter((character) => {
+    const contact = (character.contacts || []).find((item) => item.id === contactId);
+    if (!contact) {
+      return;
+    }
+
+    if (field.dataset.contactField) {
+      contact[field.dataset.contactField] = field.value;
+      return;
+    }
+
+    if (!Array.isArray(contact.infos)) {
+      contact.infos = [];
+    }
+    contact.infos[Number(field.dataset.contactInfoIndex)] = field.value;
+  });
+
+  if (field.dataset.contactField === "tipo") {
+    elements.contactsDrawerTitle.textContent = CONTACT_TYPE_LABELS[field.value] || "Contato";
+  }
+
+  markCharacterDirty();
+}
+
+function handleAddContactInfo() {
+  const contact = getSelectedContact();
+  if (!contact) {
+    return;
+  }
+
+  const contactId = contact.id;
+
+  mutateActiveCharacter((character) => {
+    const target = (character.contacts || []).find((item) => item.id === contactId);
+    if (!target) {
+      return;
+    }
+    if (!Array.isArray(target.infos)) {
+      target.infos = [];
+    }
+    target.infos.push("");
+  });
+
+  markCharacterDirty();
+  renderContactInfos(getSelectedContact());
+  elements.contactInfosList.querySelector(".contact-info-row:last-child input")?.focus();
+}
+
+function handleContactInfoRemove(event) {
+  const button = event.target.closest("[data-contact-info-remove]");
+  if (!button || !state.selectedContactId) {
+    return;
+  }
+
+  const contactId = state.selectedContactId;
+  const index = Number(button.dataset.contactInfoRemove);
+
+  mutateActiveCharacter((character) => {
+    const contact = (character.contacts || []).find((item) => item.id === contactId);
+    contact?.infos?.splice(index, 1);
+  });
+
+  markCharacterDirty();
+  renderContactInfos(getSelectedContact());
+}
+
+// Excluir contato é em duas batidas: o primeiro clique arma o botão. Sem isso um
+// toque errado apagaria a mini-ficha inteira sem volta.
+function disarmDeleteContact() {
+  elements.deleteContactButton.textContent = "Excluir contato";
+  delete elements.deleteContactButton.dataset.armed;
+}
+
+function handleDeleteContact() {
+  const contact = getSelectedContact();
+  if (!contact) {
+    return;
+  }
+
+  if (elements.deleteContactButton.dataset.armed !== "true") {
+    elements.deleteContactButton.dataset.armed = "true";
+    elements.deleteContactButton.textContent = "Confirmar exclusão";
+    return;
+  }
+
+  const contactId = contact.id;
+
+  mutateActiveCharacter((character) => {
+    character.contacts = (character.contacts || []).filter((item) => item.id !== contactId);
+  });
+
+  markCharacterDirty();
+  showContactsListView();
+  showToast("Contato excluído.");
+}
+
+function highestKnownContactPhotoNumber() {
+  return Object.values(state.charactersMap).reduce((highest, character) => {
+    return getContacts(character).reduce((inner, contact) => {
+      const value = Math.floor(Number(contact?.photoNumber));
+      return Number.isFinite(value) && value > inner ? value : inner;
+    }, highest);
+  }, 0);
+}
+
+async function allocateContactPhotoNumber() {
+  const counterRef = doc(db, ...CONTACT_COUNTER_PATH);
+
+  return runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(counterRef);
+    const stored = Math.floor(Number(snapshot.exists() ? snapshot.data().lastContactNumber : 0));
+    const lastContactNumber = Number.isFinite(stored) && stored > 0 ? stored : 0;
+    const contactNumber = Math.max(lastContactNumber, highestKnownContactPhotoNumber()) + 1;
+
+    transaction.set(counterRef, {
+      lastContactNumber: contactNumber,
+      updatedAtMs: Date.now(),
+    }, { merge: true });
+
+    return contactNumber;
+  });
+}
+
+function sanitizeContacts(rows) {
+  return (Array.isArray(rows) ? rows : []).map((row) => {
+    const photoNumber = Math.floor(Number(row?.photoNumber));
+
+    return {
+      id: row?.id || crypto.randomUUID(),
+      photoNumber: Number.isFinite(photoNumber) && photoNumber > 0 ? photoNumber : 0,
+      tipo: CONTACT_TYPES.includes(row?.tipo) ? row.tipo : "contato",
+      nome: row?.nome ?? "",
+      nascimento: row?.nascimento ?? "",
+      atuacao: row?.atuacao ?? "",
+      caracteristicas: row?.caracteristicas ?? "",
+      descricao: row?.descricao ?? "",
+      infos: (Array.isArray(row?.infos) ? row.infos : []).map((info) => String(info ?? "")),
+    };
+  });
 }
 
 function renderInventory() {
@@ -2369,6 +2830,7 @@ function renderCharacterWorkspace() {
   renderInventory();
   renderNotes();
   renderHistory();
+  renderContacts();
   recalculateDerivedFields();
   renderSheetSelector();
   renderSessionSummary();
@@ -3865,6 +4327,7 @@ function normalizeCharacterCollections(character) {
   character.inventoryItems = sanitizeInventoryItems(character.inventoryItems || []);
   character.backpackSize = normalizeBackpackSize(character.backpackSize, character.inventoryItems.length);
   character.equipmentSlots = sanitizeEquipmentSlots(character.equipmentSlots);
+  character.contacts = sanitizeContacts(character.contacts || []);
 }
 
 async function ensureUserProfile(user) {
@@ -4210,6 +4673,7 @@ function createDefaultCharacter(ownerProfile, ordinal) {
     periciasPontos: "",
     notesText: "",
     historyText: "",
+    contacts: [],
     state: "creation",
     pendingAttributePoint: 0,
     pendingUpgradePoint: 0,
@@ -4257,6 +4721,7 @@ function normalizeCharacter(rawCharacter, characterId) {
   normalized.inventoryItems = sanitizeInventoryItems(rawCharacter.inventoryItems || normalized.inventoryItems);
   normalized.backpackSize = normalizeBackpackSize(rawCharacter.backpackSize, normalized.inventoryItems.length);
   normalized.equipmentSlots = sanitizeEquipmentSlots(rawCharacter.equipmentSlots);
+  normalized.contacts = sanitizeContacts(rawCharacter.contacts || normalized.contacts);
   if (!normalized.state || !["creation", "play", "evolution"].includes(normalized.state)) {
     normalized.state = rawCharacter.state || "play";
   }
@@ -4282,6 +4747,7 @@ function serializeCharacterForWrite(character) {
     inventoryItems: sanitizeInventoryItems(payload.inventoryItems || []),
     backpackSize: normalizeBackpackSize(payload.backpackSize, (payload.inventoryItems || []).length),
     equipmentSlots: sanitizeEquipmentSlots(payload.equipmentSlots),
+    contacts: sanitizeContacts(payload.contacts || []),
   };
 }
 
@@ -5106,6 +5572,7 @@ ${buildPrintCombatSkillsSection(character)}
 ${buildPrintUpgradesSection(character)}
 ${buildPrintEquipmentSection(character)}
 ${buildPrintInventorySection(character)}
+${buildPrintContactsSection(character)}
 ${buildPrintTextSection("Anotações", character.notesText)}
 ${buildPrintTextSection("História", character.historyText)}
 
@@ -5179,6 +5646,14 @@ function buildPrintStyles() {
     padding-bottom: 3px;
     margin-bottom: 7px;
   }
+  .print-contact { break-inside: avoid; margin-bottom: 9px; }
+  .print-contact h3 {
+    font-size: 11.5px;
+    margin: 0 0 3px;
+    border-bottom: 1px dotted #b9a887;
+  }
+  .print-contact p { margin: 0 0 2px; }
+  .print-contact ul { margin: 2px 0 0; padding-left: 16px; }
   .print-columns { display: flex; gap: 14px; align-items: flex-start; }
   .print-columns > * { flex: 1 1 0; min-width: 0; }
   .print-portrait {
@@ -5505,6 +5980,39 @@ function buildPrintInventorySection(character) {
       </tr>
     </tbody>
   </table>` : `<p class="print-empty">Nenhum pertence registrado.</p>`}
+</section>`;
+}
+
+function buildPrintContactsSection(character) {
+  const contacts = getContacts(character).filter((contact) => String(contact.nome || "").trim());
+  if (!contacts.length) {
+    return "";
+  }
+
+  const blocks = contacts.map((contact) => {
+    const linhas = [
+      ["Tipo", CONTACT_TYPE_LABELS[contact.tipo] || "Contato"],
+      ["Nascimento", contact.nascimento],
+      ["Atuação", contact.atuacao],
+      ["Características", contact.caracteristicas],
+      ["Descrição", contact.descricao],
+    ]
+      .filter(([, value]) => String(value || "").trim())
+      .map(([label, value]) => `<p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</p>`)
+      .join("");
+
+    const infos = (contact.infos || []).filter((info) => String(info || "").trim());
+    const infosHtml = infos.length
+      ? `<p><strong>Pode fornecer:</strong></p><ul>${infos.map((info) => `<li>${escapeHtml(info)}</li>`).join("")}</ul>`
+      : "";
+
+    return `<div class="print-contact"><h3>${escapeHtml(contact.nome)}</h3>${linhas}${infosHtml}</div>`;
+  }).join("");
+
+  return `
+<section class="print-section print-text">
+  <h2>Contatos e Aliados</h2>
+  ${blocks}
 </section>`;
 }
 

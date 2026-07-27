@@ -27,15 +27,23 @@ service cloud.firestore {
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isMaster());
     }
 
-    // Contador dos números de retrato (counters/characterPortrait). Só pode
-    // crescer: um número já entregue a uma ficha nunca volta a ser sorteado,
-    // então excluir personagem não faz outro herdar a imagem dele.
-    match /counters/{counterId} {
+    // Contadores de numeração de imagem. Só podem crescer: um número já
+    // entregue nunca volta a ser sorteado, então excluir um personagem (ou um
+    // contato) não faz outro herdar a imagem dele.
+    match /counters/characterPortrait {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.lastPortraitNumber is int
         && request.resource.data.lastPortraitNumber > 0;
       allow update: if isSignedIn() && request.resource.data.lastPortraitNumber is int
         && request.resource.data.lastPortraitNumber > resource.data.lastPortraitNumber;
+    }
+
+    match /counters/contactPhoto {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.lastContactNumber is int
+        && request.resource.data.lastContactNumber > 0;
+      allow update: if isSignedIn() && request.resource.data.lastContactNumber is int
+        && request.resource.data.lastContactNumber > resource.data.lastContactNumber;
     }
   }
 }
