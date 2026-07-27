@@ -1594,14 +1594,74 @@ input[readonly] {
   background: rgba(8, 8, 8, 0.35);
 }
 
+.chest-add {
+  all: unset;
+  cursor: pointer;
+  padding: 14px 20px;
+}
+
 .chest-empty-mark {
   font-size: 1.3rem;
   line-height: 1;
   color: rgba(216, 167, 45, 0.4);
 }
 
+.chest-add:hover .chest-empty-mark,
+.chest-add:focus-visible .chest-empty-mark {
+  color: rgba(216, 167, 45, 0.8);
+}
+
+.chest-icon[draggable="true"] {
+  cursor: grab;
+}
+
+.chest-item-name {
+  width: 100%;
+  max-width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(216, 167, 45, 0.25);
+  color: var(--ink);
+  font-size: 0.72rem;
+  text-align: center;
+  padding: 2px 0;
+}
+
+.chest-item-name:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.chest-item-meta {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+}
+
+.chest-item-meta input {
+  min-width: 0;
+  flex: 1 1 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(216, 167, 45, 0.15);
+  color: var(--muted);
+  font-size: 0.6rem;
+  text-align: center;
+  padding: 1px 0;
+}
+
+.chest-item-meta input:focus {
+  outline: none;
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
 .chest-slot.is-filled {
   cursor: grab;
+}
+
+.chest-slot.is-item {
+  cursor: default;
 }
 
 .chest-slot.is-filled:hover {

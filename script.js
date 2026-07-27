@@ -1185,6 +1185,8 @@ function registerEvents() {
   elements.vehicleSlot.addEventListener("click", handleVehicleClick);
   elements.vehicleSlot.addEventListener("input", handleVehicleInput);
   elements.chestGrid.addEventListener("click", handleChestClick);
+  elements.chestGrid.addEventListener("input", handleChestInput);
+  elements.chestGrid.addEventListener("focusout", handleChestFieldBlur);
   elements.inventoryRows.addEventListener("input", handleBackpackInput);
   elements.backpackSize.addEventListener("change", handleBackpackSizeChange);
   [elements.equipmentSlots, elements.inventoryRows, elements.chestGrid].forEach(registerGearDragZone);
@@ -2802,8 +2804,9 @@ function renderVehicleSlot() {
         <div class="gear-fields">
           ${field("nome", "Modelo", vehicle.nome, "Ex.: Chevette 82", false)}
           <div class="gear-stats">
-            ${field("placa", "Placa / ID", vehicle.placa, "ABC-1234", false)}
-            ${field("consumo", "Km/L", vehicle.consumo, "10", false)}
+            ${field("consumo", "Consumo", vehicle.consumo, "1d10", false)}
+            ${field("ip", "IP", vehicle.ip, "2", true)}
+            ${field("pv", "PV", vehicle.pv, "20", true)}
           </div>
         </div>
       </div>
@@ -3198,30 +3201,57 @@ function renderChest() {
   updateChestFooter();
 }
 
+const CHEST_ITEM_ICON_SVG = `<svg class="chest-icon-art" viewBox="0 0 64 64" fill="currentColor" role="img" aria-label="Item">
+    <path d="M32 4 58 16v32L32 60 6 48V16L32 4Zm0 6L14 18l18 8 18-8-18-8ZM10 22v23l19 9V31L10 22Zm44 0-19 9v23l19-9V22Z"/>
+  </svg>`;
+
+function isEmptyChestItemEntry(entry) {
+  return [entry.nome, entry.quantidade, entry.peso, entry.valor]
+    .every((value) => String(value ?? "").trim() === "");
+}
+
 function buildChestSlotMarkup(entry, index) {
   if (!entry) {
     return `
       <div class="chest-slot is-empty" data-chest-index="${index}" data-drop-zone="chest">
-        <span class="chest-empty-mark" aria-hidden="true">+</span>
+        <button type="button" class="chest-add" data-chest-add="${index}" title="Registrar item" aria-label="Registrar item no baú">
+          <span class="chest-empty-mark" aria-hidden="true">+</span>
+        </button>
       </div>`;
   }
 
-  const isWeapon = entry.kind === "weapon";
-  const icon = isWeapon ? WEAPON_ICON_MAP.get(entry.iconId) : null;
+  if (entry.kind !== "weapon") {
+    // Item de linha: editável direto no baú, sem precisar arrastar da mochila.
+    // O punho de arrasto fica só no ícone para não brigar com a seleção de
+    // texto dos campos.
+    const field = (name, label, value) => `
+      <input type="text" inputmode="numeric" data-numeric="true" value="${escapeAttribute(value || "")}" placeholder="${escapeAttribute(label)}"
+        data-chest-index="${index}" data-chest-field="${name}"
+        aria-label="${escapeAttribute(`${label} — item do baú, slot ${index + 1}`)}">`;
+
+    return `
+      <article class="chest-slot is-filled is-item" data-chest-index="${index}" data-drop-zone="chest">
+        <button type="button" class="chest-remove" data-chest-remove="${index}" title="Descartar" aria-label="Descartar item">✕</button>
+        <span class="chest-icon" draggable="true" data-drag-source="chest" data-chest-index="${index}"
+          title="Arraste para a mochila ou para um slot de arma">${CHEST_ITEM_ICON_SVG}</span>
+        <input type="text" class="chest-item-name" value="${escapeAttribute(entry.nome || "")}" placeholder="Nome do item"
+          data-chest-index="${index}" data-chest-field="nome"
+          aria-label="${escapeAttribute(`Nome — item do baú, slot ${index + 1}`)}">
+        <div class="chest-item-meta">
+          ${field("quantidade", "Qtd", entry.quantidade)}
+          ${field("peso", "Peso", entry.peso)}
+          ${field("valor", "Valor", entry.valor)}
+        </div>
+      </article>`;
+  }
+
+  const icon = WEAPON_ICON_MAP.get(entry.iconId);
   const name = String(entry.nome || "").trim() || (icon ? icon.label : "Item");
-
-  const meta = isWeapon
-    ? [icon ? icon.label : "Arma", entry.dano && `Dano ${entry.dano}`, entry.carregador && `${toPositiveInt(entry.municao)}/${entry.carregador}`]
-    : [entry.quantidade && `×${entry.quantidade}`, entry.peso && `${entry.peso} pe`, entry.valor && `$${entry.valor}`];
-
-  const visual = icon
-    ? buildIconMarkup("weapon", entry.iconId, "chest-icon-art")
-    : `<svg class="chest-icon-art" viewBox="0 0 64 64" fill="currentColor" role="img" aria-label="Item">
-         <path d="M32 4 58 16v32L32 60 6 48V16L32 4Zm0 6L14 18l18 8 18-8-18-8ZM10 22v23l19 9V31L10 22Zm44 0-19 9v23l19-9V22Z"/>
-       </svg>`;
+  const meta = [icon ? icon.label : "Arma", entry.dano && `Dano ${entry.dano}`, entry.carregador && `${toPositiveInt(entry.municao)}/${entry.carregador}`];
+  const visual = icon ? buildIconMarkup("weapon", entry.iconId, "chest-icon-art") : CHEST_ITEM_ICON_SVG;
 
   return `
-    <article class="chest-slot is-filled ${isWeapon ? "is-weapon" : "is-item"}" data-chest-index="${index}"
+    <article class="chest-slot is-filled is-weapon" data-chest-index="${index}"
       data-drop-zone="chest" data-drag-source="chest" draggable="true" title="${escapeAttribute(name)}">
       <button type="button" class="chest-remove" data-chest-remove="${index}" title="Descartar" aria-label="${escapeAttribute(`Descartar ${name}`)}">✕</button>
       <span class="chest-icon">${visual}</span>
@@ -3237,10 +3267,23 @@ function updateChestFooter() {
 
   elements.chestFooter.textContent = entries.length
     ? `Guardado ${entries.length} · ${weapons} ${weapons === 1 ? "arma" : "armas"} · ${items} ${items === 1 ? "item" : "itens"}`
-    : "Baú vazio · arraste algo da mochila ou dos slots de arma";
+    : "Baú vazio · registre um item ou arraste da mochila e dos slots de arma";
 }
 
 function handleChestClick(event) {
+  const add = event.target.closest("[data-chest-add]");
+  if (add && hasActiveCharacter()) {
+    mutateActiveCharacter((character) => {
+      getChestItems(character).push(chestEntryFromPayload({ kind: "item" }));
+    });
+
+    renderChest();
+    markCharacterDirty();
+    const names = elements.chestGrid.querySelectorAll(".chest-item-name");
+    names[names.length - 1]?.focus();
+    return;
+  }
+
   const remove = event.target.closest("[data-chest-remove]");
   if (!remove || !hasActiveCharacter()) {
     return;
@@ -3260,6 +3303,60 @@ function handleChestClick(event) {
   renderChest();
   markCharacterDirty();
   showToast("Removido do baú", "", "📦");
+}
+
+function handleChestInput(event) {
+  const field = event.target.closest("[data-chest-field]");
+  if (!field || !hasActiveCharacter()) {
+    return;
+  }
+
+  if (field.dataset.numeric === "true") {
+    field.value = sanitizeIntegerInput(field.value);
+  }
+
+  const index = Number(field.dataset.chestIndex);
+  const fieldName = field.dataset.chestField;
+
+  mutateActiveCharacter((character) => {
+    const entries = getChestItems(character);
+    if (entries[index] && entries[index].kind !== "weapon") {
+      entries[index][fieldName] = field.value;
+    }
+  });
+
+  markCharacterDirty();
+}
+
+// Um item registrado direto no baú e deixado em branco some ao perder o foco,
+// do mesmo jeito que uma linha vazia da mochila não é gravada.
+function handleChestFieldBlur(event) {
+  const field = event.target.closest("[data-chest-field]");
+  if (!field || !hasActiveCharacter()) {
+    return;
+  }
+
+  const slot = field.closest("[data-chest-index]");
+  if (slot && slot.contains(event.relatedTarget)) {
+    return;
+  }
+
+  const index = Number(field.dataset.chestIndex);
+  let removed = false;
+
+  mutateActiveCharacter((character) => {
+    const entries = getChestItems(character);
+    const entry = entries[index];
+    if (entry && entry.kind !== "weapon" && isEmptyChestItemEntry(entry)) {
+      entries.splice(index, 1);
+      removed = true;
+    }
+  });
+
+  if (removed) {
+    renderChest();
+    markCharacterDirty();
+  }
 }
 
 /* ==========================================================================
@@ -5819,8 +5916,9 @@ function createVehicle() {
     iconId: "",
     kind: "",
     nome: "",
-    placa: "",
     consumo: "",
+    ip: "",
+    pv: "",
     tanque: DEFAULT_FUEL_TANK,
     combustivel: "",
   };
@@ -5834,8 +5932,9 @@ function sanitizeVehicle(raw) {
     iconId: icon ? source.iconId : "",
     kind: icon ? icon.kind : "",
     nome: source.nome ?? "",
-    placa: source.placa ?? "",
     consumo: source.consumo ?? "",
+    ip: source.ip ?? "",
+    pv: source.pv ?? "",
     tanque: source.tanque ?? DEFAULT_FUEL_TANK,
     combustivel: source.combustivel ?? "",
   };
@@ -6944,7 +7043,7 @@ function buildPrintEquipmentSection(character) {
 function buildPrintVehicleSection(character) {
   const vehicle = sanitizeVehicle(character.vehicle);
   const icon = VEHICLE_ICON_MAP.get(vehicle.iconId);
-  const hasData = icon || [vehicle.nome, vehicle.placa, vehicle.consumo, vehicle.combustivel]
+  const hasData = icon || [vehicle.nome, vehicle.consumo, vehicle.ip, vehicle.pv, vehicle.combustivel]
     .some((value) => String(value ?? "").trim() !== "");
 
   if (!hasData) {
@@ -6959,14 +7058,15 @@ function buildPrintVehicleSection(character) {
   <h2>Veículo</h2>
   <table>
     <thead>
-      <tr><th>Tipo</th><th>Modelo</th><th>Placa / ID</th><th class="num">Km/L</th><th class="num">Combustível</th></tr>
+      <tr><th>Tipo</th><th>Modelo</th><th>Consumo</th><th class="num">IP</th><th class="num">PV</th><th class="num">Combustível</th></tr>
     </thead>
     <tbody>
       <tr>
         <td>${escapeHtml(icon ? icon.label : "—")}</td>
         <td>${printCell(vehicle.nome)}</td>
-        <td>${printCell(vehicle.placa)}</td>
-        <td class="num">${printCell(vehicle.consumo)}</td>
+        <td>${printCell(vehicle.consumo)}</td>
+        <td class="num">${printCell(vehicle.ip)}</td>
+        <td class="num">${printCell(vehicle.pv)}</td>
         <td class="num">${escapeHtml(fuel)}</td>
       </tr>
     </tbody>
