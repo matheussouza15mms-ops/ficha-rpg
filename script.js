@@ -3068,13 +3068,13 @@ function fuelLevelName(ratio) {
 }
 
 // Litros gastos num trajeto: distância média do tipo de deslocamento dividida
-// pelo consumo real do veículo, sempre arredondado para pelo menos 1 litro.
+// pelo consumo real do veículo, sempre arredondado para cima até no mínimo 1.
 function computeTripLiters(consumo, distanceKm) {
   const perLiter = parseFloat(String(consumo ?? "").replace(",", "."));
   if (!perLiter || perLiter <= 0) {
     return 0;
   }
-  return Math.max(1, Math.round(distanceKm / perLiter));
+  return Math.max(1, Math.ceil(distanceKm / perLiter));
 }
 
 // Ponta do ponteiro sobre o arco de 180°: 180° (E, à esquerda) a 0° (F, à
