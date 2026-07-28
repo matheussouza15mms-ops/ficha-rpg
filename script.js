@@ -127,6 +127,8 @@ let SKILLS_CATALOG = [];
 
 let COMBAT_SKILLS_CATALOG = [];
 
+let SKILL_DESCRIPTION_INDEX = [];
+
 const identificationFields = [
   ["nome", "Personagem"],
   ["classeSocialProfissao", "Classe Social / Profissão"],
@@ -699,6 +701,7 @@ function buildStaticForm() {
   buildUpgrades();
   buildSkillsTable();
   buildCombatSkillsTable();
+  decorateSkillInfoIcons();
 }
 
 function buildAttributes() {
@@ -970,6 +973,124 @@ function hideUpgradeTooltip() {
 
   tooltip.classList.remove("is-visible");
   tooltip.setAttribute("aria-hidden", "true");
+}
+
+/**
+ * Achata SKILLS_CATALOG e COMBAT_SKILLS_CATALOG num índice único de
+ * "nome exibido na linha" -> descrição, no mesmo formato gravado em
+ * dynamicSkill/dynamicCombatSkill ("Perícia" ou "Perícia (Subgrupo)").
+ * Subgrupos sem descrição própria herdam a da Perícia-mãe.
+ */
+function buildSkillDescriptionIndex() {
+  const entries = [];
+
+  const addSkill = (skill) => {
+    if (skill.description) {
+      entries.push({ name: skill.name, description: skill.description });
+    }
+    (skill.subgroups || []).forEach((subgroup) => {
+      const description = subgroup.description || skill.description;
+      if (description) {
+        entries.push({ name: `${skill.name} (${subgroup.name})`, description });
+      }
+    });
+  };
+
+  SKILLS_CATALOG.forEach(addSkill);
+  COMBAT_SKILLS_CATALOG.forEach(addSkill);
+
+  SKILL_DESCRIPTION_INDEX = entries;
+}
+
+function findSkillDescriptionEntry(name) {
+  const target = String(name || "").trim();
+  if (!target || !SKILL_DESCRIPTION_INDEX.length) {
+    return null;
+  }
+
+  const exact = SKILL_DESCRIPTION_INDEX.find((entry) => entry.name === target);
+  if (exact) {
+    return exact;
+  }
+
+  const lower = target.toLowerCase();
+  const caseInsensitive = SKILL_DESCRIPTION_INDEX.find((entry) => entry.name.toLowerCase() === lower);
+  if (caseInsensitive) {
+    return caseInsensitive;
+  }
+
+  // Nomes editados à mão podem perder o sufixo "(Subgrupo)"; cai para a Perícia-base.
+  const baseName = target.replace(/\s*\([^()]*\)\s*$/, "").trim().toLowerCase();
+  return SKILL_DESCRIPTION_INDEX.find((entry) => entry.name.toLowerCase() === baseName) || null;
+}
+
+/**
+ * Mantém o ícone ⓘ de cada linha de perícia (normal ou de combate) em
+ * sincronia com o catálogo, no mesmo espírito de decorateUpgradeInfoIcons.
+ */
+function decorateSkillInfoIcons() {
+  [elements.skillsTable, elements.combatSkillsTable].forEach((table) => {
+    if (!table) {
+      return;
+    }
+
+    table.querySelectorAll(".dynamic-row").forEach((row) => {
+      const cell = row.querySelector(".skill-name");
+      if (!cell) {
+        return;
+      }
+
+      const input = cell.querySelector("input[data-field]");
+      const modelRow = findDynamicModelRow(row.dataset.dynamicType, row.dataset.rowId);
+      const name = String(modelRow?.nome ?? input?.value ?? "").trim();
+      const entry = findSkillDescriptionEntry(name);
+      let button = cell.querySelector(".upgrade-info");
+
+      if (!entry) {
+        if (button) {
+          button.remove();
+        }
+        cell.classList.remove("has-info");
+        return;
+      }
+
+      if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.className = "upgrade-info";
+        button.tabIndex = -1;
+        button.textContent = "i";
+        cell.appendChild(button);
+      }
+
+      button.dataset.skillTitle = entry.name;
+      button.dataset.skillDescription = entry.description;
+      button.setAttribute("aria-label", `Descrição da perícia ${entry.name}`);
+      button.title = "";
+      cell.classList.add("has-info");
+    });
+  });
+}
+
+function showSkillTooltip(button) {
+  const tooltip = elements.upgradeTooltip;
+  if (!tooltip) {
+    return;
+  }
+
+  const description = button.dataset.skillDescription;
+  if (!description) {
+    return;
+  }
+
+  tooltip.innerHTML = `
+    <span class="upgrade-tooltip-title">${escapeHtml(button.dataset.skillTitle || "")}</span>
+    <span class="upgrade-tooltip-text">${escapeHtml(description)}</span>
+  `;
+
+  tooltip.classList.add("is-visible");
+  tooltip.setAttribute("aria-hidden", "false");
+  positionUpgradeTooltip(button);
 }
 
 function createSkillRowElement({
@@ -1263,6 +1384,48 @@ function registerEvents() {
     } else {
       showUpgradeTooltip(button);
     }
+  });
+
+  // Tooltip de descrição das perícias, normais e de combate (mesmo ícone ⓘ).
+  [elements.skillsTable, elements.combatSkillsTable].forEach((table) => {
+    if (!table) {
+      return;
+    }
+    table.addEventListener("pointerover", (event) => {
+      const button = event.target.closest(".upgrade-info");
+      if (button) {
+        showSkillTooltip(button);
+      }
+    });
+    table.addEventListener("pointerout", (event) => {
+      const button = event.target.closest(".upgrade-info");
+      if (button && !button.contains(event.relatedTarget)) {
+        hideUpgradeTooltip();
+      }
+    });
+    table.addEventListener("focusin", (event) => {
+      const button = event.target.closest(".upgrade-info");
+      if (button) {
+        showSkillTooltip(button);
+      }
+    });
+    table.addEventListener("focusout", (event) => {
+      if (event.target.closest(".upgrade-info")) {
+        hideUpgradeTooltip();
+      }
+    });
+    table.addEventListener("click", (event) => {
+      const button = event.target.closest(".upgrade-info");
+      if (!button) {
+        return;
+      }
+      event.preventDefault();
+      if (elements.upgradeTooltip?.classList.contains("is-visible")) {
+        hideUpgradeTooltip();
+      } else {
+        showSkillTooltip(button);
+      }
+    });
   });
 
   window.addEventListener("resize", scheduleViewportChange);
@@ -1683,6 +1846,10 @@ function handleFieldInput(field, isNumeric) {
 
   if (key.startsWith("dynamicUpgrade:") && key.endsWith(":nome")) {
     decorateUpgradeInfoIcons();
+  }
+
+  if ((key.startsWith("dynamicSkill:") || key.startsWith("dynamicCombatSkill:")) && key.endsWith(":nome")) {
+    decorateSkillInfoIcons();
   }
 
   if (key === "nivel" || key === "xp") {
@@ -3878,6 +4045,7 @@ function rebuildDynamicSections() {
   buildUpgrades();
   buildSkillsTable();
   buildCombatSkillsTable();
+  decorateSkillInfoIcons();
   bindFieldEvents(elements.upgradesGrid);
   bindFieldEvents(elements.skillsTable);
   bindFieldEvents(elements.combatSkillsTable);
@@ -4320,6 +4488,11 @@ async function loadSkills() {
     SKILLS_CATALOG = [];
     COMBAT_SKILLS_CATALOG = [];
   }
+
+  buildSkillDescriptionIndex();
+  // O catálogo carrega de forma assíncrona: as linhas já desenhadas precisam
+  // ganhar o ícone de descrição assim que ele estiver disponível.
+  decorateSkillInfoIcons();
 }
 
 function openKitCatalogDialog() {

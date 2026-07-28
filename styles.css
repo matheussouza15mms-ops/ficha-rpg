@@ -794,7 +794,12 @@ input[readonly] {
 }
 
 .skill-name {
+  position: relative;
   gap: 0;
+}
+
+.skill-name.has-info input {
+  padding-right: 36px;
 }
 
 .skills-row:not(.skills-header) .skill-cell span {
@@ -3179,7 +3184,7 @@ dialog.is-closing::backdrop {
 }
 
 /* ==========================================================================
-   Ícone de informação dos aprimoramentos
+   Ícone de informação (aprimoramentos e perícias)
    ========================================================================== */
 
 .upgrade-info {

@@ -3,47 +3,52 @@
     {
       "name": "Animais",
       "attribute": null,
+      "description": "Grupo de Perícias ligado ao trato e conhecimento sobre animais. Em Fantasia, normalmente não se aplica a monstros.",
       "subgroups": [
-        { "name": "Treinamento de Animais", "attribute": null },
-        { "name": "Montaria", "attribute": "AGI" },
-        { "name": "Doma", "attribute": null },
-        { "name": "Veterinária", "attribute": null }
+        { "name": "Treinamento de Animais", "attribute": null, "description": "Ensina truques simples a animais domésticos. O treinamento leva em média 60 dias (reduzidos pela INT do animal), exigindo Testes diários." },
+        { "name": "Montaria", "attribute": "AGI", "description": "Monta e cavalga animais. Cada tipo de montaria (cavalo, camelo, elefante etc.) é uma Perícia separada." },
+        { "name": "Doma", "attribute": null, "description": "Semelhante a Treinamento de Animais, mas usada em feras selvagens; também serve para afastar animais selvagens sem domá-los." },
+        { "name": "Veterinária", "attribute": null, "description": "Cuida de animais, inclusive em cirurgias; também serve para identificar e classificar espécies, como Zoologia." }
       ]
     },
     {
       "name": "Armadilhas",
       "attribute": "PER",
+      "description": "Habilidade de montar, desarmar, consertar e encontrar armadilhas, de simples laços a armadilhas mágicas (estas exigem Testes Difíceis e 40+ pontos).",
       "subgroups": []
     },
     {
       "name": "Artes",
       "attribute": null,
+      "description": "Perícias criativas, também usadas para avaliar a autenticidade e a qualidade de obras. Um Acerto Crítico produz uma obra de grande valor.",
       "subgroups": [
-        { "name": "Arquitetura", "attribute": "CAR" },
-        { "name": "Atuação", "attribute": "CAR" },
-        { "name": "Canto", "attribute": "CAR" },
-        { "name": "Crítica de Arte", "attribute": "PER" },
-        { "name": "Culinária", "attribute": "PER" },
-        { "name": "Dança", "attribute": "AGI" },
-        { "name": "Desenho e Pintura", "attribute": "DEX" },
-        { "name": "Escapismo", "attribute": "AGI" },
-        { "name": "Escultura", "attribute": "DEX" },
-        { "name": "Fotografia", "attribute": "PER" },
-        { "name": "Ilusionismo", "attribute": "DEX" },
-        { "name": "Instrumentos Musicais", "attribute": "DEX" },
-        { "name": "Joalheria", "attribute": "DEX" },
-        { "name": "Prestidigitação", "attribute": "DEX" },
-        { "name": "Redação", "attribute": "INT" }
+        { "name": "Arquitetura", "attribute": "CAR", "description": "Projetos visuais, paisagismo, urbanismo e construção de edifícios." },
+        { "name": "Atuação", "attribute": "CAR", "description": "Interpretar emoções e personagens diferentes de si mesmo; também usada para enganar (Teste Resistido contra a PER do alvo)." },
+        { "name": "Canto", "attribute": "CAR", "description": "Cantar bem; o fracasso significa desafinar ou esquecer a letra." },
+        { "name": "Crítica de Arte", "attribute": "PER", "description": "Analisar e avaliar obras de arte quanto à técnica, estilo e qualidade." },
+        { "name": "Culinária", "attribute": "PER", "description": "Cozinhar bem e identificar ingredientes; pratos sofisticados exigem Teste Difícil." },
+        { "name": "Dança", "attribute": "AGI", "description": "Talento genérico para dançar vários estilos (não há Perícia separada por ritmo)." },
+        { "name": "Desenho e Pintura", "attribute": "DEX", "description": "Representar formas em superfícies com técnicas e estilos variados." },
+        { "name": "Escapismo", "attribute": "AGI", "description": "Escapar de algemas, cordas, camisas de força ou imobilizações físicas em geral." },
+        { "name": "Escultura", "attribute": "DEX", "description": "Esculpir figuras tridimensionais; cada material (barro, madeira, pedra, metal) é uma Perícia diferente." },
+        { "name": "Fotografia", "attribute": "PER", "description": "Capturar boas imagens e dominar técnicas fotográficas." },
+        { "name": "Ilusionismo", "attribute": "DEX", "description": "Criar ilusões e efeitos visuais para entreter ou enganar." },
+        { "name": "Instrumentos Musicais", "attribute": "DEX", "description": "Tocar e afinar instrumentos; cada instrumento é uma Perícia (instrumentos semelhantes podem ser agrupados)." },
+        { "name": "Joalheria", "attribute": "DEX", "description": "Trabalhar e avaliar metais e pedras preciosas; base da Perícia Artífice." },
+        { "name": "Prestidigitação", "attribute": "DEX", "description": "\"Mãos rápidas\" para truques não-místicos (cartas, sumiço de objetos); Perícia padrão de mágicos de palco." },
+        { "name": "Redação", "attribute": "INT", "description": "Escrever textos com clareza, estilo e correção." }
       ]
     },
     {
       "name": "Artífice",
       "attribute": "DEX",
+      "description": "Constrói e conserta roupas, móveis, caixas, utensílios etc. (mas não armas — isso é Armeiro). Não inclui o projeto, que é de outro profissional.",
       "subgroups": []
     },
     {
       "name": "Avaliação de Objetos",
       "attribute": "PER",
+      "description": "Avaliar corretamente o valor e a autenticidade de itens (quadros, joias, armas etc.). É testada em segredo pelo Mestre; uma falha crítica gera uma avaliação errada, porém plausível.",
       "subgroups": [
         { "name": "Antiguidades" },
         { "name": "Gemas" },
@@ -54,61 +59,65 @@
     {
       "name": "Camuflagem",
       "attribute": "PER",
+      "description": "Esconder-se (ou esconder outros/objetos) em ambientes naturais; Teste Resistido contra a PER ou Escutar do observador. Criaturas pequenas ganham +10%, criaturas grandes sofrem -10%.",
       "subgroups": []
     },
     {
       "name": "Ciências",
       "attribute": "INT",
+      "description": "Conhecimentos obtidos por estudo. Biologia não é uma Perícia própria, apenas seus Subgrupos.",
       "subgroups": [
-        { "name": "Agricultura" },
-        { "name": "Anatomia" },
-        { "name": "Antropologia" },
-        { "name": "Arqueologia" },
-        { "name": "Astronomia" },
-        { "name": "Botânica" },
-        { "name": "Direito" },
-        { "name": "Ecologia" },
-        { "name": "Filosofia" },
-        { "name": "Física" },
-        { "name": "Genética" },
-        { "name": "Geografia" },
-        { "name": "Geologia" },
-        { "name": "Heráldica" },
-        { "name": "Herbalismo" },
-        { "name": "História" },
-        { "name": "Literatura" },
-        { "name": "Matemática" },
-        { "name": "Meteorologia" },
-        { "name": "Pedagogia" },
-        { "name": "Psicologia" },
-        { "name": "Química" },
-        { "name": "Sociologia" },
-        { "name": "Teologia" },
-        { "name": "Ufologia" },
-        { "name": "Zoologia" }
+        { "name": "Agricultura", "description": "Organizar e executar plantações, colheita e combate a pragas." },
+        { "name": "Anatomia", "description": "Estudo da estrutura e do funcionamento dos corpos." },
+        { "name": "Antropologia", "description": "Estudo das culturas e sociedades humanas." },
+        { "name": "Arqueologia", "description": "Estudo de civilizações antigas por meio de monumentos e artefatos." },
+        { "name": "Astronomia", "description": "Identificar corpos celestes (apenas conhecimento mundano, não místico)." },
+        { "name": "Botânica", "description": "Identificar plantas e seus usos (comestível, venenosa, medicinal)." },
+        { "name": "Direito", "description": "Leis, processos e manobras legais da sociedade." },
+        { "name": "Ecologia", "description": "Interação entre espécies e com o meio; define a \"função\" de um animal." },
+        { "name": "Filosofia", "description": "Pensamento crítico e métodos científicos." },
+        { "name": "Física", "description": "Forças, movimento e leis fundamentais da matéria." },
+        { "name": "Genética", "description": "Estudo da hereditariedade e da variação dos seres vivos." },
+        { "name": "Geografia", "description": "Acidentes físicos, climas e mapas; cada planeta/mundo tem sua própria Perícia em cenários espaciais." },
+        { "name": "Geologia", "description": "Estudo da composição, estrutura e história da crosta terrestre." },
+        { "name": "Heráldica", "description": "Reconhecer brasões, símbolos de nobreza e sua história (não decifra códigos secretos)." },
+        { "name": "Herbalismo", "description": "Manipulação de ervas para poções, venenos e medicina, mais específico que Botânica." },
+        { "name": "História", "description": "Conhecimento de fatos históricos; cada mundo/região tem sua própria Perícia." },
+        { "name": "Literatura", "description": "Obras e autores famosos; permite localizar informações em bibliotecas." },
+        { "name": "Matemática", "description": "Cálculos, lógica e raciocínio numérico aplicado." },
+        { "name": "Meteorologia", "description": "Prever o clima nas próximas horas (Teste com -5% por dia adicional previsto)." },
+        { "name": "Pedagogia", "description": "Técnicas e métodos de ensino." },
+        { "name": "Psicologia", "description": "Compreensão do comportamento e da mente humana." },
+        { "name": "Química", "description": "Composição, propriedades e reações da matéria." },
+        { "name": "Sociologia", "description": "Estudo das relações e estruturas sociais." },
+        { "name": "Teologia", "description": "Crenças, datas, símbolos e mitos religiosos." },
+        { "name": "Ufologia", "description": "Estudo de fenômenos e avistamentos aéreos não identificados." },
+        { "name": "Zoologia", "description": "Identificar espécies animais, hábitos e anatomia (não serve para cuidar de animais — isso é Veterinária)." }
       ]
     },
     {
       "name": "Ciências Proibidas ou Alternativas",
       "attribute": null,
+      "description": "Conhecimento sobre temas ocultos e perigosos; quanto mais alto o valor, mais o Personagem é visado por quem guarda esses segredos. Normalmente não pode ser comprada na criação do Personagem em cenários de horror.",
       "subgroups": [
-        { "name": "Alquimia" },
-        { "name": "Anjos" },
-        { "name": "Astrologia" },
-        { "name": "Búzios" },
-        { "name": "Demônios" },
-        { "name": "Oculto" },
-        { "name": "Psionicismo" },
-        { "name": "Rituais" },
-        { "name": "Tarot" },
-        { "name": "Teoria da Magia" },
-        { "name": "Vampiros" },
-        { "name": "Viagem Astral" }
+        { "name": "Alquimia", "description": "Cria poções e elixires fora da química tradicional; base para poções mágicas." },
+        { "name": "Anjos", "description": "Conhecimento sobre a hierarquia, natureza e poderes angelicais." },
+        { "name": "Astrologia", "description": "Traçar perfil e prever o futuro por meio de mapas astrais." },
+        { "name": "Búzios", "description": "Adivinhação e interpretação de sinais por meio de búzios." },
+        { "name": "Demônios", "description": "Conhecimento sobre a hierarquia, natureza e poderes demoníacos." },
+        { "name": "Oculto", "description": "Reconhecer rituais, itens místicos e identificar itens mágicos." },
+        { "name": "Psionicismo", "description": "Conhecimento sobre poderes e fenômenos psíquicos." },
+        { "name": "Rituais", "description": "Entender a lógica dos componentes rituais; necessária para criar novas Magias (10% por ponto de Focus)." },
+        { "name": "Tarot", "description": "Como Astrologia, mas usando cartas." },
+        { "name": "Teoria da Magia", "description": "Base teórica essencial para magos aprenderem novas Magias (10% por ponto de Focus)." },
+        { "name": "Vampiros", "description": "Conhecimento sobre a natureza, fraquezas e hierarquia dos vampiros." },
+        { "name": "Viagem Astral", "description": "Controlar a alma fora do corpo em pequenas incursões ao Spiritum." }
       ]
     },
     {
       "name": "Condução",
       "attribute": "AGI",
+      "description": "Conduzir carroças, veículos ou aeronaves (Pilotagem). Cada veículo é uma Perícia distinta; com 30%+ geralmente dispensa Testes, exceto em manobras arriscadas.",
       "subgroups": [
         { "name": "Automóvel" },
         { "name": "Ônibus" },
@@ -133,16 +142,19 @@
     {
       "name": "Disfarce",
       "attribute": "INT",
+      "description": "Parecer-se com outra pessoa ou ocultar a própria aparência; Teste Resistido contra a PER do observador. Refere-se apenas à aparência física (para atuar como outra pessoa usa-se Atuação).",
       "subgroups": []
     },
     {
       "name": "Eletrônica",
       "attribute": null,
+      "description": "Entender e consertar aparelhos eletrônicos; descobrir a função de um aparelho desconhecido ou repará-lo (simples = Normal, complexo = Difícil).",
       "subgroups": []
     },
     {
       "name": "Engenharia",
       "attribute": null,
+      "description": "Projetar mecanismos complexos (não construí-los).",
       "subgroups": [
         { "name": "Aeronáutica" },
         { "name": "Alimentos" },
@@ -161,20 +173,23 @@
     {
       "name": "Escutar",
       "attribute": "PER",
+      "description": "Interpretar e discernir sons, conversas e vozes em ambientes difíceis.",
       "subgroups": []
     },
     {
       "name": "Esquiva",
       "attribute": "AGI",
+      "description": "Desviar de golpes e objetos com técnica e instinto treinados; não substitui a Resistência de AGI. Se surpreso, Teste Difícil descontando o valor de AGI. Pode ser usada como ação de Defesa em combate.",
       "subgroups": []
     },
     {
       "name": "Esportes",
       "attribute": null,
+      "description": "Grupo de Perícias físicas e competitivas ligadas ao esporte.",
       "subgroups": [
-        { "name": "Acrobacia", "attribute": "AGI" },
+        { "name": "Acrobacia", "attribute": "AGI", "description": "Equilíbrio, malabarismo e uso como Defesa em combate; reduz o dano de quedas em Teste Normal." },
         { "name": "Alpinismo", "attribute": "AGI" },
-        { "name": "Arremesso", "attribute": "DEX" },
+        { "name": "Arremesso", "attribute": "DEX", "description": "Arremesso atlético, também usado como Ataque com facas ou objetos; dano dobrado em Acerto Crítico." },
         { "name": "Artes Marciais", "attribute": "AGI" },
         { "name": "Basquete", "attribute": "DEX" },
         { "name": "Boxe", "attribute": "AGI" },
@@ -186,8 +201,8 @@
         { "name": "Mergulho", "attribute": "CON" },
         { "name": "Paraquedismo", "attribute": "AGI" },
         { "name": "Pesca", "attribute": "PER" },
-        { "name": "Natação", "attribute": "AGI" },
-        { "name": "Salto", "attribute": "AGI" },
+        { "name": "Natação", "attribute": "AGI", "description": "Nadar; salvar alguém ou nadar contra a correnteza é Difícil; peso extra penaliza." },
+        { "name": "Salto", "attribute": "AGI", "description": "Usada em competições ou saltos mais arriscados (saltos comuns usam Teste de Agilidade)." },
         { "name": "Salto Ornamental", "attribute": "AGI" },
         { "name": "Tênis", "attribute": "DEX" },
         { "name": "Voleibol", "attribute": "DEX" }
@@ -196,6 +211,7 @@
     {
       "name": "Etiqueta",
       "attribute": "CAR",
+      "description": "Comportar-se, vestir-se e falar corretamente conforme a situação (festas, diplomacia). Garante a forma correta de agir, não o conteúdo do diálogo.",
       "subgroups": [
         { "name": "Clero" },
         { "name": "Comercial" },
@@ -208,11 +224,13 @@
     {
       "name": "Explosivos",
       "attribute": null,
+      "description": "Calcular o posicionamento para demolições seguras; armar e desarmar explosivos, com dificuldade proporcional à complexidade do mecanismo.",
       "subgroups": []
     },
     {
       "name": "Falsificação",
       "attribute": "INT",
+      "description": "Criar cópias convincentes de documentos, obras de arte etc. Exige 30%+ na Perícia correspondente ao item falsificado. É testada em segredo e pode ser usada em Teste Resistido contra Avaliação de Objetos.",
       "subgroups": [
         { "name": "Documentos" },
         { "name": "Escultura" },
@@ -224,16 +242,19 @@
     {
       "name": "Furtar",
       "attribute": "DEX",
+      "description": "Retirar (ou colocar) objetos da posse de alguém sem ser percebido (\"punga\"); Teste Resistido contra a PER da vítima.",
       "subgroups": []
     },
     {
       "name": "Furtividade",
       "attribute": "AGI",
+      "description": "Mover-se sem ruído e permanecer oculto nas sombras; Teste Resistido contra a Escutar do alvo.",
       "subgroups": []
     },
     {
       "name": "Idiomas / Línguas",
       "attribute": null,
+      "description": "Todo Personagem fala, lê e escreve ao menos um idioma nativo em 30% sem custo. Idiomas adicionais são comprados com pontos; Falar e Ler/Escrever são Perícias separadas.",
       "subgroups": [
         { "name": "Chinês" },
         { "name": "Inglês" },
@@ -248,23 +269,25 @@
         { "name": "Código Morse" },
         { "name": "Criptografia" },
         { "name": "Linguagem de Sinais" },
-        { "name": "Leitura Labial" }
+        { "name": "Leitura Labial", "description": "Entender a fala observando os lábios (não é considerado um idioma)." }
       ]
     },
     {
       "name": "Informática",
       "attribute": null,
+      "description": "Grupo de Perícias ligado ao uso e manutenção de computadores e sistemas.",
       "subgroups": [
-        { "name": "Computação" },
-        { "name": "Internet" },
-        { "name": "Hacker" },
-        { "name": "Manutenção" },
-        { "name": "Programação" }
+        { "name": "Computação", "description": "Tarefas simples em computador (digitação, gráficos etc.)." },
+        { "name": "Internet", "description": "Navegar e encontrar arquivos e informações na rede." },
+        { "name": "Hacker", "description": "Burlar senhas, invadir sistemas e contas." },
+        { "name": "Manutenção", "description": "Reparo, configuração e montagem de computadores." },
+        { "name": "Programação", "description": "Criar programas próprios; quanto mais complexo, mais tempo e dificuldade." }
       ]
     },
     {
       "name": "Jogos",
       "attribute": null,
+      "description": "Conhecimento de jogos de azar ou casuais, não considerados esportes.",
       "subgroups": [
         { "name": "Cartas", "attribute": "PER" },
         { "name": "Tabuleiro", "attribute": "INT" },
@@ -275,51 +298,56 @@
     {
       "name": "Manipulação",
       "attribute": null,
+      "description": "Obter favores ou informações de outros, com ou sem consentimento. Teste Resistido contra a WILL do alvo quando ele resiste.",
       "subgroups": [
-        { "name": "Empatia", "attribute": "CAR" },
-        { "name": "Hipnose", "attribute": null },
-        { "name": "Impressionar", "attribute": "CAR" },
-        { "name": "Interrogatório", "attribute": "INT" },
-        { "name": "Intimidação", "attribute": "WILL" },
-        { "name": "Lábia", "attribute": "CAR" },
-        { "name": "Liderança", "attribute": "CAR" },
-        { "name": "Manha", "attribute": "CAR" },
-        { "name": "Sedução", "attribute": "CAR" },
-        { "name": "Tortura", "attribute": "INT" }
+        { "name": "Empatia", "attribute": "CAR", "description": "Sentir emoções alheias; detectar mentiras (sempre Difícil, contra a Lábia do alvo)." },
+        { "name": "Hipnose", "attribute": null, "description": "Torna a vítima mais sugestionável, sem controlá-la totalmente." },
+        { "name": "Impressionar", "attribute": "CAR", "description": "Ganhar a confiança dos presentes através da aparência e da conduta." },
+        { "name": "Interrogatório", "attribute": "INT", "description": "Pressão emocional para extrair informações, forçando contradições; usada junto com Intimidação." },
+        { "name": "Intimidação", "attribute": "WILL", "description": "Usa ameaças em vez de conversa (semelhante a Lábia)." },
+        { "name": "Lábia", "attribute": "CAR", "description": "Persuadir, confundir ou mentir de forma convincente." },
+        { "name": "Liderança", "attribute": "CAR", "description": "Fazer outros seguirem ordens, facilitada por feitos e status." },
+        { "name": "Manha", "attribute": "CAR", "description": "Obter informações por meio da conversa; Teste Resistido contra a PER do alvo." },
+        { "name": "Sedução", "attribute": "CAR", "description": "Fingir sentimentos românticos para conquistar o alvo." },
+        { "name": "Tortura", "attribute": "INT", "description": "Obter informações causando dor física; uma falha crítica pode ferir gravemente ou matar a vítima." }
       ]
     },
     {
       "name": "Manuseio de Fechaduras",
       "attribute": null,
+      "description": "Trancar, destrancar, instalar e consertar fechaduras e cadeados. Com 70+ pontos, pode tentar destrancar fechaduras mágicas (Teste Difícil, Resistido contra o Poder do mago).",
       "subgroups": []
     },
     {
       "name": "Mecânica",
       "attribute": "DEX",
+      "description": "Trabalhar com maquinarias diversas; consertar e montar máquinas simples ou complexas (estas exigem mais tempo e Testes Difíceis).",
       "subgroups": []
     },
     {
       "name": "Medicina",
       "attribute": null,
+      "description": "Conhecimento e prática médica além de Primeiros Socorros, essencial em cenários Modernos e de Ficção Científica. Cuidar de acidentes graves recupera 1 PV/dia em Teste Normal; falha crítica pode matar o paciente.",
       "subgroups": [
-        { "name": "Cirurgia", "attribute": "DEX" },
-        { "name": "Primeiros Socorros", "attribute": "INT" },
-        { "name": "Oftalmologia" },
-        { "name": "Dermatologia" },
-        { "name": "Psiquiatria" },
-        { "name": "Cardiologia" },
-        { "name": "Neurologia" },
-        { "name": "Urologia" },
-        { "name": "Ortopedia" },
-        { "name": "Oncologia" },
-        { "name": "Gastrologia" },
-        { "name": "Otorrinolaringologia" },
-        { "name": "Veterinária" }
+        { "name": "Cirurgia", "attribute": "DEX", "description": "Operações (tumores, vasos entupidos etc.); casos complexos exigem Teste Difícil." },
+        { "name": "Primeiros Socorros", "attribute": "INT", "description": "Curativos, imobilização de fraturas e contenção de sangramentos. Restaura 1d3 PV (dobro em Acerto Crítico); apenas um Teste por ferimento, nunca em combate ou movimento." },
+        { "name": "Oftalmologia", "description": "Especialidade médica focada nos olhos e na visão." },
+        { "name": "Dermatologia", "description": "Especialidade médica focada na pele." },
+        { "name": "Psiquiatria", "description": "Especialidade médica focada na saúde mental." },
+        { "name": "Cardiologia", "description": "Especialidade médica focada no coração e no sistema circulatório." },
+        { "name": "Neurologia", "description": "Especialidade médica focada no sistema nervoso." },
+        { "name": "Urologia", "description": "Especialidade médica focada no sistema urinário." },
+        { "name": "Ortopedia", "description": "Especialidade médica focada em ossos, articulações e músculos." },
+        { "name": "Oncologia", "description": "Especialidade médica focada no diagnóstico e tratamento de tumores." },
+        { "name": "Gastrologia", "description": "Especialidade médica focada no sistema digestivo." },
+        { "name": "Otorrinolaringologia", "description": "Especialidade médica focada em ouvido, nariz e garganta." },
+        { "name": "Veterinária", "description": "Cuida de animais, inclusive em cirurgias; também serve para identificar e classificar espécies." }
       ]
     },
     {
       "name": "Mineração",
       "attribute": null,
+      "description": "Encontrar e explorar minérios ou pedras preciosas com segurança, evitando acidentes. As buscas levam semanas de investigação; também serve para construir minas sem risco de desabamento.",
       "subgroups": [
         { "name": "Cristais" },
         { "name": "Gemas" },
@@ -329,26 +357,30 @@
     {
       "name": "Negociação",
       "attribute": null,
+      "description": "Grupo de Perícias ligado a negócios, finanças e comércio.",
       "subgroups": [
-        { "name": "Barganha", "attribute": "CAR" },
-        { "name": "Burocracia", "attribute": "INT" },
-        { "name": "Contabilidade", "attribute": "INT" },
+        { "name": "Barganha", "attribute": "CAR", "description": "Conseguir melhores preços; pode levar de minutos a anos, dependendo da complexidade." },
+        { "name": "Burocracia", "attribute": "INT", "description": "Saber lidar com papéis, selos e contratos; ajuda em subornos e chantagens." },
+        { "name": "Contabilidade", "attribute": "INT", "description": "Gerir as finanças de negócios; investigar desvios e subornos." },
         { "name": "Marketing", "attribute": "INT" }
       ]
     },
     {
       "name": "Pesquisa ou Investigação",
       "attribute": "PER",
+      "description": "Obter informações em bibliotecas, ruas ou cenas de crime. Uma falha não encontra nada; uma falha crítica traz uma informação ou pista falsa.",
       "subgroups": []
     },
     {
       "name": "Procura",
       "attribute": "PER",
+      "description": "Atenção para encontrar itens escondidos ou pessoas camufladas; Teste Resistido contra Camuflagem quando aplicável.",
       "subgroups": []
     },
     {
       "name": "Rastreio",
       "attribute": "PER",
+      "description": "Encontrar e seguir pistas e pegadas. A dificuldade varia com o terreno (barro/areia = Fácil; terra batida/grama = Normal; rocha/chuva/neve/disfarce = Difícil). Uma falha crítica leva a uma trilha errada.",
       "subgroups": [
         { "name": "Deserto" },
         { "name": "Floresta" },
@@ -361,6 +393,7 @@
     {
       "name": "Sobrevivência",
       "attribute": "PER",
+      "description": "Sobreviver em ambiente selvagem: abrigo, água, comida, orientação e armadilhas; pode sustentar um grupo de até 4 pessoas.",
       "subgroups": [
         { "name": "Deserto" },
         { "name": "Floresta" },
@@ -378,6 +411,7 @@
       "combatGroup": "martial",
       "attribute1": "AGI",
       "attribute2": "AGI",
+      "description": "Estilos de luta com manobras próprias (judô, caratê, jiu-jitsu, capoeira etc.), diferente de Briga. Dano desarmado: 1d3 (+FR), variando conforme o tamanho da criatura.",
       "subgroups": [
         { "name": "Aikido",     "attribute1": "AGI", "attribute2": "AGI" },
         { "name": "Capoeira",   "attribute1": "AGI", "attribute2": "AGI" },
@@ -402,6 +436,7 @@
       "combatGroup": "martial",
       "attribute1": "DEX",
       "attribute2": "DEX",
+      "description": "Autodefesa desarmada com socos e chutes, sem estilo definido (diferente de Artes Marciais). Dano 1d3 (+FR); não bloqueia armas de corte sem Teste Difícil.",
       "subgroups": []
     },
     {
@@ -410,6 +445,7 @@
       "combatGroup": "weapons",
       "attribute1": "DEX",
       "attribute2": "DEX",
+      "description": "Cobre espadas, facas, maças, cajados etc. Cada arma é um Subgrupo distinto, dividido em valores separados de Ataque e Defesa (ex.: Espada Longa 45/35).",
       "subgroups": [
         { "name": "Facas",    "attribute1": "DEX", "attribute2": "DEX" },
         { "name": "Adagas",   "attribute1": "DEX", "attribute2": "DEX" },
@@ -420,8 +456,8 @@
         { "name": "Manguais", "attribute1": "DEX", "attribute2": "DEX" },
         { "name": "Maças",    "attribute1": "DEX", "attribute2": "DEX" },
         { "name": "Martelos", "attribute1": "DEX", "attribute2": "DEX" },
-        { "name": "Arcos",    "attribute1": "DEX", "attribute2": "DEX" },
-        { "name": "Bestas",   "attribute1": "DEX", "attribute2": "DEX" },
+        { "name": "Arcos",    "attribute1": "DEX", "attribute2": "DEX", "description": "Arma branca de longo alcance; a Defesa é sempre 0 (não serve para defender) e só pode ser esquivada, nunca bloqueada — o Teste de Esquiva contra ela é sempre Difícil." },
+        { "name": "Bestas",   "attribute1": "DEX", "attribute2": "DEX", "description": "Arma branca de longo alcance; a Defesa é sempre 0 (não serve para defender) e só pode ser esquivada, nunca bloqueada — o Teste de Esquiva contra ela é sempre Difícil." },
         { "name": "Lanças",   "attribute1": "DEX", "attribute2": "DEX" }
       ]
     },
@@ -430,6 +466,7 @@
       "combatType": "firearm",
       "combatGroup": "firearm",
       "attribute": "DEX",
+      "description": "Cada arma de fogo é uma Perícia própria. Nunca têm valor de Defesa (0%), e o alvo normalmente também não pode se defender de disparos (exceto com colete à prova de balas). Uso geralmente restrito a Personagens treinados ou credenciados.",
       "subgroups": [
         { "name": "Revólveres" },
         { "name": "Pistolas" },
