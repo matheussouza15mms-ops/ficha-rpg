@@ -57,6 +57,11 @@ const PORTRAIT_COUNTER_PATH = ["counters", "characterPortrait"];
 const WEAPON_IMAGE_DIR = "./imagens/Armas";
 const VEHICLE_IMAGE_DIR = "./imagens/Veiculos";
 
+// Foto do veículo específico da ficha (não confundir com o ícone do modelo em
+// VEHICLE_IMAGE_DIR): reaproveita o portraitNumber da própria ficha, já que
+// cada personagem tem no máximo um veículo, evitando outro contador.
+const VEHICLE_PHOTO_DIR = "./imagens/veiculo-fotos";
+
 // Foto de contato segue a mesma ideia do retrato: cada contato criado recebe um
 // `photoNumber` de um contador transacional (counters/contactPhoto) e a imagem
 // exibida é imagens/contatos/img_ctt_<numero>.png. Como o número é global e
@@ -455,6 +460,7 @@ const state = {
   portraitNumberRequests: new Set(),
   portraitBackfillInFlight: false,
   contactPhotoAttempt: 0,
+  vehiclePhotoAttempt: 0,
   selectedContactId: null,
   skillCatalogSelection: null,
   combatSkillCatalogSelection: null,
@@ -732,6 +738,7 @@ function cacheElements() {
   elements.wizardInventConfirm = document.getElementById("wizardInventConfirm");
   elements.toastStack = document.getElementById("toastStack");
   elements.upgradeTooltip = document.getElementById("upgradeTooltip");
+  elements.vehiclePhotoTooltip = document.getElementById("vehiclePhotoTooltip");
 }
 
 function buildStaticForm() {
@@ -1346,6 +1353,31 @@ function registerEvents() {
   elements.equipmentSlots.addEventListener("input", handleEquipmentInput);
   elements.vehicleSlot.addEventListener("click", handleVehicleClick);
   elements.vehicleSlot.addEventListener("input", handleVehicleInput);
+
+  // Preview da foto do veículo: aparece com o mouse/foco no ícone, some ao sair.
+  elements.vehicleSlot.addEventListener("pointerover", (event) => {
+    const button = event.target.closest("[data-vehicle-photo-trigger]");
+    if (button) {
+      showVehiclePhotoPreview(button);
+    }
+  });
+  elements.vehicleSlot.addEventListener("pointerout", (event) => {
+    const button = event.target.closest("[data-vehicle-photo-trigger]");
+    if (button && !button.contains(event.relatedTarget)) {
+      hideVehiclePhotoPreview();
+    }
+  });
+  elements.vehicleSlot.addEventListener("focusin", (event) => {
+    const button = event.target.closest("[data-vehicle-photo-trigger]");
+    if (button) {
+      showVehiclePhotoPreview(button);
+    }
+  });
+  elements.vehicleSlot.addEventListener("focusout", (event) => {
+    if (event.target.closest("[data-vehicle-photo-trigger]")) {
+      hideVehiclePhotoPreview();
+    }
+  });
   elements.chestGrid.addEventListener("click", handleChestClick);
   elements.chestGrid.addEventListener("input", handleChestInput);
   elements.chestGrid.addEventListener("focusout", handleChestFieldBlur);
@@ -1515,6 +1547,10 @@ function handleViewportChange() {
 
   if (elements.upgradeTooltip?.classList.contains("is-visible")) {
     hideUpgradeTooltip();
+  }
+
+  if (elements.vehiclePhotoTooltip?.classList.contains("is-visible")) {
+    hideVehiclePhotoPreview();
   }
 }
 
@@ -2986,7 +3022,102 @@ function formatVehicleTanque(vehicle) {
   return capacity ? `${capacity} L` : "";
 }
 
+// Foto real do veículo (não o ícone do modelo): usa o mesmo número de ficha do
+// retrato do personagem, então não precisa de um contador próprio.
+function buildVehiclePhotoCandidates(character) {
+  const code = formatPortraitCode(character?.portraitNumber);
+  if (!code) {
+    return [];
+  }
+
+  return PORTRAIT_IMAGE_EXTENSIONS.map((extension) => `${VEHICLE_PHOTO_DIR}/img_veh_${code}.${extension}`);
+}
+
+// Aparece ao passar o mouse (ou focar) no ícone de foto do veículo, e some ao
+// sair: sempre mostra o nome de arquivo esperado, e a imagem por cima se ela
+// já existir na pasta.
+function showVehiclePhotoPreview(button) {
+  const tooltip = elements.vehiclePhotoTooltip;
+  if (!tooltip) {
+    return;
+  }
+
+  const character = getActiveCharacter();
+  const code = formatPortraitCode(character?.portraitNumber);
+  if (!code) {
+    return;
+  }
+
+  const image = tooltip.querySelector("img");
+  const hint = tooltip.querySelector(".vehicle-photo-tooltip-hint");
+  const candidates = buildVehiclePhotoCandidates(character);
+
+  state.vehiclePhotoAttempt += 1;
+  const attempt = state.vehiclePhotoAttempt;
+  tooltip.classList.remove("has-image");
+  image.removeAttribute("src");
+  hint.textContent = `imagens/veiculo-fotos/img_veh_${code}.png`;
+
+  let index = 0;
+  const tryNext = () => {
+    if (attempt !== state.vehiclePhotoAttempt || index >= candidates.length) {
+      return;
+    }
+
+    image.onerror = tryNext;
+    image.onload = () => {
+      if (attempt === state.vehiclePhotoAttempt) {
+        tooltip.classList.add("has-image");
+      }
+    };
+    image.src = candidates[index];
+    index += 1;
+  };
+  tryNext();
+
+  tooltip.classList.add("is-visible");
+  tooltip.setAttribute("aria-hidden", "false");
+  positionVehiclePhotoTooltip(button);
+}
+
+function positionVehiclePhotoTooltip(button) {
+  const tooltip = elements.vehiclePhotoTooltip;
+  if (!tooltip) {
+    return;
+  }
+
+  const anchor = button.getBoundingClientRect();
+  const width = tooltip.offsetWidth;
+  const height = tooltip.offsetHeight;
+  const margin = 12;
+
+  let left = anchor.right + margin;
+  if (left + width > window.innerWidth - margin) {
+    left = anchor.left - width - margin;
+  }
+  left = Math.max(margin, Math.min(left, Math.max(margin, window.innerWidth - width - margin)));
+
+  let top = anchor.top + (anchor.height / 2) - (height / 2);
+  top = Math.max(margin, Math.min(top, Math.max(margin, window.innerHeight - height - margin)));
+
+  tooltip.style.left = `${Math.round(left)}px`;
+  tooltip.style.top = `${Math.round(top)}px`;
+}
+
+function hideVehiclePhotoPreview() {
+  const tooltip = elements.vehiclePhotoTooltip;
+  if (!tooltip) {
+    return;
+  }
+
+  state.vehiclePhotoAttempt += 1;
+  tooltip.classList.remove("is-visible");
+  tooltip.setAttribute("aria-hidden", "true");
+}
+
 function renderVehicleSlot() {
+  hideVehiclePhotoPreview();
+
   const vehicle = getVehicle(getActiveCharacter());
   const icon = VEHICLE_ICON_MAP.get(vehicle.iconId);
 
@@ -3030,7 +3161,11 @@ function renderVehicleSlot() {
         </button>
 
         <div class="gear-fields">
-          ${field("nome", "Modelo", vehicle.nome, "Ex.: Chevette 82", false)}
+          <div class="gear-field-row">
+            ${field("nome", "Modelo", vehicle.nome, "Ex.: Chevette 82", false)}
+            <button type="button" class="vehicle-photo-btn" data-vehicle-photo-trigger
+              title="Ver foto do veículo" aria-label="Ver foto do veículo">📷</button>
+          </div>
           <div class="gear-stats">
             ${stat("Consumo", formatVehicleConsumo(vehicle))}
             ${stat("Tanque", formatVehicleTanque(vehicle))}
@@ -3212,6 +3347,17 @@ function refreshFuelDisplay() {
 }
 
 function handleVehicleClick(event) {
+  const photoTrigger = event.target.closest("[data-vehicle-photo-trigger]");
+  if (photoTrigger) {
+    event.preventDefault();
+    if (elements.vehiclePhotoTooltip?.classList.contains("is-visible")) {
+      hideVehiclePhotoPreview();
+    } else {
+      showVehiclePhotoPreview(photoTrigger);
+    }
+    return;
+  }
+
   if (event.target.closest("[data-vehicle-pick]")) {
     openVehiclePicker();
     return;
@@ -6720,6 +6866,7 @@ function resetAppState() {
 
   closeAllDrawers();
   hideUpgradeTooltip();
+  hideVehiclePhotoPreview();
   hydrateForm();
   renderPortrait();
   renderInventory();

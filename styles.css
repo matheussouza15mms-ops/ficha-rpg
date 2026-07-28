@@ -1258,6 +1258,43 @@ input[readonly] {
   font-weight: 600;
 }
 
+.gear-field-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.gear-field-row .gear-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.vehicle-photo-btn {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(216, 167, 45, 0.6);
+  border-radius: 10px;
+  background: rgba(216, 167, 45, 0.12);
+  color: var(--accent);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: none;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s ease, color 0.2s ease;
+}
+
+.vehicle-photo-btn:hover,
+.vehicle-photo-btn:focus-visible {
+  background: var(--accent);
+  color: #1a1206;
+  transform: scale(1.08);
+  outline: none;
+}
+
 /* --- Munição ------------------------------------------------------------ */
 
 .gear-ammo {
@@ -3387,6 +3424,56 @@ dialog.is-closing::backdrop {
   max-height: 40vh;
   overflow-y: auto;
   white-space: pre-wrap;
+}
+
+/* ==========================================================================
+   Preview da foto do veículo (ícone da câmera ao lado do Modelo)
+   ========================================================================== */
+
+.vehicle-photo-tooltip {
+  position: fixed;
+  z-index: 200;
+  width: min(220px, calc(100vw - 24px));
+  padding: 10px;
+  border: 1px solid rgba(216, 167, 45, 0.6);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(48, 18, 18, 0.99), rgba(8, 8, 8, 0.99));
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px) scale(0.97);
+  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.18s;
+  pointer-events: none;
+}
+
+.vehicle-photo-tooltip.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
+}
+
+.vehicle-photo-tooltip img {
+  display: none;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.vehicle-photo-tooltip.has-image img {
+  display: block;
+}
+
+.vehicle-photo-tooltip-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  word-break: break-all;
 }
 
 /* ==========================================================================
