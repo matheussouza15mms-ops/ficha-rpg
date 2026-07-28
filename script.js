@@ -354,6 +354,48 @@ const VEHICLE_ICONS = [
 
 const VEHICLE_ICON_MAP = new Map(VEHICLE_ICONS.map((icon) => [icon.id, icon]));
 
+// Capacidade de tanque (litros) e consumo (km/l) médios reais por modalidade
+// de veículo. Bicicleta, montaria e carroça não usam combustível.
+const VEHICLE_FUEL_PROFILES = {
+  bicicleta: { hasFuel: false },
+  moto: { hasFuel: true, tanque: 14, consumo: 25 },
+  carro: { hasFuel: true, tanque: 50, consumo: 12 },
+  suv: { hasFuel: true, tanque: 60, consumo: 9 },
+  jipe: { hasFuel: true, tanque: 70, consumo: 8 },
+  van: { hasFuel: true, tanque: 75, consumo: 9 },
+  caminhao: { hasFuel: true, tanque: 300, consumo: 3.5 },
+  onibus: { hasFuel: true, tanque: 300, consumo: 3 },
+  viatura: { hasFuel: true, tanque: 55, consumo: 10 },
+  blindado: { hasFuel: true, tanque: 400, consumo: 1.5 },
+  quadriciclo: { hasFuel: true, tanque: 15, consumo: 15 },
+  trator: { hasFuel: true, tanque: 100, consumo: 4 },
+  lancha: { hasFuel: true, tanque: 200, consumo: 2 },
+  jetski: { hasFuel: true, tanque: 20, consumo: 4 },
+  navio: { hasFuel: true, tanque: 2000, consumo: 0.1 },
+  submarino: { hasFuel: true, tanque: 3000, consumo: 0.08 },
+  helicoptero: { hasFuel: true, tanque: 400, consumo: 0.8 },
+  aviao: { hasFuel: true, tanque: 160, consumo: 4 },
+  jato: { hasFuel: true, tanque: 5000, consumo: 1 },
+  drone: { hasFuel: false },
+  montaria: { hasFuel: false },
+  carroca: { hasFuel: false },
+};
+
+// Distâncias médias representativas de cada tipo de deslocamento, usadas para
+// calcular quantos litros um trajeto gasta a partir do consumo do veículo.
+const VEHICLE_TRIPS = [
+  { key: "curto", label: "Curto", hint: "3–5 km", distance: 4 },
+  { key: "medio", label: "Médio", hint: "10–20 km", distance: 15 },
+  { key: "longo", label: "Longo", hint: "40–80 km", distance: 60 },
+];
+
+const VEHICLE_QUICK_REFUEL = [
+  { key: "quarter", label: "1/4", fraction: 0.25 },
+  { key: "half", label: "1/2", fraction: 0.5 },
+  { key: "threeQuarter", label: "3/4", fraction: 0.75 },
+  { key: "full", label: "Completo", fraction: 1 },
+];
+
 const WEAPON_FILTERS = [
   { value: "all", label: "Todas" },
   { value: "firearm", label: "Armas de fogo" },
@@ -393,7 +435,6 @@ const ICON_PICKER_MODES = {
 
 const CHEST_MIN_SLOTS = 12;
 const CHEST_SPARE_SLOTS = 4;
-const DEFAULT_FUEL_TANK = "60";
 
 const state = {
   authUser: null,
@@ -2883,8 +2924,12 @@ function confirmWeaponPickerSelection() {
   if (mode === "vehicle") {
     mutateActiveCharacter((character) => {
       const vehicle = getVehicle(character);
+      const changedVehicle = vehicle.iconId !== iconId;
       vehicle.iconId = iconId;
       vehicle.kind = icon.kind;
+      // Trocar de veículo troca de modalidade: tanque e consumo são
+      // recalculados pelo perfil real, e o tanque enche de novo.
+      applyVehicleFuelProfile(vehicle, changedVehicle);
     });
     renderVehicleSlot();
   } else {
@@ -2931,6 +2976,16 @@ function getVehicle(character) {
   return character.vehicle;
 }
 
+function formatVehicleConsumo(vehicle) {
+  const value = String(vehicle.consumo ?? "").trim();
+  return value ? `${value} km/l` : "";
+}
+
+function formatVehicleTanque(vehicle) {
+  const capacity = toPositiveInt(vehicle.tanque);
+  return capacity ? `${capacity} L` : "";
+}
+
 function renderVehicleSlot() {
   const vehicle = getVehicle(getActiveCharacter());
   const icon = VEHICLE_ICON_MAP.get(vehicle.iconId);
@@ -2955,6 +3010,12 @@ function renderVehicleSlot() {
         aria-label="${escapeAttribute(`${label} — veículo`)}">
     </label>`;
 
+  const stat = (label, value) => `
+    <div class="gear-field gear-stat-static">
+      <span>${escapeHtml(label)}</span>
+      <strong>${value ? escapeHtml(value) : "—"}</strong>
+    </div>`;
+
   elements.vehicleSlot.innerHTML = `
     <article class="gear-slot vehicle-slot is-filled" data-vehicle-kind="${icon.kind}">
       <header class="gear-slot-head">
@@ -2971,7 +3032,8 @@ function renderVehicleSlot() {
         <div class="gear-fields">
           ${field("nome", "Modelo", vehicle.nome, "Ex.: Chevette 82", false)}
           <div class="gear-stats">
-            ${field("consumo", "Consumo", vehicle.consumo, "1d10", false)}
+            ${stat("Consumo", formatVehicleConsumo(vehicle))}
+            ${stat("Tanque", formatVehicleTanque(vehicle))}
             ${field("ip", "IP", vehicle.ip, "2", true)}
             ${field("pv", "PV", vehicle.pv, "20", true)}
           </div>
@@ -2982,26 +3044,12 @@ function renderVehicleSlot() {
     </article>`;
 }
 
-// Bomba de combustível: o líquido dentro do visor sobe e desce conforme o
-// tanque, mudando de cor ao entrar na reserva. É o mesmo desenho de controles da
-// munição (− / + / abastecer) para não inventar um segundo vocabulário.
-function buildFuelBlockMarkup(vehicle) {
-  return `
-    <div class="gear-fuel" data-fuel-block>
-      ${buildFuelGaugeMarkup(vehicle)}
-      <div class="ammo-controls fuel-controls">
-        <span class="fuel-count">${buildFuelCountMarkup(vehicle)}</span>
-        <button type="button" class="ammo-btn" data-fuel-action="spend" title="Gastar combustível" aria-label="Gastar combustível">−</button>
-        <button type="button" class="ammo-btn" data-fuel-action="add" title="Abastecer 1" aria-label="Abastecer um">+</button>
-        <button type="button" class="ammo-btn ammo-reload" data-fuel-action="fill">⛽ Encher</button>
-        <label class="gear-field ammo-reserve">
-          <span>Tanque</span>
-          <input type="text" inputmode="numeric" data-numeric="true" value="${escapeAttribute(vehicle.tanque || "")}"
-            placeholder="60" data-vehicle-field="tanque" aria-label="Capacidade do tanque">
-        </label>
-      </div>
-    </div>`;
-}
+const FUEL_LEVEL_WORDS = {
+  empty: "Vazio",
+  low: "Reserva",
+  half: "Meio tanque",
+  full: "Cheio",
+};
 
 function getFuelRatio(vehicle) {
   const capacity = toPositiveInt(vehicle.tanque);
@@ -3019,23 +3067,48 @@ function fuelLevelName(ratio) {
   return ratio <= 0.25 ? "low" : ratio <= 0.5 ? "half" : "full";
 }
 
-// O líquido é sempre o visor inteiro, achatado por scaleY a partir da base.
-// Escalar transita em todos os navegadores; animar os atributos `y`/`height` do
-// <rect> não.
+// Litros gastos num trajeto: distância média do tipo de deslocamento dividida
+// pelo consumo real do veículo, sempre arredondado para pelo menos 1 litro.
+function computeTripLiters(consumo, distanceKm) {
+  const perLiter = parseFloat(String(consumo ?? "").replace(",", "."));
+  if (!perLiter || perLiter <= 0) {
+    return 0;
+  }
+  return Math.max(1, Math.round(distanceKm / perLiter));
+}
+
+// Ponta do ponteiro sobre o arco de 180°: 180° (E, à esquerda) a 0° (F, à
+// direita), girando por cima do mostrador conforme o tanque enche.
+function fuelNeedlePoint(ratio) {
+  const angleRad = ((180 - ratio * 180) * Math.PI) / 180;
+  const x = 50 + 30 * Math.cos(angleRad);
+  const y = 54 - 30 * Math.sin(angleRad);
+  return { x: x.toFixed(2), y: y.toFixed(2) };
+}
+
+// Mostrador tipo carro: arco graduado com marcas em E, 1/4, 1/2, 3/4 e F, sem
+// nenhum número — só o ponteiro e a palavra do nível (Vazio/Reserva/...).
 function buildFuelGaugeMarkup(vehicle) {
   const ratio = getFuelRatio(vehicle);
+  const level = fuelLevelName(ratio);
+  const needle = fuelNeedlePoint(ratio);
 
   return `
-    <div class="fuel-gauge" data-fuel-level="${fuelLevelName(ratio)}">
-      <svg class="fuel-pump" viewBox="0 0 64 64" role="img" aria-label="Bomba de combustível">
-        <path class="fuel-shell" d="M8 12c0-3 2-5 5-5h22c3 0 5 2 5 5v46H8V12Z"/>
-        <rect class="fuel-window" x="13" y="26" width="17" height="26" rx="2"/>
-        <rect class="fuel-liquid" x="13" y="26" width="17" height="26" rx="2" style="transform:scaleY(${ratio.toFixed(4)})"/>
-        <rect class="fuel-display" x="13" y="13" width="17" height="9" rx="2"/>
-        <path class="fuel-hose" d="M40 20h6c4 0 7 3 7 7v20a4 4 0 0 1-8 0V30h-5v-10Z"/>
-        <rect class="fuel-base" x="4" y="56" width="36" height="5" rx="2"/>
+    <div class="fuel-gauge" data-fuel-level="${level}">
+      <svg class="fuel-dial" viewBox="0 0 100 62" role="img" aria-label="Medidor de combustível: ${escapeAttribute(FUEL_LEVEL_WORDS[level])}">
+        <path class="fuel-dial-track" pathLength="100" d="M12 54 A38 38 0 0 1 88 54"/>
+        <path class="fuel-dial-fill" pathLength="100" d="M12 54 A38 38 0 0 1 88 54" style="stroke-dashoffset:${(100 - ratio * 100).toFixed(2)}"/>
+        <line class="fuel-tick fuel-tick-major" x1="12" y1="54" x2="22" y2="54"/>
+        <line class="fuel-tick fuel-tick-minor" x1="23.13" y1="27.13" x2="33.03" y2="37.03"/>
+        <line class="fuel-tick fuel-tick-major" x1="50" y1="16" x2="50" y2="26"/>
+        <line class="fuel-tick fuel-tick-minor" x1="76.87" y1="27.13" x2="66.97" y2="37.03"/>
+        <line class="fuel-tick fuel-tick-major" x1="88" y1="54" x2="78" y2="54"/>
+        <text class="fuel-dial-label" x="9" y="61">E</text>
+        <text class="fuel-dial-label" x="86" y="61">F</text>
+        <line class="fuel-needle" x1="50" y1="54" x2="${needle.x}" y2="${needle.y}"/>
+        <circle class="fuel-hub" cx="50" cy="54" r="3.6"/>
       </svg>
-      <div class="fuel-bar"><span class="fuel-bar-fill" style="width:${(ratio * 100).toFixed(1)}%"></span></div>
+      <span class="fuel-level-word">${escapeHtml(FUEL_LEVEL_WORDS[level])}</span>
     </div>`;
 }
 
@@ -3043,6 +3116,53 @@ function buildFuelCountMarkup(vehicle) {
   const capacity = toPositiveInt(vehicle.tanque);
   const current = toPositiveInt(vehicle.combustivel);
   return `<strong>${current}</strong>/${capacity || "—"} L`;
+}
+
+// O bloco de combustível some para veículos sem motor (bicicleta, montaria,
+// carroça): não faz sentido oferecer trajeto/abastecimento para eles.
+function buildFuelBlockMarkup(vehicle) {
+  const profile = getVehicleFuelProfile(vehicle.iconId);
+  if (!profile.hasFuel) {
+    return `<p class="fuel-none">Este veículo não usa combustível.</p>`;
+  }
+
+  const current = toPositiveInt(vehicle.combustivel);
+  const capacity = toPositiveInt(vehicle.tanque);
+
+  const tripButtons = VEHICLE_TRIPS.map((trip) => {
+    const cost = computeTripLiters(vehicle.consumo, trip.distance);
+    return `
+      <button type="button" class="fuel-trip-btn" data-fuel-trip="${trip.key}"${current < cost ? " disabled" : ""}
+        title="${escapeAttribute(`${trip.label} (${trip.hint}) — gasta ${cost} L`)}">
+        <span class="fuel-trip-label">${escapeHtml(trip.label)}</span>
+        <span class="fuel-trip-hint">${escapeHtml(trip.hint)} · −${cost} L</span>
+      </button>`;
+  }).join("");
+
+  const refuelButtons = VEHICLE_QUICK_REFUEL.map((option) => `
+      <button type="button" class="ammo-btn fuel-refuel-btn" data-fuel-refuel="${option.key}"${current >= capacity ? " disabled" : ""}>${escapeHtml(option.label)}</button>`).join("");
+
+  return `
+    <div class="gear-fuel" data-fuel-block>
+      <div class="fuel-gauge-col">
+        ${buildFuelGaugeMarkup(vehicle)}
+        <span class="fuel-count">${buildFuelCountMarkup(vehicle)}</span>
+      </div>
+      <div class="fuel-actions">
+        <div class="fuel-action-group">
+          <span class="fuel-group-title">Deslocamento</span>
+          <div class="fuel-trip-buttons">${tripButtons}</div>
+        </div>
+        <div class="fuel-action-group">
+          <span class="fuel-group-title">Abastecer</span>
+          <div class="fuel-quick-refuel">${refuelButtons}</div>
+          <div class="fuel-manual-refuel">
+            <input type="text" inputmode="numeric" data-fuel-amount placeholder="Litros" aria-label="Litros para abastecer">
+            <button type="button" class="ammo-btn ammo-reload" data-fuel-action="manual-refuel">Abastecer</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
 }
 
 function refreshFuelDisplay() {
@@ -3054,20 +3174,32 @@ function refreshFuelDisplay() {
   const vehicle = getVehicle(getActiveCharacter());
   const gauge = block.querySelector(".fuel-gauge");
   const ratio = getFuelRatio(vehicle);
+  const level = fuelLevelName(ratio);
+  const needle = fuelNeedlePoint(ratio);
+  const current = toPositiveInt(vehicle.combustivel);
+  const capacity = toPositiveInt(vehicle.tanque);
 
-  gauge.dataset.fuelLevel = fuelLevelName(ratio);
-  gauge.querySelector(".fuel-liquid").style.transform = `scaleY(${ratio.toFixed(4)})`;
-  gauge.querySelector(".fuel-bar-fill").style.width = `${(ratio * 100).toFixed(1)}%`;
+  gauge.dataset.fuelLevel = level;
+  gauge.querySelector(".fuel-dial-fill").style.strokeDashoffset = (100 - ratio * 100).toFixed(2);
+  const needleLine = gauge.querySelector(".fuel-needle");
+  needleLine.setAttribute("x2", needle.x);
+  needleLine.setAttribute("y2", needle.y);
+  gauge.querySelector(".fuel-level-word").textContent = FUEL_LEVEL_WORDS[level];
   block.querySelector(".fuel-count").innerHTML = buildFuelCountMarkup(vehicle);
 
   gauge.classList.remove("is-pumping");
   void gauge.offsetWidth;
   gauge.classList.add("is-pumping");
 
-  const tankField = block.querySelector('[data-vehicle-field="tanque"]');
-  if (tankField && document.activeElement !== tankField) {
-    tankField.value = vehicle.tanque || "";
-  }
+  block.querySelectorAll("[data-fuel-trip]").forEach((button) => {
+    const trip = VEHICLE_TRIPS.find((entry) => entry.key === button.dataset.fuelTrip);
+    const cost = trip ? computeTripLiters(vehicle.consumo, trip.distance) : 0;
+    button.disabled = current < cost;
+  });
+
+  block.querySelectorAll("[data-fuel-refuel]").forEach((button) => {
+    button.disabled = current >= capacity;
+  });
 }
 
 function handleVehicleClick(event) {
@@ -3086,13 +3218,30 @@ function handleVehicleClick(event) {
     return;
   }
 
-  const fuel = event.target.closest("[data-fuel-action]");
-  if (fuel) {
-    handleFuelAction(fuel.dataset.fuelAction);
+  const trip = event.target.closest("[data-fuel-trip]");
+  if (trip) {
+    handleFuelTrip(trip.dataset.fuelTrip);
+    return;
+  }
+
+  const quickRefuel = event.target.closest("[data-fuel-refuel]");
+  if (quickRefuel) {
+    handleQuickRefuel(quickRefuel.dataset.fuelRefuel);
+    return;
+  }
+
+  if (event.target.closest('[data-fuel-action="manual-refuel"]')) {
+    handleManualRefuel();
   }
 }
 
 function handleVehicleInput(event) {
+  const amountField = event.target.closest("[data-fuel-amount]");
+  if (amountField) {
+    amountField.value = sanitizeIntegerInput(amountField.value).replace(/-/g, "");
+    return;
+  }
+
   const field = event.target.closest("[data-vehicle-field]");
   if (!field || !hasActiveCharacter()) {
     return;
@@ -3107,24 +3256,57 @@ function handleVehicleInput(event) {
   mutateActiveCharacter((character) => {
     const vehicle = getVehicle(character);
     vehicle[fieldName] = field.value;
-
-    if (fieldName === "tanque") {
-      const capacity = toPositiveInt(vehicle.tanque);
-      if (capacity && toPositiveInt(vehicle.combustivel) > capacity) {
-        vehicle.combustivel = String(capacity);
-      }
-    }
   });
-
-  if (fieldName === "tanque") {
-    refreshFuelDisplay();
-  }
 
   markCharacterDirty();
 }
 
-function handleFuelAction(action) {
+function handleFuelTrip(key) {
   if (!hasActiveCharacter()) {
+    return;
+  }
+
+  const trip = VEHICLE_TRIPS.find((entry) => entry.key === key);
+  if (!trip) {
+    return;
+  }
+
+  let feedback = "";
+
+  mutateActiveCharacter((character) => {
+    const vehicle = getVehicle(character);
+    const profile = getVehicleFuelProfile(vehicle.iconId);
+    if (!profile.hasFuel) {
+      return;
+    }
+
+    const cost = computeTripLiters(vehicle.consumo, trip.distance);
+    const current = toPositiveInt(vehicle.combustivel);
+
+    if (current < cost) {
+      feedback = "Combustível insuficiente para o trajeto";
+      return;
+    }
+
+    vehicle.combustivel = String(current - cost);
+    feedback = `Trajeto ${trip.label.toLowerCase()} · −${cost} L`;
+  });
+
+  refreshFuelDisplay();
+  markCharacterDirty();
+
+  if (feedback) {
+    showToast(feedback, "", "⛽");
+  }
+}
+
+function handleQuickRefuel(key) {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  const option = VEHICLE_QUICK_REFUEL.find((entry) => entry.key === key);
+  if (!option) {
     return;
   }
 
@@ -3133,39 +3315,62 @@ function handleFuelAction(action) {
   mutateActiveCharacter((character) => {
     const vehicle = getVehicle(character);
     const capacity = toPositiveInt(vehicle.tanque);
+    if (!capacity) {
+      feedback = "Escolha um veículo com tanque de combustível";
+      return;
+    }
+
     const current = toPositiveInt(vehicle.combustivel);
-
-    if (action === "spend") {
-      if (!current) {
-        feedback = "Tanque vazio";
-        return;
-      }
-      vehicle.combustivel = String(current - 1);
+    if (current >= capacity) {
+      feedback = "Tanque cheio";
       return;
     }
 
-    if (action === "add") {
-      if (capacity && current >= capacity) {
-        feedback = "Tanque cheio";
-        return;
-      }
-      vehicle.combustivel = String(current + 1);
-      return;
-    }
-
-    if (action === "fill") {
-      if (!capacity) {
-        feedback = "Defina a capacidade do tanque";
-        return;
-      }
-      if (current >= capacity) {
-        feedback = "Tanque cheio";
-        return;
-      }
-      vehicle.combustivel = String(capacity);
-      feedback = `Tanque cheio · ${capacity} L`;
-    }
+    const added = Math.min(capacity - current, Math.round(capacity * option.fraction));
+    vehicle.combustivel = String(current + added);
+    feedback = `Abastecido +${added} L`;
   });
+
+  refreshFuelDisplay();
+  markCharacterDirty();
+
+  if (feedback) {
+    showToast(feedback, "", "⛽");
+  }
+}
+
+function handleManualRefuel() {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  const input = elements.vehicleSlot.querySelector("[data-fuel-amount]");
+  const amount = toPositiveInt(input ? input.value : "");
+
+  if (!amount) {
+    showToast("Digite quantos litros abastecer", "", "⛽");
+    return;
+  }
+
+  let feedback = "";
+
+  mutateActiveCharacter((character) => {
+    const vehicle = getVehicle(character);
+    const capacity = toPositiveInt(vehicle.tanque);
+    if (!capacity) {
+      feedback = "Escolha um veículo com tanque de combustível";
+      return;
+    }
+
+    const current = toPositiveInt(vehicle.combustivel);
+    const added = Math.min(amount, capacity - current);
+    vehicle.combustivel = String(current + added);
+    feedback = added > 0 ? `Abastecido +${added} L` : "Tanque cheio";
+  });
+
+  if (input) {
+    input.value = "";
+  }
 
   refreshFuelDisplay();
   markCharacterDirty();
@@ -6092,9 +6297,33 @@ function createVehicle() {
     consumo: "",
     ip: "",
     pv: "",
-    tanque: DEFAULT_FUEL_TANK,
+    tanque: "",
     combustivel: "",
   };
+}
+
+// Tanque e consumo não são mais digitados: vêm do perfil real da modalidade
+// do veículo (VEHICLE_FUEL_PROFILES) e são reaplicados aqui sempre que a
+// ficha é normalizada, para fichas antigas herdarem os valores atuais.
+function getVehicleFuelProfile(iconId) {
+  return VEHICLE_FUEL_PROFILES[iconId] || { hasFuel: false };
+}
+
+function applyVehicleFuelProfile(vehicle, resetFuel) {
+  const profile = getVehicleFuelProfile(vehicle.iconId);
+
+  vehicle.tanque = profile.hasFuel ? String(profile.tanque) : "";
+  vehicle.consumo = profile.hasFuel ? String(profile.consumo) : "";
+
+  if (!profile.hasFuel) {
+    vehicle.combustivel = "";
+  } else if (resetFuel) {
+    vehicle.combustivel = String(profile.tanque);
+  } else {
+    vehicle.combustivel = String(Math.min(toPositiveInt(vehicle.combustivel), profile.tanque));
+  }
+
+  return profile;
 }
 
 function sanitizeVehicle(raw) {
@@ -6108,14 +6337,11 @@ function sanitizeVehicle(raw) {
     consumo: source.consumo ?? "",
     ip: source.ip ?? "",
     pv: source.pv ?? "",
-    tanque: source.tanque ?? DEFAULT_FUEL_TANK,
+    tanque: source.tanque ?? "",
     combustivel: source.combustivel ?? "",
   };
 
-  const capacity = toPositiveInt(vehicle.tanque);
-  if (capacity && toPositiveInt(vehicle.combustivel) > capacity) {
-    vehicle.combustivel = String(capacity);
-  }
+  applyVehicleFuelProfile(vehicle, false);
 
   return vehicle;
 }
@@ -7225,6 +7451,7 @@ function buildPrintVehicleSection(character) {
 
   const capacity = toPositiveInt(vehicle.tanque);
   const fuel = capacity ? `${toPositiveInt(vehicle.combustivel)}/${capacity} L` : "—";
+  const consumo = formatVehicleConsumo(vehicle);
 
   return `
 <section class="print-section">
@@ -7237,7 +7464,7 @@ function buildPrintVehicleSection(character) {
       <tr>
         <td>${escapeHtml(icon ? icon.label : "—")}</td>
         <td>${printCell(vehicle.nome)}</td>
-        <td>${printCell(vehicle.consumo)}</td>
+        <td>${consumo ? escapeHtml(consumo) : "—"}</td>
         <td class="num">${printCell(vehicle.ip)}</td>
         <td class="num">${printCell(vehicle.pv)}</td>
         <td class="num">${escapeHtml(fuel)}</td>

@@ -1208,11 +1208,12 @@ input[readonly] {
 
 .gear-stats {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
 .gear-stats .gear-field {
-  flex: 1 1 0;
+  flex: 1 1 60px;
   min-width: 0;
 }
 
@@ -1239,6 +1240,22 @@ input[readonly] {
 
 .gear-stats .gear-field input {
   text-align: center;
+}
+
+/* Consumo e tanque não são mais digitados: vêm do perfil real do veículo, e
+   aparecem como texto fixo no mesmo layout dos campos editáveis (IP/PV). */
+.gear-stat-static {
+  justify-items: center;
+  padding: 5px 8px;
+}
+
+.gear-stat-static strong {
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 /* --- Munição ------------------------------------------------------------ */
@@ -1347,118 +1364,219 @@ input[readonly] {
   background: radial-gradient(circle at top, rgba(216, 167, 45, 0.2), rgba(20, 60, 78, 0.28));
 }
 
-/* --- Bomba de combustível ----------------------------------------------- */
+/* --- Combustível: mostrador, deslocamento e abastecimento --------------- */
+
+.fuel-none {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(141, 106, 29, 0.4);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-style: italic;
+}
 
 .gear-fuel {
   display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  padding-top: 8px;
+  align-items: flex-start;
+  gap: 14px;
+  padding-top: 10px;
   border-top: 1px dashed rgba(141, 106, 29, 0.4);
 }
 
-.fuel-gauge {
+/* --- Mostrador: arco graduado tipo carro (E / 1/4 / 1/2 / 3/4 / F), sem
+   números — só o ponteiro e a palavra do nível. */
+.fuel-gauge-col {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  width: 58px;
+  gap: 4px;
+  width: 84px;
 }
 
-.fuel-pump {
-  width: 52px;
+.fuel-dial {
+  width: 84px;
   height: 52px;
 }
 
-.fuel-shell {
-  fill: rgba(10, 10, 10, 0.85);
-  stroke: rgba(216, 167, 45, 0.65);
-  stroke-width: 2.5;
+.fuel-dial-track {
+  fill: none;
+  stroke: rgba(8, 8, 8, 0.75);
+  stroke-width: 6;
+  stroke-linecap: round;
 }
 
-.fuel-base,
-.fuel-hose {
-  fill: rgba(216, 167, 45, 0.75);
+.fuel-dial-fill {
+  fill: none;
+  stroke: #5abf78;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  transition: stroke-dashoffset 0.5s cubic-bezier(0.22, 1, 0.36, 1), stroke 0.35s ease;
 }
 
-.fuel-window {
-  fill: rgba(4, 4, 4, 0.9);
-  stroke: rgba(141, 106, 29, 0.5);
-  stroke-width: 1.2;
+.fuel-gauge[data-fuel-level="half"] .fuel-dial-fill {
+  stroke: #e0b83c;
 }
 
-.fuel-display {
-  fill: rgba(216, 167, 45, 0.28);
+.fuel-gauge[data-fuel-level="low"] .fuel-dial-fill,
+.fuel-gauge[data-fuel-level="empty"] .fuel-dial-fill {
+  stroke: #df5a5a;
 }
 
-/* O líquido sobe e desce com o tanque; a transição é o "esgotar" que se vê.
-   transform-box: fill-box faz o scaleY partir da base do próprio retângulo. */
-.fuel-liquid {
-  fill: #5abf78;
-  transform-box: fill-box;
-  transform-origin: bottom;
-  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), fill 0.35s ease;
+.fuel-tick {
+  stroke: rgba(216, 167, 45, 0.55);
+  stroke-width: 2.4;
+  stroke-linecap: round;
 }
 
-.fuel-gauge[data-fuel-level="half"] .fuel-liquid {
-  fill: #e0b83c;
+.fuel-tick-minor {
+  stroke-width: 1.6;
+  opacity: 0.75;
 }
 
-.fuel-gauge[data-fuel-level="low"] .fuel-liquid {
-  fill: #df5a5a;
+.fuel-dial-label {
+  fill: var(--muted);
+  font-size: 8px;
+  text-anchor: middle;
 }
 
-.fuel-gauge[data-fuel-level="empty"] .fuel-liquid {
-  fill: transparent;
+.fuel-needle {
+  stroke: var(--accent);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  transition: x2 0.5s cubic-bezier(0.22, 1, 0.36, 1), y2 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.fuel-gauge[data-fuel-level="low"] .fuel-display,
-.fuel-gauge[data-fuel-level="empty"] .fuel-display {
-  fill: rgba(223, 90, 90, 0.5);
-  animation: fuelWarn 1.1s ease-in-out infinite;
+.fuel-gauge[data-fuel-level="low"] .fuel-needle,
+.fuel-gauge[data-fuel-level="empty"] .fuel-needle {
+  stroke: #df5a5a;
 }
 
-.fuel-gauge.is-pumping .fuel-pump {
+.fuel-hub {
+  fill: var(--accent);
+}
+
+.fuel-gauge.is-pumping .fuel-dial {
   animation: fuelPump 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.fuel-bar {
-  width: 100%;
-  height: 5px;
-  border-radius: 999px;
-  background: rgba(8, 8, 8, 0.75);
-  border: 1px solid rgba(141, 106, 29, 0.45);
-  overflow: hidden;
+.fuel-level-word {
+  color: var(--ink);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-.fuel-bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #a8781a, #f0c350);
-  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.fuel-gauge[data-fuel-level="low"] .fuel-bar-fill,
-.fuel-gauge[data-fuel-level="empty"] .fuel-bar-fill {
-  background: linear-gradient(90deg, #7e0f14, #df5a5a);
-}
-
-.fuel-controls {
-  flex: 1 1 auto;
+.fuel-gauge[data-fuel-level="low"] .fuel-level-word,
+.fuel-gauge[data-fuel-level="empty"] .fuel-level-word {
+  color: #df5a5a;
+  animation: fuelWarn 1.1s ease-in-out infinite;
 }
 
 .fuel-count {
-  color: var(--ink);
-  font-size: 0.8rem;
-  letter-spacing: 0.06em;
-  padding-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
 }
 
 .fuel-count strong {
   color: var(--accent);
-  font-size: 1rem;
+  font-size: 0.85rem;
+}
+
+/* --- Ações: deslocamento (gasta) e abastecimento (enche) ---------------- */
+
+.fuel-actions {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fuel-group-title {
+  display: block;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.62rem;
+  margin-bottom: 4px;
+}
+
+.fuel-trip-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fuel-trip-btn {
+  flex: 1 1 90px;
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(216, 167, 45, 0.45);
+  background: linear-gradient(180deg, rgba(55, 17, 17, 0.9), rgba(12, 12, 12, 0.95));
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+}
+
+.fuel-trip-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.2);
+}
+
+.fuel-trip-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.fuel-trip-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fuel-trip-label {
+  color: var(--accent);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+}
+
+.fuel-trip-hint {
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+
+.fuel-quick-refuel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.fuel-refuel-btn {
+  flex: 1 1 auto;
+}
+
+.fuel-manual-refuel {
+  display: flex;
+  gap: 6px;
+}
+
+.fuel-manual-refuel input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 30px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(216, 167, 45, 0.45);
+  background: rgba(8, 8, 8, 0.6);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 @keyframes fuelPump {
