@@ -384,9 +384,9 @@ const VEHICLE_FUEL_PROFILES = {
 // Distâncias médias representativas de cada tipo de deslocamento, usadas para
 // calcular quantos litros um trajeto gasta a partir do consumo do veículo.
 const VEHICLE_TRIPS = [
-  { key: "curto", label: "Curto", hint: "3–5 km", distance: 4 },
-  { key: "medio", label: "Médio", hint: "10–20 km", distance: 15 },
-  { key: "longo", label: "Longo", hint: "40–80 km", distance: 60 },
+  { key: "curto", label: "Curto", hint: "3–5 km", baseLiters: 0.5 },
+  { key: "medio", label: "Médio", hint: "10–20 km", baseLiters: 1.875 },
+  { key: "longo", label: "Longo", hint: "40–80 km", baseLiters: 7.5 },
 ];
 
 const VEHICLE_QUICK_REFUEL = [
@@ -3067,14 +3067,23 @@ function fuelLevelName(ratio) {
   return ratio <= 0.25 ? "low" : ratio <= 0.5 ? "half" : "full";
 }
 
-// Litros gastos num trajeto: distância média do tipo de deslocamento dividida
-// pelo consumo real do veículo, sempre arredondado para cima até no mínimo 1.
-function computeTripLiters(consumo, distanceKm) {
-  const perLiter = parseFloat(String(consumo ?? "").replace(",", "."));
+// Litros gastos num trajeto: cada tipo de deslocamento tem um consumo base
+// (curto=0.5L, médio=1.875L, longo=7.5L), que é escalado pelo consumo real
+// do veículo, usando 12 km/l (carro padrão) como referência.
+function computeTripLiters(vehicleConsumption, tripKey) {
+  const trip = VEHICLE_TRIPS.find((t) => t.key === tripKey);
+  if (!trip) {
+    return 0;
+  }
+
+  const perLiter = parseFloat(String(vehicleConsumption ?? "").replace(",", "."));
   if (!perLiter || perLiter <= 0) {
     return 0;
   }
-  return Math.max(1, Math.ceil(distanceKm / perLiter));
+
+  const referenceConsumption = 12;
+  const scale = referenceConsumption / perLiter;
+  return Math.round(trip.baseLiters * scale * 10) / 10;
 }
 
 // Ponta do ponteiro sobre o arco de 180°: 180° (E, à esquerda) a 0° (F, à
@@ -3130,7 +3139,7 @@ function buildFuelBlockMarkup(vehicle) {
   const capacity = toPositiveInt(vehicle.tanque);
 
   const tripButtons = VEHICLE_TRIPS.map((trip) => {
-    const cost = computeTripLiters(vehicle.consumo, trip.distance);
+    const cost = computeTripLiters(vehicle.consumo, trip.key);
     return `
       <button type="button" class="fuel-trip-btn" data-fuel-trip="${trip.key}"${current < cost ? " disabled" : ""}
         title="${escapeAttribute(`${trip.label} (${trip.hint}) — gasta ${cost} L`)}">
@@ -3193,7 +3202,7 @@ function refreshFuelDisplay() {
 
   block.querySelectorAll("[data-fuel-trip]").forEach((button) => {
     const trip = VEHICLE_TRIPS.find((entry) => entry.key === button.dataset.fuelTrip);
-    const cost = trip ? computeTripLiters(vehicle.consumo, trip.distance) : 0;
+    const cost = trip ? computeTripLiters(vehicle.consumo, trip.key) : 0;
     button.disabled = current < cost;
   });
 
@@ -3238,7 +3247,7 @@ function handleVehicleClick(event) {
 function handleVehicleInput(event) {
   const amountField = event.target.closest("[data-fuel-amount]");
   if (amountField) {
-    amountField.value = sanitizeIntegerInput(amountField.value).replace(/-/g, "");
+    amountField.value = sanitizeDecimalInput(amountField.value);
     return;
   }
 
@@ -3280,7 +3289,7 @@ function handleFuelTrip(key) {
       return;
     }
 
-    const cost = computeTripLiters(vehicle.consumo, trip.distance);
+    const cost = computeTripLiters(vehicle.consumo, trip.key);
     const current = toPositiveInt(vehicle.combustivel);
 
     if (current < cost) {
@@ -3288,7 +3297,7 @@ function handleFuelTrip(key) {
       return;
     }
 
-    vehicle.combustivel = String(current - cost);
+    vehicle.combustivel = String(Math.round((current - cost) * 10) / 10);
     feedback = `Trajeto ${trip.label.toLowerCase()} · −${cost} L`;
   });
 
@@ -3314,21 +3323,23 @@ function handleQuickRefuel(key) {
 
   mutateActiveCharacter((character) => {
     const vehicle = getVehicle(character);
-    const capacity = toPositiveInt(vehicle.tanque);
-    if (!capacity) {
+    const capacity = parseFloat(vehicle.tanque || "0");
+    if (!capacity || capacity <= 0) {
       feedback = "Escolha um veículo com tanque de combustível";
       return;
     }
 
-    const current = toPositiveInt(vehicle.combustivel);
+    const current = parseFloat(vehicle.combustivel || "0");
     if (current >= capacity) {
       feedback = "Tanque cheio";
       return;
     }
 
-    const added = Math.min(capacity - current, Math.round(capacity * option.fraction));
-    vehicle.combustivel = String(current + added);
-    feedback = `Abastecido +${added} L`;
+    const targetFuel = capacity * option.fraction;
+    const added = Math.min(capacity - current, targetFuel);
+    const newFuel = Math.round((current + added) * 10) / 10;
+    vehicle.combustivel = String(newFuel);
+    feedback = `Abastecido +${Math.round(added * 10) / 10} L`;
   });
 
   refreshFuelDisplay();
@@ -3345,7 +3356,7 @@ function handleManualRefuel() {
   }
 
   const input = elements.vehicleSlot.querySelector("[data-fuel-amount]");
-  const amount = toPositiveInt(input ? input.value : "");
+  const amount = toPositiveDecimal(input ? input.value : "");
 
   if (!amount) {
     showToast("Digite quantos litros abastecer", "", "⛽");
@@ -3356,16 +3367,17 @@ function handleManualRefuel() {
 
   mutateActiveCharacter((character) => {
     const vehicle = getVehicle(character);
-    const capacity = toPositiveInt(vehicle.tanque);
-    if (!capacity) {
+    const capacity = parseFloat(vehicle.tanque || "0");
+    if (!capacity || capacity <= 0) {
       feedback = "Escolha um veículo com tanque de combustível";
       return;
     }
 
-    const current = toPositiveInt(vehicle.combustivel);
+    const current = parseFloat(vehicle.combustivel || "0");
     const added = Math.min(amount, capacity - current);
-    vehicle.combustivel = String(current + added);
-    feedback = added > 0 ? `Abastecido +${added} L` : "Tanque cheio";
+    const newFuel = Math.round((current + added) * 10) / 10;
+    vehicle.combustivel = String(newFuel);
+    feedback = added > 0 ? `Abastecido +${Math.round(added * 10) / 10} L` : "Tanque cheio";
   });
 
   if (input) {
@@ -6749,6 +6761,18 @@ function sanitizeIntegerInput(value) {
   return String(value || "")
     .replace(/[^\d-]/g, "")
     .replace(/(?!^)-/g, "");
+}
+
+function sanitizeDecimalInput(value) {
+  return String(value || "")
+    .replace(/[^\d.,]/g, "")
+    .replace(",", ".")
+    .replace(/(?!^)./g, "");
+}
+
+function toPositiveDecimal(value) {
+  const parsed = parseFloat(String(value ?? "").replace(",", "."));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
 // Aceita apenas dígitos com, no máximo, um sinal + ou - na primeira posição.
