@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
   <!-- O ?v= força o navegador a baixar a versão nova em vez de reaproveitar a
        do cache do GitHub Pages. Suba o número sempre que mexer no CSS/JS. -->
-  <link rel="stylesheet" href="./styles.css?v=11">
+  <link rel="stylesheet" href="./styles.css?v=12">
 </head>
 <body>
   <div class="page-art page-art-top" aria-hidden="true"></div>
@@ -270,13 +270,30 @@
 
             <section class="gear-section">
               <div class="gear-section-title">
+                <span class="gear-section-label">Ração / Comida</span>
+                <span class="gear-section-hint">Cada ração ocupa 3 slots da mochila</span>
+              </div>
+              <div id="rationSlots" class="ration-block"></div>
+              <p id="rationFooter" class="backpack-footer"></p>
+            </section>
+
+            <section class="gear-section">
+              <div class="gear-section-title">
+                <span class="gear-section-label">Água</span>
+                <span class="gear-section-hint">Cantil de 1,5 L · cada gole tira 250 ml</span>
+              </div>
+              <div id="waterSlot" class="water-block"></div>
+            </section>
+
+            <section class="gear-section">
+              <div class="gear-section-title">
                 <span class="gear-section-label">Mochila</span>
                 <label class="backpack-size">
                   <span>Capacidade</span>
                   <select id="backpackSize">
-                    <option value="pequena">Pequena · 8 slots</option>
-                    <option value="media">Média · 16 slots</option>
-                    <option value="grande">Grande · 24 slots</option>
+                    <option value="pequena">Pequena · 9 slots</option>
+                    <option value="media">Média · 15 slots</option>
+                    <option value="grande">Grande · 21 slots</option>
                   </select>
                 </label>
               </div>
@@ -640,6 +657,8 @@
     </div>
   </dialog>
 
+  <div id="gearContextMenu" class="gear-context-menu" role="menu" aria-hidden="true"></div>
+
   <div id="toastStack" class="toast-stack" aria-live="polite"></div>
   <div id="upgradeTooltip" class="upgrade-tooltip" role="tooltip" aria-hidden="true"></div>
   <div id="vehiclePhotoTooltip" class="vehicle-photo-tooltip" role="tooltip" aria-hidden="true">
@@ -647,6 +666,6 @@
     <p class="vehicle-photo-tooltip-hint"></p>
   </div>
 
-  <script type="module" src="./script.js?v=13"></script>
+  <script type="module" src="./script.js?v=14"></script>
 </body>
 </html>

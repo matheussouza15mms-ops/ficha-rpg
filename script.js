@@ -169,12 +169,20 @@ const EQUIPMENT_SLOT_DEFS = [
 ];
 
 const BACKPACK_SIZES = {
-  pequena: { label: "Pequena", slots: 8 },
-  media: { label: "Média", slots: 16 },
-  grande: { label: "Grande", slots: 24 },
+  pequena: { label: "Pequena", slots: 9 },
+  media: { label: "Média", slots: 15 },
+  grande: { label: "Grande", slots: 21 },
 };
 
 const DEFAULT_BACKPACK_SIZE = "media";
+
+// Ração: um pacote fechado é volumoso, então ocupa três slots da mochila. Os
+// slots voltam assim que a ração é consumida.
+const RATION_SLOT_COST = 3;
+
+// Cantil: capacidade e o tamanho de um gole, ambos em mililitros.
+const WATER_CAPACITY_ML = 1500;
+const WATER_SIP_ML = 250;
 
 // Ícones genéricos desenhados em SVG (viewBox 0 0 64 64, preenchidos com
 // currentColor). São silhuetas: servem para identificar o tipo da arma no slot,
@@ -469,6 +477,10 @@ const state = {
   kitCatalogSelection: null,
   iconPicker: { mode: "weapon", slotKey: null, iconId: "", filter: "all" },
   gearDrag: null,
+  // Item que o menu de contexto dos pertences está apontando.
+  gearMenu: null,
+  // Slots que a ração acabou de devolver: piscam uma vez na próxima renderização.
+  freedBackpackSlots: null,
   kits: [],
   viewportFrame: 0,
   wizard: {
@@ -646,6 +658,10 @@ function cacheElements() {
   elements.chestFooter = document.getElementById("chestFooter");
   elements.backpackSize = document.getElementById("backpackSize");
   elements.backpackFooter = document.getElementById("backpackFooter");
+  elements.rationSlots = document.getElementById("rationSlots");
+  elements.rationFooter = document.getElementById("rationFooter");
+  elements.waterSlot = document.getElementById("waterSlot");
+  elements.gearContextMenu = document.getElementById("gearContextMenu");
   elements.weaponPickerDialog = document.getElementById("weaponPickerDialog");
   elements.weaponPickerTitle = document.getElementById("weaponPickerTitle");
   elements.weaponPickerSlotLabel = document.getElementById("weaponPickerSlotLabel");
@@ -1383,7 +1399,10 @@ function registerEvents() {
   elements.chestGrid.addEventListener("focusout", handleChestFieldBlur);
   elements.inventoryRows.addEventListener("input", handleBackpackInput);
   elements.backpackSize.addEventListener("change", handleBackpackSizeChange);
+  elements.rationSlots.addEventListener("click", handleRationClick);
+  elements.waterSlot.addEventListener("click", handleWaterClick);
   [elements.equipmentSlots, elements.inventoryRows, elements.chestGrid].forEach(registerGearDragZone);
+  registerGearContextMenu();
   elements.weaponPickerFilters.addEventListener("click", handleWeaponFilterClick);
   elements.weaponPickerGrid.addEventListener("click", handleWeaponOptionClick);
   elements.cancelWeaponPicker.addEventListener("click", () => closeDialogAnimated(elements.weaponPickerDialog));
@@ -2528,6 +2547,8 @@ function sanitizeContacts(rows) {
 function renderInventory() {
   renderEquipmentSlots();
   renderVehicleSlot();
+  renderRations();
+  renderWater();
   renderBackpack();
   renderChest();
 }
@@ -3585,13 +3606,35 @@ function createInventoryItem() {
   return { id: crypto.randomUUID(), item: "", quantidade: "", peso: "", valor: "" };
 }
 
+// Espaço da mochila que as rações estão ocupando neste momento.
+function getReservedBackpackSlots(character) {
+  return getRations(character).length * RATION_SLOT_COST;
+}
+
+// Capacidade que sobra para itens depois de descontadas as rações guardadas.
+function getInventoryCapacity(character) {
+  return Math.max(0, getBackpackCapacity(character) - getReservedBackpackSlots(character));
+}
+
+function countFilledInventoryItems(character) {
+  return (character?.inventoryItems || []).filter((item) => !isEmptyInventoryItem(item)).length;
+}
+
+function countFreeBackpackSlots(character) {
+  return getInventoryCapacity(character) - countFilledInventoryItems(character);
+}
+
 function renderBackpack() {
   const character = getActiveCharacter();
   const items = character?.inventoryItems || [];
-  const capacity = getBackpackCapacity(character);
+  const capacity = getInventoryCapacity(character);
+  const rations = getRations(character);
   // Slots além da capacidade continuam visíveis: reduzir a mochila nunca joga
   // fora item que o jogador já tinha anotado.
   const total = Math.max(capacity, items.length);
+  // Slots que acabaram de vagar (ração consumida) piscam uma vez.
+  const freed = state.freedBackpackSlots || [];
+  state.freedBackpackSlots = null;
 
   elements.backpackSize.value = normalizeBackpackSize(character?.backpackSize);
 
@@ -3606,16 +3649,30 @@ function renderBackpack() {
         aria-label="${escapeAttribute(`${label} — slot ${index + 1}`)}">`;
 
     html += `
-      <div class="inventory-row inventory-slot${overflow ? " is-overflow" : ""}${empty ? " is-empty" : ""}"
+      <div class="inventory-row inventory-slot${overflow ? " is-overflow" : ""}${empty ? " is-empty" : ""}${freed.includes(index) ? " is-freed" : ""}"
         data-slot-index="${index}" data-drop-zone="backpack">
         <span class="slot-index" draggable="true" data-drag-source="backpack" data-slot-index="${index}"
-          title="Arraste para o baú ou para um slot de arma">${overflow ? "!" : index + 1}</span>
+          title="Arraste para o baú ou para um slot de arma · botão direito abre as ações">${overflow ? "!" : index + 1}</span>
         ${cell("item", "Item", item.item, false)}
         ${cell("quantidade", "Quantidade", item.quantidade, true)}
         ${cell("peso", "Peso", item.peso, true)}
         ${cell("valor", "Valor", item.valor, true)}
       </div>`;
   }
+
+  // Os slots das rações vêm depois dos slots de item: são espaço tomado, não
+  // linha editável, então não recebem arrasto nem campo nenhum.
+  rations.forEach((ration, rationIndex) => {
+    for (let step = 0; step < RATION_SLOT_COST; step += 1) {
+      html += `
+      <div class="inventory-row inventory-slot is-ration" data-ration-slot="${escapeAttribute(ration.id)}">
+        <span class="slot-index" aria-hidden="true">${step === 0 ? "🥫" : "·"}</span>
+        <span class="ration-slot-label">${step === 0
+          ? `Ração ${rationIndex + 1} · ocupa ${RATION_SLOT_COST} slots`
+          : "&nbsp;"}</span>
+      </div>`;
+    }
+  });
 
   elements.inventoryRows.innerHTML = html;
   updateBackpackFooter();
@@ -3625,6 +3682,9 @@ function updateBackpackFooter() {
   const character = getActiveCharacter();
   const items = character?.inventoryItems || [];
   const capacity = getBackpackCapacity(character);
+  const itemCapacity = getInventoryCapacity(character);
+  const reserved = getReservedBackpackSlots(character);
+  const rationCount = getRations(character).length;
   const filled = items.filter((item) => !isEmptyInventoryItem(item));
 
   const totals = filled.reduce((acc, item) => {
@@ -3634,12 +3694,16 @@ function updateBackpackFooter() {
     return acc;
   }, { peso: 0, valor: 0 });
 
-  const overflow = Math.max(0, items.length - capacity);
-  const parts = [
-    `Slots ${filled.length}/${capacity}`,
-    `Peso ${totals.peso}`,
-    `Valor ${totals.valor}`,
-  ];
+  // Só conta como excedente o slot fora da capacidade que tem item escrito:
+  // linha vazia sobrando não é aviso.
+  const overflow = items.filter((item, index) => index >= itemCapacity && !isEmptyInventoryItem(item)).length;
+  const parts = [`Slots ${filled.length + reserved}/${capacity}`];
+
+  if (rationCount) {
+    parts.push(`Ração ×${rationCount} (${reserved} slots)`);
+  }
+
+  parts.push(`Peso ${totals.peso}`, `Valor ${totals.valor}`);
 
   elements.backpackFooter.textContent = overflow
     ? `${parts.join(" · ")} · ⚠ ${overflow} ${overflow === 1 ? "item excedente" : "itens excedentes"}`
@@ -3680,6 +3744,7 @@ function handleBackpackInput(event) {
   }
 
   updateBackpackFooter();
+  refreshRationAvailability();
   markCharacterDirty();
 }
 
@@ -3695,8 +3760,475 @@ function handleBackpackSizeChange() {
   });
 
   renderBackpack();
+  renderRations();
   markCharacterDirty();
   showToast(`Mochila ${BACKPACK_SIZES[size].label.toLowerCase()} · ${BACKPACK_SIZES[size].slots} slots`, "", "🎒");
+}
+
+// Empurra os itens para o começo da mochila quando as rações precisam do espaço
+// do fim. Nada é apagado: só a posição muda, e a ordem entre os itens continua a
+// mesma. Só roda quando há item ocupando o espaço que a ração vai tomar.
+function compactInventoryItems(character, limit) {
+  const items = character.inventoryItems || [];
+  const needsRoom = items.some((item, index) => index >= limit && !isEmptyInventoryItem(item));
+
+  if (!needsRoom) {
+    return false;
+  }
+
+  character.inventoryItems = items.filter((item) => !isEmptyInventoryItem(item));
+  return true;
+}
+
+/* ==========================================================================
+   Ração / comida
+   ==========================================================================
+   A ração não é linha de mochila: é um pacote inteiro que toma três slots. Por
+   isso vive numa lista própria e a mochila só desconta o espaço — assim comer
+   devolve os slots sem mexer em nenhum item anotado pelo jogador. */
+
+function createRation() {
+  return { id: crypto.randomUUID(), addedAtMs: Date.now() };
+}
+
+function sanitizeRations(rows) {
+  return (Array.isArray(rows) ? rows : []).map((row) => {
+    const addedAtMs = Math.floor(Number(row?.addedAtMs));
+
+    return {
+      id: row?.id || crypto.randomUUID(),
+      addedAtMs: Number.isFinite(addedAtMs) && addedAtMs > 0 ? addedAtMs : Date.now(),
+    };
+  });
+}
+
+function getRations(character) {
+  if (!character) {
+    return [];
+  }
+
+  if (!Array.isArray(character.rations)) {
+    character.rations = sanitizeRations(character.rations);
+  }
+
+  return character.rations;
+}
+
+const RATION_ART_SVG = `<svg viewBox="0 0 64 64" fill="currentColor" role="img" aria-label="Ração de campanha">
+    <path d="M14 8h36a5 5 0 0 1 5 5v38a5 5 0 0 1-5 5H14a5 5 0 0 1-5-5V13a5 5 0 0 1 5-5Zm-1 6v3h38v-3H13Zm0 33v3h38v-3H13Z" opacity="0.9"/>
+    <rect x="17" y="23" width="30" height="18" rx="3" opacity="0.3"/>
+    <path d="M24 26v6.5c0 1 .6 1.8 1.5 2.1V39h2.2v-4.4c.9-.3 1.5-1.1 1.5-2.1V26h-1.5v5h-.9v-5h-1.4v5h-.9v-5H24Zm13.4 0c-1.7 0-3.1 2.2-3.1 5.2 0 2.4.9 4.1 2.2 4.6V39h2.2V26h-1.3Z"/>
+  </svg>`;
+
+function renderRations() {
+  if (!elements.rationSlots) {
+    return;
+  }
+
+  const character = getActiveCharacter();
+  const rations = getRations(character);
+  const free = countFreeBackpackSlots(character);
+  const canAdd = hasActiveCharacter() && free >= RATION_SLOT_COST;
+
+  const cards = rations.map((ration, index) => `
+    <article class="ration-card" data-ration-id="${escapeAttribute(ration.id)}">
+      <span class="ration-art" aria-hidden="true">${RATION_ART_SVG}</span>
+      <span class="ration-name">Ração ${index + 1}</span>
+      <span class="ration-cost">${RATION_SLOT_COST} slots</span>
+      <button type="button" class="ration-eat" data-ration-consume="${escapeAttribute(ration.id)}"
+        aria-label="${escapeAttribute(`Consumir ração ${index + 1}`)}">Consumir</button>
+    </article>`).join("");
+
+  const addCard = `
+    <button type="button" class="ration-add${canAdd ? "" : " is-blocked"}" data-ration-add
+      title="${escapeAttribute(canAdd
+        ? `Guardar uma ração · ocupa ${RATION_SLOT_COST} slots da mochila`
+        : `Sem espaço: a ração precisa de ${RATION_SLOT_COST} slots livres`)}">
+      <span class="ration-add-mark" aria-hidden="true">+</span>
+      <span class="ration-add-label">Adicionar ração</span>
+      <span class="ration-add-hint">${canAdd ? `−${RATION_SLOT_COST} slots` : "sem espaço"}</span>
+    </button>`;
+
+  elements.rationSlots.innerHTML = cards + addCard;
+  updateRationFooter();
+}
+
+function updateRationFooter() {
+  if (!elements.rationFooter) {
+    return;
+  }
+
+  const character = getActiveCharacter();
+  const count = getRations(character).length;
+  const free = Math.max(0, countFreeBackpackSlots(character));
+
+  elements.rationFooter.textContent = count
+    ? `${count} ${count === 1 ? "ração guardada" : "rações guardadas"} · ${count * RATION_SLOT_COST} slots ocupados · ${free} ${free === 1 ? "slot livre" : "slots livres"} na mochila`
+    : `Nenhuma ração guardada · ${free} ${free === 1 ? "slot livre" : "slots livres"} na mochila`;
+
+  elements.rationFooter.classList.toggle("is-overloaded", hasActiveCharacter() && free < RATION_SLOT_COST);
+}
+
+// Digitar um item muda quantos slots sobram. Em vez de redesenhar os cards (o
+// que cortaria as animações em curso), só o rodapé e o botão de adicionar são
+// atualizados.
+function refreshRationAvailability() {
+  updateRationFooter();
+
+  const add = elements.rationSlots?.querySelector("[data-ration-add]");
+  if (!add) {
+    return;
+  }
+
+  const canAdd = hasActiveCharacter() && countFreeBackpackSlots(getActiveCharacter()) >= RATION_SLOT_COST;
+  add.classList.toggle("is-blocked", !canAdd);
+  add.querySelector(".ration-add-hint").textContent = canAdd ? `−${RATION_SLOT_COST} slots` : "sem espaço";
+}
+
+function handleRationClick(event) {
+  const add = event.target.closest("[data-ration-add]");
+  if (add) {
+    handleAddRation(add);
+    return;
+  }
+
+  const eat = event.target.closest("[data-ration-consume]");
+  if (eat) {
+    handleConsumeRation(eat.dataset.rationConsume);
+  }
+}
+
+function handleAddRation(button) {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  const character = getActiveCharacter();
+
+  if (countFreeBackpackSlots(character) < RATION_SLOT_COST) {
+    if (button) {
+      button.classList.remove("is-denied");
+      void button.offsetWidth;
+      button.classList.add("is-denied");
+    }
+    showToast(`Mochila sem espaço · a ração ocupa ${RATION_SLOT_COST} slots`, "danger", "🎒");
+    return;
+  }
+
+  const limit = getInventoryCapacity(character) - RATION_SLOT_COST;
+  let compacted = false;
+
+  mutateActiveCharacter((active) => {
+    compacted = compactInventoryItems(active, limit);
+    getRations(active).push(createRation());
+  });
+
+  renderBackpack();
+  renderRations();
+  markCharacterDirty();
+
+  elements.rationSlots.querySelector(".ration-card:last-of-type")?.classList.add("is-new");
+  showToast(
+    compacted ? "Ração guardada · mochila reorganizada" : `Ração guardada · −${RATION_SLOT_COST} slots`,
+    "success",
+    "🥫",
+  );
+}
+
+function handleConsumeRation(rationId) {
+  if (!hasActiveCharacter() || !rationId) {
+    return;
+  }
+
+  const character = getActiveCharacter();
+  if (!getRations(character).some((ration) => ration.id === rationId)) {
+    return;
+  }
+
+  const card = elements.rationSlots.querySelector(`[data-ration-id="${rationId}"]`);
+  if (card?.classList.contains("is-consuming")) {
+    return;
+  }
+
+  // Os três slots que voltam são sempre os que vinham logo depois da última
+  // linha de item disponível — é neles que o brilho verde acende.
+  const freedStart = getInventoryCapacity(character);
+  const characterId = character.id;
+
+  const finish = () => {
+    // Trocar de ficha no meio da mordida não pode descontar ração da outra.
+    if (state.selectedCharacterId !== characterId) {
+      return;
+    }
+
+    mutateActiveCharacter((active) => {
+      const rations = getRations(active);
+      const position = rations.findIndex((ration) => ration.id === rationId);
+      if (position >= 0) {
+        rations.splice(position, 1);
+      }
+    });
+
+    state.freedBackpackSlots = [freedStart, freedStart + 1, freedStart + 2];
+    renderBackpack();
+    renderRations();
+    markCharacterDirty();
+    showToast(`Ração consumida · +${RATION_SLOT_COST} slots livres`, "success", "🍽️");
+  };
+
+  if (!card) {
+    finish();
+    return;
+  }
+
+  card.classList.add("is-consuming");
+  spawnRationCrumbs(card);
+  setTimeout(finish, 620);
+}
+
+// Migalhas voando: o pacote não some do nada, ele é comido.
+function spawnRationCrumbs(card) {
+  const burst = document.createElement("span");
+  burst.className = "ration-crumbs";
+  burst.setAttribute("aria-hidden", "true");
+
+  for (let index = 0; index < 7; index += 1) {
+    const crumb = document.createElement("i");
+    crumb.style.setProperty("--crumb-x", `${Math.round(Math.random() * 76 - 38)}px`);
+    crumb.style.setProperty("--crumb-y", `${Math.round(-26 - Math.random() * 38)}px`);
+    crumb.style.setProperty("--crumb-delay", `${Math.round(Math.random() * 130)}ms`);
+    burst.appendChild(crumb);
+  }
+
+  card.appendChild(burst);
+}
+
+/* ==========================================================================
+   Água: cantil com nível animado
+   ========================================================================== */
+
+const WATER_LEVEL_WORDS = {
+  full: "Cantil cheio",
+  high: "Bem servido",
+  half: "Pela metade",
+  low: "No fim",
+  empty: "Vazio",
+};
+
+// Geometria do líquido dentro da garrafa, em unidades do viewBox do SVG.
+const WATER_SURFACE_TOP = 42;
+const WATER_SURFACE_BOTTOM = 190;
+
+function createWater() {
+  return { ml: String(WATER_CAPACITY_ML) };
+}
+
+function sanitizeWater(raw) {
+  // Ficha antiga não tem cantil gravado: começa cheia, para ninguém abrir a
+  // ficha e encontrar o cantil seco sem ter bebido nada.
+  if (!raw || typeof raw !== "object") {
+    return createWater();
+  }
+
+  const ml = Math.round(Number(raw.ml));
+  const safe = Number.isFinite(ml) ? Math.max(0, Math.min(WATER_CAPACITY_ML, ml)) : WATER_CAPACITY_ML;
+  return { ml: String(safe) };
+}
+
+function getWater(character) {
+  if (!character) {
+    return createWater();
+  }
+
+  if (!character.water || typeof character.water !== "object") {
+    character.water = sanitizeWater(character.water);
+  }
+
+  return character.water;
+}
+
+function getWaterMl(water) {
+  const ml = Math.round(Number(water?.ml));
+  return Number.isFinite(ml) ? Math.max(0, Math.min(WATER_CAPACITY_ML, ml)) : 0;
+}
+
+function getWaterRatio(water) {
+  return getWaterMl(water) / WATER_CAPACITY_ML;
+}
+
+function waterLevelName(ratio) {
+  if (ratio >= 0.999) return "full";
+  if (ratio >= 0.66) return "high";
+  if (ratio >= 0.33) return "half";
+  if (ratio > 0) return "low";
+  return "empty";
+}
+
+function waterSurfaceY(ratio) {
+  return WATER_SURFACE_BOTTOM - (WATER_SURFACE_BOTTOM - WATER_SURFACE_TOP) * ratio;
+}
+
+function formatWaterVolume(ml) {
+  return ml >= 1000
+    ? `${(ml / 1000).toFixed(2).replace(".", ",")} L`
+    : `${ml} ml`;
+}
+
+function buildWaterCountMarkup(water) {
+  return `<strong>${escapeHtml(formatWaterVolume(getWaterMl(water)))}</strong> / ${escapeHtml(formatWaterVolume(WATER_CAPACITY_ML))}`;
+}
+
+// Onda de período 40: a faixa vai de -60 a 180 para que o deslocamento de -40
+// da animação nunca deixe borda à mostra.
+const WATER_WAVE_PATH = "M-60 0 q10 -7 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 V250 H-60 Z";
+const WATER_BOTTLE_PATH = "M50 38 C50 47 26 53 26 69 L26 180 C26 187 31 192 38 192 L82 192 C89 192 94 187 94 180 L94 69 C94 53 70 47 70 38 Z";
+
+function renderWater() {
+  if (!elements.waterSlot) {
+    return;
+  }
+
+  const water = getWater(getActiveCharacter());
+  const ratio = getWaterRatio(water);
+  const level = waterLevelName(ratio);
+  const ml = getWaterMl(water);
+
+  elements.waterSlot.innerHTML = `
+    <div class="water-inner" data-water-block>
+      <div class="water-bottle-col">
+        <svg class="water-bottle" data-water-level="${level}" viewBox="0 0 120 210" role="img"
+          aria-label="${escapeAttribute(`Cantil: ${formatWaterVolume(ml)} de ${formatWaterVolume(WATER_CAPACITY_ML)}`)}">
+          <defs>
+            <clipPath id="waterBottleClip">
+              <path d="${WATER_BOTTLE_PATH}"/>
+            </clipPath>
+            <linearGradient id="waterFillGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#8fe3f5"/>
+              <stop offset="55%" stop-color="#33a6d0"/>
+              <stop offset="100%" stop-color="#12617f"/>
+            </linearGradient>
+          </defs>
+
+          <path class="water-glass" d="${WATER_BOTTLE_PATH}"/>
+
+          <g clip-path="url(#waterBottleClip)">
+            <g class="water-liquid" style="transform: translateY(${waterSurfaceY(ratio).toFixed(2)}px)">
+              <path class="water-wave water-wave-back" d="${WATER_WAVE_PATH}"/>
+              <path class="water-wave water-wave-front" d="${WATER_WAVE_PATH}"/>
+              <circle class="water-bubble water-bubble-a" cx="44" cy="46" r="2.6"/>
+              <circle class="water-bubble water-bubble-b" cx="66" cy="70" r="1.9"/>
+              <circle class="water-bubble water-bubble-c" cx="78" cy="56" r="2.2"/>
+            </g>
+            <rect class="water-stream" x="55" y="-4" width="10" height="70" rx="5"/>
+          </g>
+
+          <path class="water-shine" d="M36 76 L36 172"/>
+          <rect class="water-neck" x="50" y="22" width="20" height="18" rx="3"/>
+          <rect class="water-cap" x="41" y="3" width="38" height="21" rx="6"/>
+          <path class="water-ticks" d="M84 94h9M84 122h9M84 150h9"/>
+        </svg>
+        <span class="water-level-word">${escapeHtml(WATER_LEVEL_WORDS[level])}</span>
+      </div>
+
+      <div class="water-actions">
+        <span class="water-count">${buildWaterCountMarkup(water)}</span>
+        <button type="button" class="water-btn water-btn-drink" data-water-action="drink"${ml <= 0 ? " disabled" : ""}>
+          <span aria-hidden="true">🥤</span> Beber um gole
+        </button>
+        <button type="button" class="water-btn water-btn-fill" data-water-action="fill"${ml >= WATER_CAPACITY_ML ? " disabled" : ""}>
+          <span aria-hidden="true">💧</span> Encher
+        </button>
+        <span class="water-hint">Um gole tira ${WATER_SIP_ML} ml · encher completa ${formatWaterVolume(WATER_CAPACITY_ML)}</span>
+      </div>
+    </div>`;
+}
+
+// O nível é atualizado sem redesenhar o SVG: assim a transição do CSS mostra a
+// água subindo ou descendo em vez de trocar de altura num piscar.
+function refreshWaterDisplay(action = "") {
+  const block = elements.waterSlot.querySelector("[data-water-block]");
+  if (!block) {
+    renderWater();
+    return;
+  }
+
+  const water = getWater(getActiveCharacter());
+  const ratio = getWaterRatio(water);
+  const level = waterLevelName(ratio);
+  const ml = getWaterMl(water);
+  const bottle = block.querySelector(".water-bottle");
+
+  bottle.dataset.waterLevel = level;
+  block.querySelector(".water-liquid").style.transform = `translateY(${waterSurfaceY(ratio).toFixed(2)}px)`;
+  block.querySelector(".water-level-word").textContent = WATER_LEVEL_WORDS[level];
+  block.querySelector(".water-count").innerHTML = buildWaterCountMarkup(water);
+  block.querySelector('[data-water-action="drink"]').disabled = ml <= 0;
+  block.querySelector('[data-water-action="fill"]').disabled = ml >= WATER_CAPACITY_ML;
+
+  if (action) {
+    bottle.classList.remove("is-drinking", "is-filling");
+    void bottle.offsetWidth;
+    bottle.classList.add(action === "fill" ? "is-filling" : "is-drinking");
+  }
+}
+
+function handleWaterClick(event) {
+  const button = event.target.closest("[data-water-action]");
+  if (!button || button.disabled || !hasActiveCharacter()) {
+    return;
+  }
+
+  if (button.dataset.waterAction === "drink") {
+    handleDrinkWater();
+  } else {
+    handleFillWater();
+  }
+}
+
+function handleDrinkWater() {
+  const current = getWaterMl(getWater(getActiveCharacter()));
+
+  if (current <= 0) {
+    showToast("Cantil vazio · encha antes de beber", "danger", "💧");
+    return;
+  }
+
+  const sip = Math.min(WATER_SIP_ML, current);
+  let remaining = 0;
+
+  mutateActiveCharacter((character) => {
+    const water = getWater(character);
+    remaining = current - sip;
+    water.ml = String(remaining);
+  });
+
+  refreshWaterDisplay("drink");
+  markCharacterDirty();
+
+  showToast(
+    remaining <= 0 ? `Último gole · ${sip} ml · cantil vazio` : `Um gole · −${sip} ml`,
+    remaining <= 0 ? "danger" : "success",
+    remaining <= 0 ? "🫗" : "🥤",
+  );
+}
+
+function handleFillWater() {
+  const current = getWaterMl(getWater(getActiveCharacter()));
+
+  if (current >= WATER_CAPACITY_ML) {
+    showToast("Cantil já está cheio", "", "💧");
+    return;
+  }
+
+  const added = WATER_CAPACITY_ML - current;
+
+  mutateActiveCharacter((character) => {
+    getWater(character).ml = String(WATER_CAPACITY_ML);
+  });
+
+  refreshWaterDisplay("fill");
+  markCharacterDirty();
+  showToast(`Cantil cheio · +${formatWaterVolume(added)}`, "success", "💧");
 }
 
 /* ==========================================================================
@@ -3751,27 +4283,18 @@ function buildChestSlotMarkup(entry, index) {
   }
 
   if (entry.kind !== "weapon") {
-    // Item de linha: editável direto no baú, sem precisar arrastar da mochila.
-    // O punho de arrasto fica só no ícone para não brigar com a seleção de
-    // texto dos campos.
-    const field = (name, label, value) => `
-      <input type="text" inputmode="numeric" data-numeric="true" value="${escapeAttribute(value || "")}" placeholder="${escapeAttribute(label)}"
-        data-chest-index="${index}" data-chest-field="${name}"
-        aria-label="${escapeAttribute(`${label} — item do baú, slot ${index + 1}`)}">`;
-
+    // O card do baú mostra só o nome: quantidade, peso e valor continuam
+    // gravados no item e voltam com ele quando for para a mochila, mas não
+    // poluem a etiqueta. O punho de arrasto fica só no ícone para não brigar
+    // com a seleção de texto do nome.
     return `
       <article class="chest-slot is-filled is-item" data-chest-index="${index}" data-drop-zone="chest">
         <button type="button" class="chest-remove" data-chest-remove="${index}" title="Descartar" aria-label="Descartar item">✕</button>
         <span class="chest-icon" draggable="true" data-drag-source="chest" data-chest-index="${index}"
-          title="Arraste para a mochila ou para um slot de arma">${CHEST_ITEM_ICON_SVG}</span>
+          title="Arraste para a mochila ou para um slot de arma · botão direito abre as ações">${CHEST_ITEM_ICON_SVG}</span>
         <input type="text" class="chest-item-name" value="${escapeAttribute(entry.nome || "")}" placeholder="Nome do item"
           data-chest-index="${index}" data-chest-field="nome"
           aria-label="${escapeAttribute(`Nome — item do baú, slot ${index + 1}`)}">
-        <div class="chest-item-meta">
-          ${field("quantidade", "Qtd", entry.quantidade)}
-          ${field("peso", "Peso", entry.peso)}
-          ${field("valor", "Valor", entry.valor)}
-        </div>
       </article>`;
   }
 
@@ -4231,6 +4754,379 @@ function registerGearDragZone(container) {
   container.addEventListener("dragover", handleGearDragOver);
   container.addEventListener("dragleave", handleGearDragLeave);
   container.addEventListener("drop", handleGearDrop);
+}
+
+/* ==========================================================================
+   Menu de contexto dos pertences
+   ==========================================================================
+   O arrasto continua sendo o caminho rápido, mas ele não serve em touch nem
+   quando o destino está fora da tela. O botão direito abre o mesmo conjunto de
+   movimentos — equipar, mandar para a mochila ou para o baú — mais duplicar e
+   excluir, sempre a partir do mesmo "pacote" neutro que o arrasto usa. */
+
+const GEAR_ORIGIN_LABELS = {
+  equipment: "Equipamento",
+  backpack: "Mochila",
+  chest: "Baú",
+};
+
+function findGearMenuSource(target) {
+  const equipment = target.closest(".gear-slot[data-slot-key]");
+  if (equipment) {
+    return { origin: "equipment", slotKey: equipment.dataset.slotKey, index: -1 };
+  }
+
+  const row = target.closest(".inventory-slot[data-slot-index]");
+  if (row) {
+    return { origin: "backpack", slotKey: "", index: Number(row.dataset.slotIndex) };
+  }
+
+  const chest = target.closest(".chest-slot[data-chest-index]");
+  if (chest) {
+    return { origin: "chest", slotKey: "", index: Number(chest.dataset.chestIndex) };
+  }
+
+  return null;
+}
+
+function gearPayloadFromSource(character, source) {
+  if (!character || !source) {
+    return null;
+  }
+
+  if (source.origin === "equipment") {
+    const slot = getEquipmentSlots(character)[source.slotKey];
+    return slot && !isEmptyEquipmentSlot(slot) ? gearPayloadFromEquipment(slot) : null;
+  }
+
+  if (source.origin === "backpack") {
+    const item = (character.inventoryItems || [])[source.index];
+    return item && !isEmptyInventoryItem(item) ? gearPayloadFromInventory(item) : null;
+  }
+
+  const entry = getChestItems(character)[source.index];
+  return entry ? gearPayloadFromChest(entry) : null;
+}
+
+function clearGearSource(character, source) {
+  if (source.origin === "equipment") {
+    getEquipmentSlots(character)[source.slotKey] = createEquipmentSlot();
+    return;
+  }
+
+  if (source.origin === "backpack") {
+    const items = character.inventoryItems || [];
+    items[source.index] = createInventoryItem();
+    return;
+  }
+
+  getChestItems(character).splice(source.index, 1);
+}
+
+function ensureInventorySize(character, index) {
+  if (!Array.isArray(character.inventoryItems)) {
+    character.inventoryItems = [];
+  }
+
+  while (character.inventoryItems.length <= index) {
+    character.inventoryItems.push(createInventoryItem());
+  }
+}
+
+// Primeiro slot de item vazio dentro da capacidade útil (o espaço das rações
+// não conta). -1 quando a mochila está lotada.
+function findFreeBackpackIndex(character, ignoreIndex = -1) {
+  const items = character.inventoryItems || [];
+  const capacity = getInventoryCapacity(character);
+
+  for (let index = 0; index < capacity; index += 1) {
+    if (index !== ignoreIndex && (!items[index] || isEmptyInventoryItem(items[index]))) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function findEmptyEquipmentSlotKey(character) {
+  const slots = getEquipmentSlots(character);
+  const def = EQUIPMENT_SLOT_DEFS.find((entry) => isEmptyEquipmentSlot(slots[entry.key]));
+  return def ? def.key : "";
+}
+
+function buildGearMenuMarkup(source, payload) {
+  const character = getActiveCharacter();
+  const slots = getEquipmentSlots(character);
+  const isWeapon = payload.kind === "weapon";
+  const name = String(payload.nome || "").trim()
+    || (isWeapon ? WEAPON_ICON_MAP.get(payload.iconId)?.label || "Arma" : "Item sem nome");
+
+  const equipItems = EQUIPMENT_SLOT_DEFS.map((def) => {
+    const isSelf = source.origin === "equipment" && source.slotKey === def.key;
+    const occupied = !isEmptyEquipmentSlot(slots[def.key]);
+    const hint = isSelf ? "atual" : occupied ? "troca" : "livre";
+
+    return `
+      <button type="button" class="gear-menu-item" data-gear-action="equip" data-slot-key="${def.key}"${isSelf ? " disabled" : ""}>
+        <span class="gear-menu-glyph" aria-hidden="true">🗡️</span>
+        <span class="gear-menu-text">${escapeHtml(def.label)}</span>
+        <span class="gear-menu-hint">${escapeHtml(hint)}</span>
+      </button>`;
+  }).join("");
+
+  const backpackFree = findFreeBackpackIndex(character, source.origin === "backpack" ? source.index : -1);
+  const backpackBlocked = isWeapon
+    ? "só o baú guarda arma"
+    : source.origin === "backpack"
+      ? "já está aqui"
+      : backpackFree < 0 ? "sem espaço" : "";
+
+  const chestBlocked = source.origin === "chest" ? "já está aqui" : "";
+
+  return `
+    <div class="gear-menu-head">
+      <span class="gear-menu-name">${escapeHtml(name)}</span>
+      <span class="gear-menu-origin">${escapeHtml(GEAR_ORIGIN_LABELS[source.origin] || "")}</span>
+    </div>
+
+    <div class="gear-menu-group">
+      <span class="gear-menu-group-title">Equipar</span>
+      ${equipItems}
+    </div>
+
+    <div class="gear-menu-group">
+      <span class="gear-menu-group-title">Mover</span>
+      <button type="button" class="gear-menu-item" data-gear-action="backpack"${backpackBlocked ? " disabled" : ""}>
+        <span class="gear-menu-glyph" aria-hidden="true">🎒</span>
+        <span class="gear-menu-text">Colocar na mochila</span>
+        <span class="gear-menu-hint">${escapeHtml(backpackBlocked)}</span>
+      </button>
+      <button type="button" class="gear-menu-item" data-gear-action="chest"${chestBlocked ? " disabled" : ""}>
+        <span class="gear-menu-glyph" aria-hidden="true">📦</span>
+        <span class="gear-menu-text">Colocar no baú</span>
+        <span class="gear-menu-hint">${escapeHtml(chestBlocked)}</span>
+      </button>
+    </div>
+
+    <div class="gear-menu-group">
+      <button type="button" class="gear-menu-item" data-gear-action="duplicate">
+        <span class="gear-menu-glyph" aria-hidden="true">⧉</span>
+        <span class="gear-menu-text">Duplicar</span>
+        <span class="gear-menu-hint"></span>
+      </button>
+      <button type="button" class="gear-menu-item is-danger" data-gear-action="delete">
+        <span class="gear-menu-glyph" aria-hidden="true">✕</span>
+        <span class="gear-menu-text">Excluir</span>
+        <span class="gear-menu-hint"></span>
+      </button>
+    </div>`;
+}
+
+function openGearContextMenu(source, clientX, clientY) {
+  const payload = gearPayloadFromSource(getActiveCharacter(), source);
+  if (!payload) {
+    closeGearContextMenu();
+    return;
+  }
+
+  const menu = elements.gearContextMenu;
+  menu.innerHTML = buildGearMenuMarkup(source, payload);
+  menu.style.left = "0px";
+  menu.style.top = "0px";
+  menu.classList.add("is-open");
+  menu.setAttribute("aria-hidden", "false");
+
+  // Medir só depois de aberto: o menu muda de altura conforme o que cabe nele.
+  const width = menu.offsetWidth;
+  const height = menu.offsetHeight;
+  const left = Math.max(8, Math.min(clientX, window.innerWidth - width - 8));
+  const top = Math.max(8, Math.min(clientY, window.innerHeight - height - 8));
+
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  state.gearMenu = source;
+}
+
+function closeGearContextMenu() {
+  const menu = elements.gearContextMenu;
+  if (!menu || !menu.classList.contains("is-open")) {
+    return;
+  }
+
+  menu.classList.remove("is-open");
+  menu.setAttribute("aria-hidden", "true");
+  menu.innerHTML = "";
+  state.gearMenu = null;
+}
+
+function handleGearContextMenu(event) {
+  if (!hasActiveCharacter() || !(event.target instanceof Element)) {
+    return;
+  }
+
+  const source = findGearMenuSource(event.target);
+  if (!source) {
+    return;
+  }
+
+  // Slot vazio não tem o que mover: deixa o menu do navegador aparecer.
+  if (!gearPayloadFromSource(getActiveCharacter(), source)) {
+    return;
+  }
+
+  event.preventDefault();
+  openGearContextMenu(source, event.clientX, event.clientY);
+}
+
+function handleGearMenuClick(event) {
+  const button = event.target.closest("[data-gear-action]");
+  if (!button || button.disabled) {
+    return;
+  }
+
+  const action = button.dataset.gearAction;
+
+  // Excluir apaga de vez, então pede o segundo clique — como o ✕ dos slots.
+  if (action === "delete" && button.dataset.armed !== "true") {
+    button.dataset.armed = "true";
+    button.classList.add("is-armed");
+    button.querySelector(".gear-menu-text").textContent = "Clique de novo para excluir";
+    return;
+  }
+
+  const source = state.gearMenu;
+  closeGearContextMenu();
+
+  if (source && hasActiveCharacter()) {
+    runGearMenuAction(source, action, button.dataset.slotKey || "");
+  }
+}
+
+function runGearMenuAction(source, action, slotKey) {
+  let feedback = "";
+  let warning = "";
+  let openPickerFor = "";
+
+  mutateActiveCharacter((character) => {
+    const payload = gearPayloadFromSource(character, source);
+    if (!payload) {
+      warning = "Este slot está vazio";
+      return;
+    }
+
+    if (action === "delete") {
+      clearGearSource(character, source);
+      feedback = payload.kind === "weapon" ? "Arma descartada" : "Item descartado";
+      return;
+    }
+
+    if (action === "duplicate") {
+      feedback = duplicateGearPayload(character, payload, source);
+      return;
+    }
+
+    // O que estava no destino volta pela porta por onde o pacote saiu: nada
+    // some por ter sido sobrescrito.
+    let displaced = null;
+
+    if (action === "equip") {
+      const slots = getEquipmentSlots(character);
+      const current = slots[slotKey];
+      if (!isEmptyEquipmentSlot(current)) {
+        displaced = gearPayloadFromEquipment(current);
+      }
+      slots[slotKey] = equipmentSlotFromPayload(payload);
+      if (!slots[slotKey].iconId) {
+        openPickerFor = slotKey;
+      }
+      feedback = "Arma equipada";
+    } else if (action === "backpack") {
+      if (payload.kind === "weapon") {
+        warning = "A mochila não guarda armas · use o baú";
+        return;
+      }
+      const free = findFreeBackpackIndex(character, source.origin === "backpack" ? source.index : -1);
+      if (free < 0) {
+        warning = "Mochila sem espaço livre";
+        return;
+      }
+      ensureInventorySize(character, free);
+      character.inventoryItems[free] = inventoryItemFromPayload(payload);
+      feedback = "Guardado na mochila";
+    } else if (action === "chest") {
+      getChestItems(character).push(chestEntryFromPayload(payload));
+      feedback = "Guardado no baú";
+    } else {
+      return;
+    }
+
+    releaseGearSource(character, source, displaced);
+  });
+
+  if (warning) {
+    showToast(warning, "danger", "🎒");
+    return;
+  }
+
+  renderInventory();
+  markCharacterDirty();
+
+  if (openPickerFor) {
+    // Item virando arma: falta escolher o ícone, então o seletor já abre.
+    openWeaponPicker(openPickerFor);
+  } else if (feedback) {
+    showToast(feedback, action === "delete" ? "danger" : "", action === "delete" ? "🗑️" : "🎒");
+  }
+}
+
+// A cópia procura primeiro o lugar natural do que foi copiado; se ele estiver
+// cheio, o baú recebe — copiar nunca falha em silêncio.
+function duplicateGearPayload(character, payload, source) {
+  if (payload.kind === "weapon") {
+    const spare = findEmptyEquipmentSlotKey(character);
+    if (spare) {
+      getEquipmentSlots(character)[spare] = equipmentSlotFromPayload(payload);
+      return `Cópia equipada · ${EQUIPMENT_SLOT_DEFS.find((def) => def.key === spare).label}`;
+    }
+
+    getChestItems(character).push(chestEntryFromPayload(payload));
+    return "Slots cheios · cópia foi para o baú";
+  }
+
+  const free = findFreeBackpackIndex(character, source.origin === "backpack" ? source.index : -1);
+  if (free >= 0) {
+    ensureInventorySize(character, free);
+    character.inventoryItems[free] = inventoryItemFromPayload(payload);
+    return "Cópia guardada na mochila";
+  }
+
+  getChestItems(character).push(chestEntryFromPayload(payload));
+  return "Mochila cheia · cópia foi para o baú";
+}
+
+function registerGearContextMenu() {
+  [elements.equipmentSlots, elements.inventoryRows, elements.chestGrid].forEach((container) => {
+    container.addEventListener("contextmenu", handleGearContextMenu);
+  });
+
+  elements.gearContextMenu.addEventListener("click", handleGearMenuClick);
+  elements.gearContextMenu.addEventListener("contextmenu", (event) => event.preventDefault());
+
+  document.addEventListener("pointerdown", (event) => {
+    if (!elements.gearContextMenu.contains(event.target)) {
+      closeGearContextMenu();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeGearContextMenu();
+    }
+  });
+
+  // Menu fixo na tela: rolar a gaveta o deixaria longe do item que o abriu.
+  document.addEventListener("scroll", closeGearContextMenu, true);
+  window.addEventListener("resize", closeGearContextMenu);
 }
 
 function renderSheetSelector() {
@@ -5886,6 +6782,8 @@ function normalizeCharacterCollections(character) {
   character.dynamicCombatSkills = sanitizeCombatSkillRows(character.dynamicCombatSkills || []);
   character.inventoryItems = sanitizeInventoryItems(character.inventoryItems || []);
   character.backpackSize = normalizeBackpackSize(character.backpackSize, character.inventoryItems.length);
+  character.rations = sanitizeRations(character.rations);
+  character.water = sanitizeWater(character.water);
   character.equipmentSlots = sanitizeEquipmentSlots(character.equipmentSlots);
   character.vehicle = sanitizeVehicle(character.vehicle);
   character.chestItems = sanitizeChestItems(character.chestItems);
@@ -6242,6 +7140,8 @@ function createDefaultCharacter(ownerProfile, ordinal) {
     evolutionUpgradePoints: 0,
     inventoryItems: [],
     backpackSize: DEFAULT_BACKPACK_SIZE,
+    rations: [],
+    water: createWater(),
     equipmentSlots: sanitizeEquipmentSlots(null),
     vehicle: createVehicle(),
     chestItems: [],
@@ -6284,6 +7184,8 @@ function normalizeCharacter(rawCharacter, characterId) {
   normalized.dynamicCombatSkills = sanitizeCombatSkillRows(rawCharacter.dynamicCombatSkills || normalized.dynamicCombatSkills);
   normalized.inventoryItems = sanitizeInventoryItems(rawCharacter.inventoryItems || normalized.inventoryItems);
   normalized.backpackSize = normalizeBackpackSize(rawCharacter.backpackSize, normalized.inventoryItems.length);
+  normalized.rations = sanitizeRations(rawCharacter.rations);
+  normalized.water = sanitizeWater(rawCharacter.water);
   normalized.equipmentSlots = sanitizeEquipmentSlots(rawCharacter.equipmentSlots);
   normalized.vehicle = sanitizeVehicle(rawCharacter.vehicle);
   normalized.chestItems = sanitizeChestItems(rawCharacter.chestItems);
@@ -6312,6 +7214,8 @@ function serializeCharacterForWrite(character) {
     dynamicCombatSkills: sanitizeCombatSkillRows(payload.dynamicCombatSkills || []),
     inventoryItems: sanitizeInventoryItems(payload.inventoryItems || []),
     backpackSize: normalizeBackpackSize(payload.backpackSize, (payload.inventoryItems || []).length),
+    rations: sanitizeRations(payload.rations),
+    water: sanitizeWater(payload.water),
     equipmentSlots: sanitizeEquipmentSlots(payload.equipmentSlots),
     vehicle: sanitizeVehicle(payload.vehicle),
     chestItems: sanitizeChestItems(payload.chestItems),
@@ -7376,6 +8280,7 @@ function buildPrintStyles() {
   }
   tr.print-total td { font-weight: 700; }
   .print-empty { color: #6b5b45; font-style: italic; margin: 0; }
+  .print-line { margin: 0 0 6px; color: #4a3d2c; font-size: 10px; }
   .print-longtext {
     white-space: pre-wrap;
     border: 1px solid #b9a887;
@@ -7707,9 +8612,19 @@ function buildPrintInventorySection(character) {
       <td class="num">${printCell(row.valor)}</td>
     </tr>`).join("");
 
+  const rationCount = sanitizeRations(character.rations).length;
+  const water = sanitizeWater(character.water);
+  const sustento = [
+    rationCount
+      ? `${rationCount} ${rationCount === 1 ? "ração" : "rações"} (${rationCount * RATION_SLOT_COST} slots)`
+      : "Sem ração",
+    `Cantil ${formatWaterVolume(getWaterMl(water))} de ${formatWaterVolume(WATER_CAPACITY_ML)}`,
+  ].join(" · ");
+
   return `
 <section class="print-section">
   <h2>Mochila (${escapeHtml(backpack.label)} · ${backpack.slots} slots)</h2>
+  <p class="print-line">${escapeHtml(sustento)}</p>
   ${rows.length ? `
   <table>
     <thead>

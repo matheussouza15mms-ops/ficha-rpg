@@ -1723,6 +1723,583 @@ input[readonly] {
   letter-spacing: 0.06em;
 }
 
+/* Slot tomado por uma ração: espaço ocupado, não linha editável. */
+.inventory-slot.is-ration {
+  border-style: solid;
+  border-color: rgba(216, 167, 45, 0.4);
+  background: linear-gradient(180deg, rgba(58, 40, 12, 0.55), rgba(12, 10, 6, 0.62));
+  cursor: default;
+}
+
+.inventory-slot.is-ration .slot-index {
+  color: var(--accent);
+  font-size: 0.86rem;
+}
+
+.ration-slot-label {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+/* Slot que a ração acabou de devolver. A regra precisa ser mais específica que
+   a entrada padrão das linhas (`.inventory-rows .inventory-row`), senão o
+   brilho verde nunca chega a aparecer. */
+.inventory-rows .inventory-slot.is-freed {
+  animation: slotFreed 1.2s ease-out;
+}
+
+@keyframes slotFreed {
+  0% {
+    border-color: rgba(90, 191, 120, 0.9);
+    background: rgba(90, 191, 120, 0.28);
+    box-shadow: 0 0 18px rgba(90, 191, 120, 0.45);
+  }
+  100% {
+    border-color: rgba(141, 106, 29, 0.22);
+    background: rgba(8, 8, 8, 0.35);
+    box-shadow: none;
+  }
+}
+
+/* --- Ração / comida ----------------------------------------------------- */
+
+.ration-block {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ration-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 3px;
+  width: 108px;
+  padding: 10px 8px 9px;
+  border-radius: 12px;
+  border: 1px solid rgba(141, 106, 29, 0.42);
+  background: linear-gradient(180deg, rgba(46, 30, 13, 0.78), rgba(10, 8, 6, 0.74));
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ration-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(216, 167, 45, 0.75);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.38);
+}
+
+.ration-art {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  color: var(--accent);
+}
+
+.ration-art svg {
+  width: 46px;
+  height: 46px;
+}
+
+.ration-name {
+  color: var(--ink);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+}
+
+.ration-cost {
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ration-eat {
+  width: 100%;
+  margin-top: 4px;
+  min-height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(90, 191, 120, 0.45);
+  background: linear-gradient(180deg, rgba(24, 58, 34, 0.85), rgba(10, 14, 10, 0.9));
+  color: #a8e6bc;
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.ration-eat:hover {
+  filter: brightness(1.25);
+  transform: translateY(-1px);
+}
+
+.ration-eat:active {
+  transform: translateY(1px);
+}
+
+.ration-card.is-new {
+  animation: rationPop 0.5s cubic-bezier(0.22, 1.4, 0.36, 1);
+}
+
+@keyframes rationPop {
+  0% { transform: scale(0.6) translateY(10px); opacity: 0; }
+  60% { transform: scale(1.08) translateY(0); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.ration-card.is-consuming {
+  pointer-events: none;
+  animation: rationEat 0.62s ease-in forwards;
+}
+
+@keyframes rationEat {
+  0% { transform: scale(1) rotate(0); filter: brightness(1); }
+  22% { transform: scale(1.12) rotate(-4deg); filter: brightness(1.5); }
+  45% { transform: scale(1.04) rotate(3deg); }
+  100% { transform: scale(0.25) rotate(-12deg); opacity: 0; filter: brightness(0.6); }
+}
+
+.ration-crumbs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ration-crumbs i {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: 5px;
+  height: 5px;
+  border-radius: 2px;
+  background: #cf9f4c;
+  opacity: 0;
+  animation: rationCrumb 0.6s ease-out var(--crumb-delay, 0ms) forwards;
+}
+
+@keyframes rationCrumb {
+  0% { transform: translate(0, 0) scale(1) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--crumb-x, 0), var(--crumb-y, -30px)) scale(0.35) rotate(200deg); opacity: 0; }
+}
+
+.ration-add {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  width: 108px;
+  min-height: 128px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  border: 1px dashed rgba(141, 106, 29, 0.4);
+  background: rgba(8, 8, 8, 0.35);
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+}
+
+.ration-add:hover {
+  border-color: rgba(216, 167, 45, 0.75);
+  color: var(--ink);
+  background: rgba(32, 20, 10, 0.5);
+}
+
+.ration-add-mark {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: rgba(216, 167, 45, 0.65);
+}
+
+.ration-add-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.ration-add-hint {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.ration-add.is-blocked {
+  border-color: rgba(223, 90, 90, 0.35);
+  color: rgba(223, 90, 90, 0.75);
+}
+
+.ration-add.is-blocked .ration-add-mark {
+  color: rgba(223, 90, 90, 0.5);
+}
+
+.ration-add.is-denied {
+  animation: rationDenied 0.4s ease-in-out;
+}
+
+@keyframes rationDenied {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  45% { transform: translateX(5px); }
+  70% { transform: translateX(-3px); }
+}
+
+/* --- Água: cantil com nível vivo ---------------------------------------- */
+
+.water-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.water-bottle-col {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 112px;
+}
+
+.water-bottle {
+  width: 112px;
+  height: 196px;
+  overflow: visible;
+  transform-origin: 50% 90%;
+}
+
+.water-glass {
+  fill: rgba(10, 24, 32, 0.55);
+  stroke: rgba(150, 220, 240, 0.32);
+  stroke-width: 2.5;
+}
+
+/* O nível sobe e desce; a onda corre por dentro dele. */
+.water-liquid {
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.water-wave {
+  fill: url(#waterFillGradient);
+}
+
+.water-wave-back {
+  opacity: 0.42;
+  animation: waterWave 4.6s linear infinite;
+}
+
+.water-wave-front {
+  opacity: 0.92;
+  animation: waterWave 3.1s linear infinite reverse;
+}
+
+@keyframes waterWave {
+  from { transform: translateX(0); }
+  to { transform: translateX(-40px); }
+}
+
+.water-bubble {
+  fill: rgba(255, 255, 255, 0.5);
+  animation: waterBubble 3.4s ease-in infinite;
+}
+
+.water-bubble-b {
+  animation-duration: 4.3s;
+  animation-delay: 0.9s;
+}
+
+.water-bubble-c {
+  animation-duration: 5.1s;
+  animation-delay: 1.7s;
+}
+
+@keyframes waterBubble {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  18% { opacity: 0.75; }
+  100% { transform: translateY(-52px) scale(1.15); opacity: 0; }
+}
+
+.water-stream {
+  fill: rgba(150, 228, 248, 0.9);
+  opacity: 0;
+}
+
+.water-bottle.is-filling .water-stream {
+  animation: waterPour 0.9s ease-in;
+}
+
+@keyframes waterPour {
+  0% { opacity: 0; transform: translateY(-72px); }
+  22% { opacity: 0.95; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(24px); }
+}
+
+.water-neck {
+  fill: rgba(12, 28, 36, 0.7);
+  stroke: rgba(150, 220, 240, 0.3);
+  stroke-width: 2;
+}
+
+.water-cap {
+  fill: #7d4d21;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 1.5;
+}
+
+.water-shine {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.water-ticks {
+  fill: none;
+  stroke: rgba(150, 220, 240, 0.35);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.water-bottle.is-drinking {
+  animation: waterTilt 0.62s ease-in-out;
+}
+
+@keyframes waterTilt {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  28% { transform: rotate(-10deg) translateY(-5px); }
+  62% { transform: rotate(5deg) translateY(-1px); }
+}
+
+.water-bottle.is-filling {
+  animation: waterFillBounce 0.7s cubic-bezier(0.22, 1.3, 0.36, 1);
+}
+
+@keyframes waterFillBounce {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-6px) scale(1.04); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.water-level-word {
+  color: var(--ok);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.water-bottle[data-water-level="half"] + .water-level-word {
+  color: #e0b83c;
+}
+
+.water-bottle[data-water-level="low"] + .water-level-word,
+.water-bottle[data-water-level="empty"] + .water-level-word {
+  color: var(--danger);
+  animation: fuelWarn 1.6s ease-in-out infinite;
+}
+
+.water-actions {
+  flex: 1 1 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 8px;
+}
+
+.water-count {
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+
+.water-count strong {
+  color: var(--accent);
+  font-size: 1.05rem;
+}
+
+.water-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(216, 167, 45, 0.4);
+  background: linear-gradient(180deg, rgba(20, 44, 56, 0.85), rgba(10, 12, 14, 0.92));
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+}
+
+.water-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.25);
+  border-color: rgba(150, 220, 240, 0.7);
+}
+
+.water-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.water-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.water-btn-fill {
+  border-color: rgba(150, 220, 240, 0.45);
+}
+
+.water-hint {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+/* --- Menu de contexto dos pertences ------------------------------------- */
+
+.gear-context-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 150;
+  display: none;
+  min-width: 224px;
+  max-width: 280px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(216, 167, 45, 0.45);
+  background: linear-gradient(180deg, rgba(32, 20, 20, 0.98), rgba(10, 10, 10, 0.98));
+  box-shadow: var(--shadow-heavy);
+}
+
+.gear-context-menu.is-open {
+  display: block;
+  animation: gearMenuIn 0.14s ease-out;
+}
+
+@keyframes gearMenuIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.gear-menu-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 8px 8px;
+  border-bottom: 1px solid rgba(141, 106, 29, 0.35);
+}
+
+.gear-menu-name {
+  color: var(--ink);
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gear-menu-origin {
+  color: var(--muted);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.gear-menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(141, 106, 29, 0.18);
+}
+
+.gear-menu-group:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+
+.gear-menu-group-title {
+  padding: 2px 8px 4px;
+  color: var(--accent-soft);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.gear-menu-item {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.gear-menu-item:hover:not(:disabled),
+.gear-menu-item:focus-visible:not(:disabled) {
+  background: rgba(216, 167, 45, 0.16);
+  outline: none;
+}
+
+.gear-menu-item:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.gear-menu-glyph {
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.gear-menu-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gear-menu-hint {
+  color: var(--muted);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.gear-menu-item.is-danger {
+  color: var(--danger);
+}
+
+.gear-menu-item.is-danger:hover:not(:disabled) {
+  background: rgba(223, 90, 90, 0.18);
+}
+
+.gear-menu-item.is-armed {
+  background: rgba(223, 90, 90, 0.24);
+  animation: armedPulse 0.9s ease-in-out infinite;
+}
+
 /* --- Baú ---------------------------------------------------------------- */
 
 /* Sem colunas nem categorias: cada célula aceita tanto uma linha da mochila
@@ -1792,36 +2369,16 @@ input[readonly] {
   border-color: var(--accent);
 }
 
-.chest-item-meta {
-  display: flex;
-  gap: 3px;
-  width: 100%;
-}
-
-.chest-item-meta input {
-  min-width: 0;
-  flex: 1 1 0;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid rgba(216, 167, 45, 0.15);
-  color: var(--muted);
-  font-size: 0.6rem;
-  text-align: center;
-  padding: 1px 0;
-}
-
-.chest-item-meta input:focus {
-  outline: none;
-  border-color: var(--accent);
-  color: var(--ink);
-}
-
 .chest-slot.is-filled {
   cursor: grab;
 }
 
+/* O card de item mostra só ícone e nome: quantidade, peso e valor continuam
+   gravados no item, mas ficam para a mochila. */
 .chest-slot.is-item {
   cursor: default;
+  grid-template-rows: 1fr auto;
+  align-content: center;
 }
 
 .chest-slot.is-filled:hover {
@@ -3864,6 +4421,20 @@ body.wizard-active {
 
   .gear-fuel {
     flex-wrap: wrap;
+  }
+
+  .water-inner {
+    justify-content: center;
+  }
+
+  .water-actions {
+    flex-basis: 100%;
+    padding-top: 0;
+  }
+
+  .ration-card,
+  .ration-add {
+    width: calc(50% - 5px);
   }
 
   .equipment-grid {
