@@ -4459,3 +4459,1378 @@ body.wizard-active {
     text-align: left;
   }
 }
+
+/* ==========================================================================
+   Escudo do Mestre
+   ==========================================================================
+   Área exclusiva do Mestre: resumo de todas as fichas, cronômetro da sessão e
+   o relógio/calendário do mundo. Enquanto ela está no ar, a ficha inteira e as
+   abas laterais saem de cena — o Escudo é uma tela, não um painel a mais. */
+
+#appCard.is-gm-screen .sheet-layout,
+#appCard.is-gm-screen .inventory-fab,
+#appCard.is-gm-screen #gmTools {
+  display: none;
+}
+
+.gm-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+#appCard:not(.hidden) .gm-screen > * {
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+#appCard:not(.hidden) .gm-screen > *:nth-child(2) { animation-delay: 0.08s; }
+#appCard:not(.hidden) .gm-screen > *:nth-child(3) { animation-delay: 0.16s; }
+
+.gm-screen-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 18px 22px;
+}
+
+.gm-screen-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.gm-shield {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  border: 1px solid rgba(216, 167, 45, 0.42);
+  background: radial-gradient(circle at 50% 20%, rgba(216, 167, 45, 0.22), rgba(126, 15, 20, 0.24));
+  color: var(--accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.gm-shield svg {
+  width: 36px;
+  height: 36px;
+  fill: currentColor;
+  filter: drop-shadow(0 0 8px rgba(216, 167, 45, 0.35));
+  animation: gmShieldPulse 5.5s ease-in-out infinite;
+}
+
+@keyframes gmShieldPulse {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+.gm-screen-copy h2 {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+}
+
+.gm-screen-copy p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.gm-session-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(141, 106, 29, 0.5);
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.gm-session-label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.66rem;
+}
+
+.gm-session-value {
+  color: var(--accent);
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 14px rgba(216, 167, 45, 0.3);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.gm-session-value.is-paused {
+  color: var(--muted);
+  text-shadow: none;
+  opacity: 0.7;
+}
+
+.gm-session-value.is-bumped {
+  animation: badgePop 0.42s ease;
+}
+
+.gm-session-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.gm-mini-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1px solid rgba(216, 167, 45, 0.4);
+  background: linear-gradient(180deg, rgba(70, 22, 22, 0.92), rgba(12, 12, 12, 0.96));
+  color: var(--accent);
+  cursor: pointer;
+  line-height: 1;
+  font-size: 0.95rem;
+  transition: transform 0.14s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.gm-mini-btn:hover {
+  background: linear-gradient(180deg, rgba(112, 26, 30, 0.96), rgba(24, 10, 10, 0.98));
+  border-color: rgba(216, 167, 45, 0.75);
+  transform: translateY(-1px);
+}
+
+.gm-mini-btn:active {
+  transform: translateY(1px) scale(0.96);
+}
+
+.gm-mini-wide {
+  min-width: 40px;
+}
+
+/* Relógio e calendário do Mestre ---------------------------------------- */
+
+.gm-clock-panel .panel-header {
+  align-items: center;
+}
+
+.gm-clock-period {
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(216, 167, 45, 0.45);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.72rem;
+  transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+}
+
+.gm-clock-period[data-period="madrugada"] { color: #8fa8d8; border-color: rgba(143, 168, 216, 0.5); }
+.gm-clock-period[data-period="amanhecer"] { color: #f0a878; border-color: rgba(240, 168, 120, 0.5); }
+.gm-clock-period[data-period="manha"] { color: #f2d47a; border-color: rgba(242, 212, 122, 0.55); }
+.gm-clock-period[data-period="tarde"] { color: #f5c04a; border-color: rgba(245, 192, 74, 0.55); }
+.gm-clock-period[data-period="entardecer"] { color: #e0774f; border-color: rgba(224, 119, 79, 0.55); }
+.gm-clock-period[data-period="noite"] { color: #93a6cf; border-color: rgba(147, 166, 207, 0.5); }
+
+.gm-clock-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.gm-clock-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.gm-clock-hint {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-align: center;
+  max-width: 34ch;
+  line-height: 1.5;
+}
+
+/* Mostrador ------------------------------------------------------------- */
+
+.game-clock {
+  width: min(280px, 100%);
+  aspect-ratio: 1;
+  position: relative;
+  touch-action: none;
+  user-select: none;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.45));
+}
+
+.game-clock .clock-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.clock-rim {
+  fill: none;
+  stroke: rgba(216, 167, 45, 0.5);
+  stroke-width: 3;
+}
+
+.clock-dial {
+  fill: #0b0b0b;
+  stroke: rgba(99, 82, 61, 0.7);
+  stroke-width: 1.5;
+}
+
+.clock-halo {
+  fill: none;
+  stroke-width: 10;
+  stroke: rgba(216, 167, 45, 0.16);
+  opacity: 0.7;
+  animation: clockHalo 6s ease-in-out infinite;
+  transition: stroke 0.6s ease;
+}
+
+@keyframes clockHalo {
+  0%, 100% { opacity: 0.35; stroke-width: 8; }
+  50% { opacity: 0.8; stroke-width: 12; }
+}
+
+.game-clock[data-period="madrugada"] .clock-halo { stroke: rgba(96, 124, 184, 0.34); }
+.game-clock[data-period="amanhecer"] .clock-halo { stroke: rgba(233, 145, 84, 0.34); }
+.game-clock[data-period="manha"] .clock-halo { stroke: rgba(242, 212, 122, 0.34); }
+.game-clock[data-period="tarde"] .clock-halo { stroke: rgba(245, 192, 74, 0.34); }
+.game-clock[data-period="entardecer"] .clock-halo { stroke: rgba(214, 100, 62, 0.36); }
+.game-clock[data-period="noite"] .clock-halo { stroke: rgba(110, 132, 189, 0.34); }
+
+.clock-tick {
+  stroke: rgba(189, 169, 136, 0.45);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.clock-tick.is-hour {
+  stroke: rgba(216, 167, 45, 0.85);
+  stroke-width: 3;
+}
+
+.clock-numeral {
+  fill: var(--muted);
+  font-family: "Special Elite", "Courier Prime", monospace;
+  font-size: 13px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.clock-glyph {
+  font-size: 20px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.clock-legend {
+  fill: var(--accent);
+  font-family: "Special Elite", "Courier Prime", monospace;
+  font-size: 17px;
+  letter-spacing: 1px;
+  text-anchor: middle;
+  dominant-baseline: central;
+  opacity: 0.85;
+}
+
+.clock-hand {
+  transform-box: view-box;
+  transform-origin: 100px 100px;
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.game-clock.is-dragging .clock-hand {
+  transition: none;
+}
+
+.clock-hand-hour {
+  transform: rotate(var(--hour-angle, 0deg));
+}
+
+.clock-hand-minute {
+  transform: rotate(var(--minute-angle, 0deg));
+}
+
+.clock-hand-line {
+  stroke-linecap: round;
+}
+
+.clock-hand-hour .clock-hand-line {
+  stroke: var(--ink);
+  stroke-width: 7;
+}
+
+.clock-hand-minute .clock-hand-line {
+  stroke: var(--accent);
+  stroke-width: 4;
+}
+
+/* Faixa invisível e larga sobre cada ponteiro: pegar um traço de 4px com o
+   dedo seria uma caçada. */
+.clock-grab {
+  stroke: transparent;
+  stroke-width: 24;
+  stroke-linecap: round;
+  cursor: grab;
+}
+
+.game-clock.is-dragging .clock-grab {
+  cursor: grabbing;
+}
+
+.game-clock[data-dragging="hour"] .clock-hand-hour .clock-hand-line,
+.game-clock[data-dragging="minute"] .clock-hand-minute .clock-hand-line {
+  stroke: #ffdc7a;
+  filter: drop-shadow(0 0 6px rgba(216, 167, 45, 0.7));
+}
+
+.clock-pin {
+  fill: var(--accent);
+}
+
+.clock-pin-core {
+  fill: #0b0b0b;
+}
+
+/* Só leitura: sem cursor de arrasto na gaveta da ficha. */
+.game-clock-sheet .clock-grab {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Display digital -------------------------------------------------------- */
+
+.clock-digital {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.clock-digital-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.clock-step {
+  width: 34px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(216, 167, 45, 0.32);
+  background: rgba(0, 0, 0, 0.34);
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.62rem;
+  line-height: 1;
+  transition: background 0.16s ease, transform 0.14s ease, border-color 0.16s ease;
+}
+
+.clock-step:hover {
+  background: rgba(126, 15, 20, 0.5);
+  border-color: rgba(216, 167, 45, 0.7);
+}
+
+.clock-step:active {
+  transform: scale(0.92);
+}
+
+.clock-digital-value {
+  min-width: 62px;
+  padding: 4px 0;
+  text-align: center;
+  color: var(--ink);
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 18px rgba(216, 167, 45, 0.28);
+  perspective: 300px;
+}
+
+.clock-digital-value.is-flipping {
+  animation: clockFlip 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes clockFlip {
+  0% { transform: rotateX(-70deg); opacity: 0.25; }
+  60% { transform: rotateX(8deg); opacity: 1; }
+  100% { transform: rotateX(0); opacity: 1; }
+}
+
+.clock-digital-colon {
+  color: var(--accent);
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  animation: clockColon 2s steps(1, end) infinite;
+}
+
+@keyframes clockColon {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.25; }
+}
+
+.gm-clock-quick {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.gm-quick-btn {
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(141, 106, 29, 0.55);
+  background: linear-gradient(180deg, rgba(52, 20, 20, 0.85), rgba(10, 10, 10, 0.94));
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  transition: transform 0.14s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.gm-quick-btn:hover {
+  border-color: rgba(216, 167, 45, 0.85);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.gm-quick-btn:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+/* Calendário ------------------------------------------------------------- */
+
+.gm-calendar-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(141, 106, 29, 0.42);
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.gm-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.calendar-nav {
+  width: 30px;
+  height: 30px;
+  font-size: 0.72rem;
+}
+
+.gm-calendar-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.gm-calendar-title strong {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.94rem;
+}
+
+.gm-calendar-title span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.16em;
+}
+
+.gm-calendar-weekdays,
+.gm-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.gm-calendar-weekdays span {
+  text-align: center;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.62rem;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(141, 106, 29, 0.3);
+}
+
+.gm-calendar-grid.slide-from-right { animation: calendarSlideRight 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.gm-calendar-grid.slide-from-left { animation: calendarSlideLeft 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+
+@keyframes calendarSlideRight {
+  from { opacity: 0; transform: translateX(22px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes calendarSlideLeft {
+  from { opacity: 0; transform: translateX(-22px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.14s ease, color 0.16s ease;
+}
+
+.calendar-day.is-blank {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+}
+
+.calendar-day.is-weekend {
+  color: var(--muted);
+}
+
+button.calendar-day:hover {
+  border-color: rgba(216, 167, 45, 0.6);
+  background: rgba(126, 15, 20, 0.35);
+  transform: translateY(-1px);
+}
+
+.calendar-day.is-real-today::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(189, 169, 136, 0.7);
+}
+
+.calendar-day.is-selected {
+  background: linear-gradient(180deg, rgba(126, 15, 20, 0.9), rgba(60, 8, 10, 0.95));
+  border-color: rgba(216, 167, 45, 0.9);
+  color: var(--accent);
+  font-weight: 700;
+  box-shadow: 0 0 16px rgba(216, 167, 45, 0.28);
+  animation: calendarPick 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes calendarPick {
+  0% { transform: scale(0.8); }
+  55% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.gm-calendar-grid.is-readonly .calendar-day {
+  cursor: default;
+}
+
+.gm-calendar-caption {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+}
+
+/* Fichas afetadas -------------------------------------------------------- */
+
+.gm-clock-targets {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(141, 106, 29, 0.35);
+}
+
+.gm-target-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gm-target-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(99, 82, 61, 0.8);
+  background: rgba(0, 0, 0, 0.34);
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, transform 0.14s ease;
+}
+
+.gm-target-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(216, 167, 45, 0.6);
+}
+
+.gm-target-chip.is-active {
+  border-color: rgba(216, 167, 45, 0.8);
+  background: linear-gradient(180deg, rgba(70, 22, 22, 0.75), rgba(10, 10, 10, 0.92));
+  color: var(--ink);
+}
+
+.gm-target-check {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 0.66rem;
+  flex: 0 0 auto;
+}
+
+.gm-target-chip.is-active .gm-target-check {
+  color: var(--accent);
+  background: rgba(216, 167, 45, 0.14);
+}
+
+.gm-target-body {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.gm-target-name {
+  font-size: 0.84rem;
+}
+
+.gm-target-time {
+  font-size: 0.66rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.gm-target-chip.is-active.is-synced .gm-target-time {
+  color: var(--ok);
+}
+
+.gm-target-empty {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.gm-clock-apply {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.gm-target-bulk {
+  display: flex;
+  gap: 8px;
+}
+
+.gm-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.76rem;
+  position: relative;
+}
+
+.gm-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gm-switch-track {
+  width: 42px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(99, 82, 61, 0.9);
+  background: rgba(0, 0, 0, 0.5);
+  position: relative;
+  flex: 0 0 auto;
+  transition: background 0.22s ease, border-color 0.22s ease;
+}
+
+.gm-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), background 0.22s ease;
+}
+
+.gm-switch input:checked + .gm-switch-track {
+  background: rgba(126, 15, 20, 0.7);
+  border-color: rgba(216, 167, 45, 0.8);
+}
+
+.gm-switch input:checked + .gm-switch-track .gm-switch-thumb {
+  transform: translateX(20px);
+  background: var(--accent);
+}
+
+.gm-switch input:focus-visible + .gm-switch-track {
+  outline: 2px solid rgba(216, 167, 45, 0.7);
+  outline-offset: 2px;
+}
+
+.gm-apply-btn {
+  margin-left: auto;
+}
+
+.gm-apply-btn.is-pending {
+  animation: applyPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes applyPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(216, 167, 45, 0); }
+  50% { box-shadow: 0 0 20px rgba(216, 167, 45, 0.4); }
+}
+
+.gm-apply-btn.is-flashing {
+  animation: applyFlash 0.6s ease;
+}
+
+@keyframes applyFlash {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.07); box-shadow: 0 0 26px rgba(90, 191, 120, 0.55); }
+  100% { transform: scale(1); }
+}
+
+.gm-clock-status {
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  transition: color 0.24s ease;
+}
+
+.gm-clock-status[data-tone="pending"] { color: var(--accent); }
+.gm-clock-status[data-tone="ok"] { color: var(--ok); }
+
+/* Grade de fichas -------------------------------------------------------- */
+
+.gm-roster-count {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.7rem;
+}
+
+.gm-character-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.gm-roster-empty {
+  color: var(--muted);
+  font-size: 0.84rem;
+  padding: 14px 0;
+}
+
+.gm-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(141, 106, 29, 0.45);
+  background: linear-gradient(180deg, rgba(46, 22, 22, 0.5), rgba(8, 8, 8, 0.96));
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+  animation: rowSlideIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gm-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(216, 167, 45, 0.75);
+  box-shadow: 0 20px 34px rgba(0, 0, 0, 0.44);
+}
+
+.gm-card.is-active {
+  border-color: rgba(216, 167, 45, 0.9);
+  box-shadow: 0 0 0 1px rgba(216, 167, 45, 0.35), var(--shadow-soft);
+}
+
+.gm-card.is-updated {
+  animation: gmCardPulse 0.5s ease;
+}
+
+@keyframes gmCardPulse {
+  0% { box-shadow: 0 0 0 rgba(216, 167, 45, 0); }
+  40% { box-shadow: 0 0 24px rgba(216, 167, 45, 0.35); }
+  100% { box-shadow: var(--shadow-soft); }
+}
+
+/* Camada de clique cobrindo o card inteiro; os controles ficam por cima dela,
+   então continuam clicáveis sem abrir a ficha por engano. */
+.gm-card-open {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.gm-card-open:focus-visible {
+  outline: 2px solid rgba(216, 167, 45, 0.85);
+  outline-offset: -3px;
+}
+
+.gm-card > *:not(.gm-card-open) {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.gm-card button:not(.gm-card-open),
+.gm-card input {
+  pointer-events: auto;
+}
+
+.gm-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.gm-card-portrait {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(216, 167, 45, 0.4);
+  background: linear-gradient(180deg, rgba(70, 24, 24, 0.5), rgba(0, 0, 0, 0.86));
+  color: var(--accent);
+}
+
+.gm-card-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: fadeUp 0.4s ease both;
+}
+
+.gm-card-portrait.has-image .gm-card-initial {
+  display: none;
+}
+
+.gm-card-initial {
+  font-size: 1.5rem;
+  opacity: 0.7;
+}
+
+.gm-card-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.gm-card-name {
+  color: var(--accent);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-card-player,
+.gm-card-clock {
+  color: var(--muted);
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-card-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.gm-card-level-label,
+.gm-block-label,
+.gm-vital-label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.6rem;
+}
+
+.gm-card-level-input {
+  width: 46px;
+  padding: 4px;
+  text-align: center;
+  border-radius: 9px;
+  border: 1px solid rgba(216, 167, 45, 0.4);
+  background: var(--input-bg);
+  color: var(--accent);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-card-vitals {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 10px;
+}
+
+.gm-vital,
+.gm-supply,
+.gm-card-weapon,
+.gm-card-vehicle {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(99, 82, 61, 0.5);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.gm-vital-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.gm-vital-value {
+  min-width: 62px;
+  text-align: center;
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-vital-value em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 0.82rem;
+}
+
+.gm-vital-input {
+  width: 46px;
+  padding: 3px;
+  text-align: center;
+  border-radius: 8px;
+  border: 1px solid rgba(99, 82, 61, 0.8);
+  background: var(--input-bg);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-vital-bar,
+.gm-supply-bar,
+.gm-ammo-bar,
+.gm-fuel-bar {
+  display: block;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(99, 82, 61, 0.55);
+  overflow: hidden;
+}
+
+.gm-vital-bar > span,
+.gm-supply-bar > span,
+.gm-ammo-bar > span,
+.gm-fuel-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.42s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease;
+}
+
+.gm-vital-pv[data-tone="ok"] .gm-vital-bar > span { background: linear-gradient(90deg, #3f9a5c, var(--ok)); }
+.gm-vital-pv[data-tone="warn"] .gm-vital-bar > span { background: linear-gradient(90deg, #a37a1c, var(--accent)); }
+.gm-vital-pv[data-tone="danger"] .gm-vital-bar > span { background: linear-gradient(90deg, #7e0f14, var(--danger)); }
+.gm-vital-pv[data-tone="danger"] .gm-vital-value { color: var(--danger); }
+
+.gm-supply-bar > span { background: linear-gradient(90deg, #2f6f96, #5fb6e0); }
+.gm-ammo-bar > span { background: linear-gradient(90deg, #8d6a1d, var(--accent)); }
+.gm-fuel-bar > span { background: linear-gradient(90deg, #7e0f14, var(--accent)); }
+.gm-fuel[data-level="empty"] .gm-fuel-bar > span,
+.gm-fuel[data-level="low"] .gm-fuel-bar > span { background: linear-gradient(90deg, #5c0c10, var(--danger)); }
+
+.gm-block-empty {
+  color: var(--muted);
+  font-size: 0.76rem;
+  opacity: 0.8;
+}
+
+.gm-weapon-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gm-weapon-icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+
+.gm-weapon-art {
+  width: 38px;
+  height: 38px;
+}
+
+.gm-weapon-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.gm-weapon-name {
+  color: var(--ink);
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-weapon-stats {
+  color: var(--muted);
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-ammo,
+.gm-fuel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gm-ammo-count,
+.gm-fuel-count {
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-ammo-count strong,
+.gm-fuel-count strong {
+  color: var(--accent);
+  font-size: 0.94rem;
+}
+
+.gm-ammo-count em,
+.gm-fuel-count em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 0.7rem;
+}
+
+.gm-ammo-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.gm-card-supplies {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.gm-supply-value {
+  min-width: 56px;
+  text-align: center;
+  color: var(--accent);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-supply-water {
+  font-size: 0.86rem;
+}
+
+.gm-supply-hint {
+  color: var(--muted);
+  font-size: 0.66rem;
+  text-align: center;
+}
+
+/* Botão de volta ao Escudo na barra da ficha ----------------------------- */
+
+.btn-home {
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.btn-home-icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* ==========================================================================
+   Relógio do jogo na ficha do personagem
+   ========================================================================== */
+
+.clock-fab {
+  top: 188px;
+}
+
+.clock-drawer {
+  width: min(520px, calc(100vw - 28px));
+}
+
+.clock-drawer-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 4px;
+}
+
+/* Céu: um gradiente por período, com o sol/lua atravessando conforme a hora. */
+.clock-sky {
+  position: relative;
+  height: 150px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(141, 106, 29, 0.45);
+  background: linear-gradient(180deg, #10182e, #05070f);
+  transition: background 0.9s ease;
+}
+
+.clock-sky[data-period="madrugada"] { background: linear-gradient(180deg, #0a1026 0%, #131a33 60%, #05070f 100%); }
+.clock-sky[data-period="amanhecer"] { background: linear-gradient(180deg, #2c2547 0%, #a05a3c 62%, #e0925a 100%); }
+.clock-sky[data-period="manha"] { background: linear-gradient(180deg, #3d6ea8 0%, #7fa9cf 60%, #cbd8e2 100%); }
+.clock-sky[data-period="tarde"] { background: linear-gradient(180deg, #4a7fb5 0%, #93b4d2 55%, #d8cfae 100%); }
+.clock-sky[data-period="entardecer"] { background: linear-gradient(180deg, #3a2b47 0%, #b0573a 58%, #e8a45c 100%); }
+.clock-sky[data-period="noite"] { background: linear-gradient(180deg, #080c1c 0%, #141c38 62%, #070911 100%); }
+
+.clock-sky-stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 22%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1.2px 1.2px at 32% 12%, rgba(255, 255, 255, 0.75), transparent),
+    radial-gradient(1.6px 1.6px at 58% 28%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1.1px 1.1px at 74% 16%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 88% 34%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1.2px 1.2px at 22% 44%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.3px 1.3px at 46% 52%, rgba(255, 255, 255, 0.55), transparent);
+  animation: starTwinkle 4.5s ease-in-out infinite;
+}
+
+.clock-sky[data-period="noite"] .clock-sky-stars,
+.clock-sky[data-period="madrugada"] .clock-sky-stars {
+  opacity: 1;
+}
+
+@keyframes starTwinkle {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5); }
+}
+
+/* O corpo celeste atravessa o céu de 0% a 100% da largura conforme a hora. */
+.clock-sky-body {
+  position: absolute;
+  left: var(--sky-progress, 50%);
+  bottom: 26px;
+  width: 34px;
+  height: 34px;
+  margin-left: -17px;
+  border-radius: 50%;
+  transition: left 0.9s cubic-bezier(0.22, 1, 0.36, 1), background 0.9s ease, box-shadow 0.9s ease;
+  background: radial-gradient(circle at 34% 32%, #fff3c4, #f2c14e 58%, #d89b22);
+  box-shadow: 0 0 26px rgba(242, 193, 78, 0.65);
+}
+
+.clock-sky[data-period="noite"] .clock-sky-body,
+.clock-sky[data-period="madrugada"] .clock-sky-body {
+  background: radial-gradient(circle at 36% 30%, #ffffff, #d9dee8 55%, #9aa3b5);
+  box-shadow: 0 0 24px rgba(217, 222, 232, 0.5);
+}
+
+.clock-sky-ground {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 40px;
+  background: linear-gradient(180deg, rgba(6, 6, 6, 0.65), rgba(0, 0, 0, 0.95));
+  clip-path: polygon(0 62%, 9% 46%, 17% 58%, 26% 36%, 35% 52%, 46% 30%, 56% 50%, 66% 38%, 76% 54%, 86% 42%, 95% 56%, 100% 46%, 100% 100%, 0 100%);
+}
+
+.clock-sky-copy {
+  position: absolute;
+  inset: auto auto 8px 14px;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.clock-sky-period {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.66rem;
+}
+
+.clock-sky-time {
+  color: #fff;
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-sky-weekday {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.74rem;
+}
+
+.clock-drawer-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.game-clock-sheet {
+  width: min(210px, 100%);
+  margin: 0 auto;
+}
+
+.clock-drawer-info {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.clock-drawer-date {
+  color: var(--accent);
+  font-size: 0.92rem;
+  letter-spacing: 0.03em;
+}
+
+.sheet-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(141, 106, 29, 0.38);
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.clock-drawer-footer {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Telas menores: Escudo e relógio
+   ========================================================================== */
+
+@media (max-width: 1080px) {
+  .gm-clock-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 960px) {
+  .clock-fab {
+    top: auto;
+    bottom: 282px;
+    right: 12px;
+  }
+
+  .clock-drawer {
+    width: 100%;
+  }
+
+  .gm-screen-head {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .gm-screen-title {
+    justify-content: center;
+  }
+
+  .gm-apply-btn {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .gm-clock-apply {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 620px) {
+  .gm-character-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gm-card-vitals,
+  .gm-card-supplies {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .clock-drawer-body {
+    justify-content: center;
+  }
+}

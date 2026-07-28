@@ -100,6 +100,9 @@ const auth = getAuth(firebaseApp);
 const STORAGE_KEYS = {
   selectedCharacterByUser: "rpg-selected-character-by-user",
   rememberedLogin: "rpg-remembered-login",
+  gmView: "rpg-gm-view",
+  gmSessionTimer: "rpg-gm-session-timer",
+  gmClockExcluded: "rpg-gm-clock-excluded",
 };
 
 const SAVE_IDLE = 1200;
@@ -483,6 +486,29 @@ const state = {
   freedBackpackSlots: null,
   kits: [],
   viewportFrame: 0,
+  // Escudo do Mestre: qual tela está no ar, a fila de alterações rápidas em
+  // fichas que não são a aberta e o relógio do mundo.
+  gm: {
+    view: "sheet",
+    pendingPatches: new Map(),
+    savingIds: new Set(),
+    patchTimer: null,
+    clockDrag: null,
+    sessionTicker: 0,
+    session: { startedAtMs: 0, accumulatedMs: 0, running: true },
+    clock: {
+      minutes: 0,
+      // Fichas que o Mestre tirou da sincronia. Guardar quem está de fora (e
+      // não quem está dentro) faz ficha nova nascer acompanhando o relógio.
+      excluded: new Set(),
+      autoApply: true,
+      applyTimer: null,
+      calendarYear: 0,
+      calendarMonth: 0,
+    },
+  },
+  // Mês visível no calendário da gaveta da ficha (navegável sem mexer no jogo).
+  sheetClock: { calendarYear: 0, calendarMonth: 0 },
   wizard: {
     active: false,
     index: 0,
@@ -755,6 +781,47 @@ function cacheElements() {
   elements.toastStack = document.getElementById("toastStack");
   elements.upgradeTooltip = document.getElementById("upgradeTooltip");
   elements.vehiclePhotoTooltip = document.getElementById("vehiclePhotoTooltip");
+
+  // Escudo do Mestre
+  elements.gmScreen = document.getElementById("gmScreen");
+  elements.gmHomeButton = document.getElementById("gmHomeButton");
+  elements.gmNewSheetButton = document.getElementById("gmNewSheetButton");
+  elements.gmSessionValue = document.getElementById("gmSessionValue");
+  elements.gmSessionToggle = document.getElementById("gmSessionToggle");
+  elements.gmSessionReset = document.getElementById("gmSessionReset");
+  elements.gmClockPanel = document.querySelector(".gm-clock-panel");
+  elements.gmClockFace = document.getElementById("gmClockFace");
+  elements.gmClockPeriod = document.getElementById("gmClockPeriod");
+  elements.gmClockHours = document.getElementById("gmClockHours");
+  elements.gmClockMinutes = document.getElementById("gmClockMinutes");
+  elements.gmCalendarGrid = document.getElementById("gmCalendarGrid");
+  elements.gmCalendarMonth = document.getElementById("gmCalendarMonth");
+  elements.gmCalendarYear = document.getElementById("gmCalendarYear");
+  elements.gmCalendarCaption = document.getElementById("gmCalendarCaption");
+  elements.gmClockTargets = document.getElementById("gmClockTargets");
+  elements.gmTargetsAll = document.getElementById("gmTargetsAll");
+  elements.gmTargetsNone = document.getElementById("gmTargetsNone");
+  elements.gmClockAutoApply = document.getElementById("gmClockAutoApply");
+  elements.gmClockApply = document.getElementById("gmClockApply");
+  elements.gmClockStatus = document.getElementById("gmClockStatus");
+  elements.gmCharacterGrid = document.getElementById("gmCharacterGrid");
+  elements.gmRosterCount = document.getElementById("gmRosterCount");
+  elements.gmRosterEmpty = document.getElementById("gmRosterEmpty");
+
+  // Relógio na ficha do personagem
+  elements.clockFab = document.getElementById("clockFab");
+  elements.clockDrawer = document.getElementById("clockDrawer");
+  elements.closeClockDrawer = document.getElementById("closeClockDrawer");
+  elements.sheetSky = document.getElementById("sheetSky");
+  elements.sheetPeriodLabel = document.getElementById("sheetPeriodLabel");
+  elements.sheetClockTime = document.getElementById("sheetClockTime");
+  elements.sheetClockWeekday = document.getElementById("sheetClockWeekday");
+  elements.sheetClockFace = document.getElementById("sheetClockFace");
+  elements.sheetClockDate = document.getElementById("sheetClockDate");
+  elements.sheetCalendarGrid = document.getElementById("sheetCalendarGrid");
+  elements.sheetCalendarMonth = document.getElementById("sheetCalendarMonth");
+  elements.sheetCalendarYear = document.getElementById("sheetCalendarYear");
+  elements.sheetClockFooter = document.getElementById("sheetClockFooter");
 }
 
 function buildStaticForm() {
@@ -1533,12 +1600,15 @@ function registerEvents() {
     }
   });
 
+  registerGameMasterEvents();
+
   bindFieldEvents(document);
   bindDynamicRowEvents(document);
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       void flushPendingChanges();
+      void flushCharacterPatches();
     }
   });
 }
@@ -1668,6 +1738,15 @@ async function handleAuthStateChange(user) {
   try {
     const profile = await ensureUserProfile(user);
     state.profile = profile;
+    initializeGameClock();
+    loadSessionTimer();
+
+    // O Mestre entra pelo Escudo, a menos que tenha saído de dentro de uma
+    // ficha na última visita. Jogador nunca vê o Escudo.
+    state.gm.view = isGameMaster() && readStorage(STORAGE_KEYS.gmView) !== "sheet"
+      ? "escudo"
+      : "sheet";
+
     await ensureOwnerHasAtLeastOneCharacter(profile);
     subscribeToCharacters();
   } catch (error) {
@@ -1711,6 +1790,7 @@ async function handleLogin(event) {
 async function handleLogout() {
   try {
     await flushPendingChanges();
+    await flushCharacterPatches();
   } catch (error) {
     console.warn("Não foi possível concluir o último salvamento antes de sair.", error);
   }
@@ -2077,6 +2157,7 @@ function openInventoryDrawer() {
   closeNotesDrawer();
   closeHistoryDrawer();
   closeContactsDrawer();
+  closeClockDrawer();
   renderInventory();
   elements.inventoryDrawer.classList.add("is-open");
   elements.inventoryDrawer.setAttribute("aria-hidden", "false");
@@ -2095,6 +2176,7 @@ function openNotesDrawer() {
   closeInventoryDrawer();
   closeHistoryDrawer();
   closeContactsDrawer();
+  closeClockDrawer();
   renderNotes();
   elements.notesDrawer.classList.add("is-open");
   elements.notesDrawer.setAttribute("aria-hidden", "false");
@@ -2113,6 +2195,7 @@ function openHistoryDrawer() {
   closeInventoryDrawer();
   closeNotesDrawer();
   closeContactsDrawer();
+  closeClockDrawer();
   renderHistory();
   elements.historyDrawer.classList.add("is-open");
   elements.historyDrawer.setAttribute("aria-hidden", "false");
@@ -2128,6 +2211,7 @@ function closeAllDrawers() {
   closeNotesDrawer();
   closeHistoryDrawer();
   closeContactsDrawer();
+  closeClockDrawer();
 }
 
 /* ==========================================================================
@@ -2165,6 +2249,7 @@ function openContactsDrawer() {
   closeInventoryDrawer();
   closeNotesDrawer();
   closeHistoryDrawer();
+  closeClockDrawer();
   showContactsListView();
   elements.contactsDrawer.classList.add("is-open");
   elements.contactsDrawer.setAttribute("aria-hidden", "false");
@@ -5281,9 +5366,12 @@ function renderCharacterWorkspace() {
   renderNotes();
   renderHistory();
   renderContacts();
+  syncSheetCalendarCursor();
+  renderSheetClock();
   recalculateDerivedFields();
   renderSheetSelector();
   renderSessionSummary();
+  updateGmChrome();
   renderAttributePendingPoints();
   renderUpgradePendingPoints();
   updateEvolveButtonVisibility();
@@ -6788,6 +6876,7 @@ function normalizeCharacterCollections(character) {
   character.vehicle = sanitizeVehicle(character.vehicle);
   character.chestItems = sanitizeChestItems(character.chestItems);
   character.contacts = sanitizeContacts(character.contacts || []);
+  character.gameTime = sanitizeGameTime(character.gameTime);
 }
 
 async function ensureUserProfile(user) {
@@ -6955,8 +7044,11 @@ function subscribeToCharacters() {
 
       snapshot.forEach((docSnapshot) => {
         const incomingCharacter = normalizeCharacter({ id: docSnapshot.id, ...docSnapshot.data() }, docSnapshot.id);
-        const shouldKeepLocal = docSnapshot.id === state.selectedCharacterId
-          && (state.hasUnsavedChanges || state.saveInFlight || state.uploadInFlight);
+        // Alteração rápida feita no Escudo ainda não confirmada pelo servidor:
+        // aceitar o documento antigo aqui faria o valor voltar sozinho na tela.
+        const shouldKeepLocal = hasPendingCharacterPatch(docSnapshot.id)
+          || (docSnapshot.id === state.selectedCharacterId
+            && (state.hasUnsavedChanges || state.saveInFlight || state.uploadInFlight));
 
         nextMap[docSnapshot.id] = shouldKeepLocal && state.charactersMap[docSnapshot.id]
           ? state.charactersMap[docSnapshot.id]
@@ -6974,12 +7066,18 @@ function subscribeToCharacters() {
       renderSheetSelector();
       renderSessionSummary();
       showApp();
+      updateGmChrome();
 
       if (
         previousSelection !== state.selectedCharacterId
         || (!state.hasUnsavedChanges && !state.saveInFlight && state.lastRenderedSignature !== nextSignature)
       ) {
         renderCharacterWorkspace();
+      }
+
+      if (state.gm.view === "escudo" && isGameMaster()) {
+        renderGmScreen();
+        startSessionTicker();
       }
 
       maybeAutoStartWizard();
@@ -7088,6 +7186,10 @@ function normalizeProfile(rawProfile, user) {
     displayName: rawProfile.displayName || user.displayName || deriveDisplayNameFromEmail(user.email),
     email: rawProfile.email || user.email || "",
     role: rawProfile.role || "player",
+    // Relógio de referência do Mestre. Fica no documento dele porque é ele quem
+    // escreve — e cada ficha guarda o próprio tempo, então ninguém depende
+    // deste valor para ver as horas.
+    gameClockMinutes: toGameMinutes(rawProfile.gameClockMinutes),
     createdAtMs: rawProfile.createdAtMs || Date.now(),
     updatedAtMs: rawProfile.updatedAtMs || Date.now(),
   };
@@ -7098,6 +7200,7 @@ function serializeProfileForWrite(profile) {
     displayName: profile.displayName,
     email: profile.email,
     role: profile.role,
+    gameClockMinutes: toGameMinutes(profile.gameClockMinutes),
     createdAtMs: profile.createdAtMs,
     updatedAtMs: profile.updatedAtMs,
   };
@@ -7134,6 +7237,9 @@ function createDefaultCharacter(ownerProfile, ordinal) {
     notesText: "",
     historyText: "",
     contacts: [],
+    // Relógio do mundo desta ficha. Fica zerado até o Mestre aplicar uma hora
+    // pelo Escudo; até lá a ficha mostra a hora de referência da mesa.
+    gameTime: { minutes: 0, updatedAtMs: 0 },
     state: "creation",
     pendingAttributePoint: 0,
     pendingUpgradePoint: 0,
@@ -7190,6 +7296,7 @@ function normalizeCharacter(rawCharacter, characterId) {
   normalized.vehicle = sanitizeVehicle(rawCharacter.vehicle);
   normalized.chestItems = sanitizeChestItems(rawCharacter.chestItems);
   normalized.contacts = sanitizeContacts(rawCharacter.contacts || normalized.contacts);
+  normalized.gameTime = sanitizeGameTime(rawCharacter.gameTime);
   if (!normalized.state || !["creation", "play", "evolution"].includes(normalized.state)) {
     normalized.state = rawCharacter.state || "play";
   }
@@ -7220,6 +7327,7 @@ function serializeCharacterForWrite(character) {
     vehicle: sanitizeVehicle(payload.vehicle),
     chestItems: sanitizeChestItems(payload.chestItems),
     contacts: sanitizeContacts(payload.contacts || []),
+    gameTime: sanitizeGameTime(payload.gameTime),
   };
 }
 
@@ -7754,6 +7862,15 @@ function showApp() {
 function resetAppState() {
   clearTimeout(state.saveTimer);
   clearTimeout(state.saveResetTimer);
+  clearTimeout(state.gm.patchTimer);
+  clearTimeout(state.gm.clock.applyTimer);
+  stopSessionTicker();
+
+  state.gm.pendingPatches.clear();
+  state.gm.savingIds.clear();
+  state.gm.clockDrag = null;
+  state.gm.view = "sheet";
+  updateGmChrome();
 
   state.authUser = null;
   state.profile = null;
@@ -8784,6 +8901,12 @@ function maybeAutoStartWizard() {
     return;
   }
 
+  // O passo a passo aponta para painéis da ficha; com o Escudo no ar, ele
+  // destacaria elementos que não estão na tela.
+  if (state.gm.view === "escudo") {
+    return;
+  }
+
   const character = getActiveCharacter();
   if (!character || character.state !== "creation") {
     return;
@@ -9186,4 +9309,1815 @@ function clearFieldSavedStates() {
   document.querySelectorAll("[data-field].saved, [data-field].saving").forEach((field) => {
     field.classList.remove("saved", "saving");
   });
+}
+
+/* ==========================================================================
+   Tempo de jogo: relógio e calendário do mundo
+   ==========================================================================
+   O tempo do mundo é um inteiro simples: minutos desde a época Unix, sempre
+   lidos e escritos em UTC. Guardar assim (em vez de um Date ou de um texto)
+   faz o valor atravessar o Firestore sem fuso horário no caminho — o que o
+   Mestre marca é exatamente o que a ficha mostra, em qualquer computador.
+
+   Cada ficha carrega o próprio `gameTime`, porque o Mestre escolhe quais
+   fichas sentem cada mudança. O relógio do Escudo é só o ponteiro de
+   referência dele, guardado no documento de usuário do próprio Mestre (que ele
+   já tem permissão de escrever), sem precisar de coleção nova. */
+
+const GAME_MINUTES_IN_HOUR = 60;
+const GAME_MINUTES_IN_DAY = 1440;
+
+const GAME_WEEKDAY_NAMES = [
+  "Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira",
+  "Quinta-feira", "Sexta-feira", "Sábado",
+];
+
+const GAME_MONTH_NAMES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+// Faixas do dia em ordem crescente de hora. A última que couber vence, então a
+// lista é percorrida do fim para o começo.
+const GAME_DAY_PERIODS = [
+  { key: "madrugada", from: 0, label: "Madrugada", glyph: "🌑" },
+  { key: "amanhecer", from: 5, label: "Amanhecer", glyph: "🌅" },
+  { key: "manha", from: 8, label: "Manhã", glyph: "☀️" },
+  { key: "tarde", from: 12, label: "Tarde", glyph: "🌤️" },
+  { key: "entardecer", from: 17, label: "Entardecer", glyph: "🌇" },
+  { key: "noite", from: 20, label: "Noite", glyph: "🌙" },
+];
+
+const GAME_CLOCK_DAWN_HOUR = 6;
+const GAME_CLOCK_DUSK_HOUR = 19;
+
+// Aplicar a cada arrasto do ponteiro geraria uma escrita por quadro. O relógio
+// espera a mão parar antes de mandar o tempo para as fichas.
+const GAME_CLOCK_AUTO_APPLY_DELAY = 900;
+const GM_PATCH_DELAY = 700;
+
+function defaultGameMinutes() {
+  const now = new Date();
+  return Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0) / 60000);
+}
+
+function clampGameMinutes(value) {
+  const minutes = Math.round(Number(value));
+  if (!Number.isFinite(minutes)) {
+    return defaultGameMinutes();
+  }
+
+  // Limites largos de propósito (ano 1 até ~9999): impedem um arrasto maluco de
+  // gerar uma data inválida, sem restringir campanha nenhuma.
+  return Math.min(Math.max(minutes, -62135596800 / 60), 253402300800 / 60);
+}
+
+function toGameMinutes(value) {
+  const minutes = Math.round(Number(value));
+  return Number.isFinite(minutes) && minutes !== 0 ? minutes : 0;
+}
+
+function gameMinutesParts(minutes) {
+  const date = new Date(clampGameMinutes(minutes) * 60000);
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth(),
+    day: date.getUTCDate(),
+    hour: date.getUTCHours(),
+    minute: date.getUTCMinutes(),
+    weekday: date.getUTCDay(),
+  };
+}
+
+function gamePartsToMinutes({ year, month, day, hour = 0, minute = 0 }) {
+  return Math.floor(Date.UTC(year, month, day, hour, minute) / 60000);
+}
+
+function formatGameTime(minutes) {
+  const { hour, minute } = gameMinutesParts(minutes);
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function formatGameDateShort(minutes) {
+  const { year, month, day } = gameMinutesParts(minutes);
+  return `${String(day).padStart(2, "0")}/${String(month + 1).padStart(2, "0")}/${year}`;
+}
+
+function formatGameDateLong(minutes) {
+  const { year, month, day, weekday } = gameMinutesParts(minutes);
+  return `${GAME_WEEKDAY_NAMES[weekday]}, ${day} de ${GAME_MONTH_NAMES[month].toLowerCase()} de ${year}`;
+}
+
+function gamePeriodFor(minutes) {
+  const { hour } = gameMinutesParts(minutes);
+  for (let index = GAME_DAY_PERIODS.length - 1; index >= 0; index -= 1) {
+    if (hour >= GAME_DAY_PERIODS[index].from) {
+      return GAME_DAY_PERIODS[index];
+    }
+  }
+  return GAME_DAY_PERIODS[0];
+}
+
+function createGameTime(minutes) {
+  return {
+    minutes: clampGameMinutes(minutes),
+    updatedAtMs: Date.now(),
+  };
+}
+
+function sanitizeGameTime(raw) {
+  if (!raw || typeof raw !== "object") {
+    return { minutes: 0, updatedAtMs: 0 };
+  }
+
+  const minutes = toGameMinutes(raw.minutes);
+  const updatedAtMs = Math.floor(Number(raw.updatedAtMs));
+
+  return {
+    minutes: minutes ? clampGameMinutes(minutes) : 0,
+    updatedAtMs: Number.isFinite(updatedAtMs) && updatedAtMs > 0 ? updatedAtMs : 0,
+  };
+}
+
+// Ficha sem relógio próprio (nunca alcançada por uma aplicação do Mestre)
+// mostra o relógio de referência, para nunca abrir com o mostrador em branco.
+function getCharacterGameMinutes(character) {
+  const stored = toGameMinutes(character?.gameTime?.minutes);
+  return stored ? clampGameMinutes(stored) : getMasterClockMinutes();
+}
+
+function hasOwnGameTime(character) {
+  return toGameMinutes(character?.gameTime?.minutes) !== 0;
+}
+
+function getMasterClockMinutes() {
+  const fromState = toGameMinutes(state.gm.clock.minutes);
+  if (fromState) {
+    return fromState;
+  }
+
+  const fromProfile = toGameMinutes(state.profile?.gameClockMinutes);
+  return fromProfile || defaultGameMinutes();
+}
+
+function initializeGameClock() {
+  const stored = toGameMinutes(state.profile?.gameClockMinutes);
+  const excluded = readStorage(STORAGE_KEYS.gmClockExcluded);
+
+  state.gm.clock.minutes = stored || defaultGameMinutes();
+  state.gm.clock.excluded = new Set(Array.isArray(excluded) ? excluded : []);
+  syncCalendarCursorToClock();
+  syncSheetCalendarCursor();
+}
+
+async function saveMasterClockMinutes(minutes) {
+  if (!state.authUser || !isGameMaster()) {
+    return;
+  }
+
+  const value = clampGameMinutes(minutes);
+  if (state.profile) {
+    state.profile.gameClockMinutes = value;
+  }
+
+  try {
+    await setDoc(
+      doc(db, "users", state.authUser.uid),
+      { gameClockMinutes: value, updatedAtMs: Date.now() },
+      { merge: true },
+    );
+  } catch (error) {
+    console.warn("Não foi possível guardar o relógio do Mestre.", error);
+  }
+}
+
+/* ==========================================================================
+   Escrita rápida em fichas que não são a ficha aberta
+   ==========================================================================
+   O autosave da ficha só sabe salvar o personagem selecionado. O Escudo mexe em
+   várias fichas ao mesmo tempo, então tem a própria fila: cada alteração entra
+   como um patch por ficha e sai num único `setDoc` com merge por personagem. */
+
+function queueCharacterPatch(characterId, patch) {
+  if (!characterId || !patch || !Object.keys(patch).length) {
+    return;
+  }
+
+  const pending = state.gm.pendingPatches.get(characterId) || {};
+  state.gm.pendingPatches.set(characterId, { ...pending, ...patch });
+
+  clearTimeout(state.gm.patchTimer);
+  state.gm.patchTimer = setTimeout(() => {
+    void flushCharacterPatches();
+  }, GM_PATCH_DELAY);
+
+  updateSaveStatus("Salvando", "saving");
+}
+
+async function flushCharacterPatches() {
+  clearTimeout(state.gm.patchTimer);
+
+  if (!state.gm.pendingPatches.size) {
+    return;
+  }
+
+  const batch = [...state.gm.pendingPatches.entries()];
+  state.gm.pendingPatches.clear();
+  batch.forEach(([characterId]) => state.gm.savingIds.add(characterId));
+
+  try {
+    await Promise.all(batch.map(([characterId, patch]) => {
+      // Grava a revisão que a cópia local já assumiu: se o servidor devolvesse
+      // outra, a ficha aberta seria redesenhada à toa a cada alteração rápida.
+      const local = state.charactersMap[characterId];
+      const updatedAtMs = local?.updatedAtMs || Date.now();
+
+      return setDoc(
+        doc(db, "characters", characterId),
+        {
+          ...patch,
+          revision: local?.revision || 1,
+          updatedAtMs,
+          updatedAtIso: new Date(updatedAtMs).toISOString(),
+        },
+        { merge: true },
+      );
+    }));
+
+    queueStatus("Salvo", "saved");
+  } catch (error) {
+    console.error(error);
+    updateSaveStatus("Salvo", "saved");
+    showToast("Não foi possível salvar a alteração rápida.", "danger", "⚠️");
+  } finally {
+    batch.forEach(([characterId]) => state.gm.savingIds.delete(characterId));
+  }
+}
+
+function hasPendingCharacterPatch(characterId) {
+  return state.gm.pendingPatches.has(characterId) || state.gm.savingIds.has(characterId);
+}
+
+/**
+ * Altera uma ficha qualquer pelo id. O mutador recebe o personagem e devolve o
+ * pedaço que precisa ir para o Firestore; a cópia local é atualizada na hora
+ * para o painel responder sem esperar a rede.
+ */
+function patchCharacterById(characterId, mutator) {
+  const character = state.charactersMap[characterId];
+  if (!character) {
+    return null;
+  }
+
+  const patch = mutator(character);
+  if (!patch) {
+    return null;
+  }
+
+  character.updatedAtMs = Date.now();
+  character.revision = (character.revision || 0) + 1;
+  state.charactersMap[characterId] = character;
+  queueCharacterPatch(characterId, patch);
+
+  return character;
+}
+
+/* ==========================================================================
+   PV e demais números derivados fora da ficha aberta
+   ==========================================================================
+   Na ficha os derivados saem do DOM (`recalculateStatusFields`). No Escudo não
+   há campo na tela para ler, então os mesmos cálculos são refeitos direto sobre
+   o objeto do personagem. */
+
+function readCharacterInt(character, key) {
+  return parseInt(String(character?.[key] ?? "").trim() || "0", 10) || 0;
+}
+
+function computeCharacterPv(character) {
+  const fr = readCharacterInt(character, "frValor");
+  const con = readCharacterInt(character, "conValor");
+  const nivel = readCharacterInt(character, "nivel");
+
+  if (!fr && !con && !nivel) {
+    return 0;
+  }
+
+  return Math.ceil((fr + con) / 2) + nivel;
+}
+
+function computeCharacterDamage(character) {
+  return Math.abs(readCharacterInt(character, "dano"));
+}
+
+function computeCharacterPvAtual(character) {
+  return computeCharacterPv(character) - computeCharacterDamage(character);
+}
+
+function buildDamagePatch(character, nextDamage) {
+  const damage = Math.max(0, Math.round(nextDamage));
+  character.dano = damage ? `-${damage}` : "";
+
+  const pv = computeCharacterPv(character);
+  const pvAtual = pv - damage;
+  character.pv = pv ? String(pv) : "";
+  character.pvAtual = pv ? String(pvAtual) : "";
+
+  return { dano: character.dano, pv: character.pv, pvAtual: character.pvAtual };
+}
+
+/* ==========================================================================
+   Relógio analógico (usado no Escudo e na gaveta da ficha)
+   ========================================================================== */
+
+function buildClockSvgMarkup() {
+  let ticks = "";
+  for (let index = 0; index < 60; index += 1) {
+    const isHour = index % 5 === 0;
+    const angle = (index * 6 * Math.PI) / 180;
+    const outer = 88;
+    const inner = isHour ? 76 : 83;
+    const x1 = (100 + outer * Math.sin(angle)).toFixed(2);
+    const y1 = (100 - outer * Math.cos(angle)).toFixed(2);
+    const x2 = (100 + inner * Math.sin(angle)).toFixed(2);
+    const y2 = (100 - inner * Math.cos(angle)).toFixed(2);
+    ticks += `<line class="clock-tick${isHour ? " is-hour" : ""}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  }
+
+  let numerals = "";
+  for (let hour = 1; hour <= 12; hour += 1) {
+    const angle = (hour * 30 * Math.PI) / 180;
+    const x = (100 + 62 * Math.sin(angle)).toFixed(2);
+    const y = (100 - 62 * Math.cos(angle)).toFixed(2);
+    numerals += `<text class="clock-numeral" x="${x}" y="${y}">${hour}</text>`;
+  }
+
+  return `
+    <svg class="clock-svg" viewBox="0 0 200 200" role="presentation" focusable="false">
+      <circle class="clock-rim" cx="100" cy="100" r="95"/>
+      <circle class="clock-dial" cx="100" cy="100" r="88"/>
+      <circle class="clock-halo" cx="100" cy="100" r="88"/>
+      <g class="clock-ticks">${ticks}</g>
+      <g class="clock-numerals">${numerals}</g>
+      <text class="clock-glyph" x="100" y="62" data-clock-glyph>🌙</text>
+      <text class="clock-legend" x="100" y="142" data-clock-legend>--:--</text>
+      <g class="clock-hand clock-hand-hour" data-clock-hand="hour">
+        <line class="clock-hand-line" x1="100" y1="114" x2="100" y2="52"/>
+        <line class="clock-grab" data-clock-grab="hour" x1="100" y1="114" x2="100" y2="52"/>
+      </g>
+      <g class="clock-hand clock-hand-minute" data-clock-hand="minute">
+        <line class="clock-hand-line" x1="100" y1="120" x2="100" y2="28"/>
+        <line class="clock-grab" data-clock-grab="minute" x1="100" y1="120" x2="100" y2="28"/>
+      </g>
+      <circle class="clock-pin" cx="100" cy="100" r="6"/>
+      <circle class="clock-pin-core" cx="100" cy="100" r="2.5"/>
+    </svg>`;
+}
+
+/**
+ * Gira sempre pelo caminho mais curto a partir do ângulo que já está na tela.
+ * Sem isso, ir de 23:59 para 00:01 faria o ponteiro dar uma volta inteira ao
+ * contrário, que é justamente o que denuncia um relógio falso.
+ */
+function shortestAngleFrom(previous, target) {
+  let delta = (target - previous) % 360;
+  if (delta > 180) {
+    delta -= 360;
+  }
+  if (delta < -180) {
+    delta += 360;
+  }
+  return previous + delta;
+}
+
+function renderAnalogClock(container, minutes) {
+  if (!container) {
+    return;
+  }
+
+  if (container.dataset.clockReady !== "true") {
+    container.innerHTML = buildClockSvgMarkup();
+    container.dataset.clockReady = "true";
+  }
+
+  const { hour, minute } = gameMinutesParts(minutes);
+  const period = gamePeriodFor(minutes);
+
+  const rawMinuteAngle = minute * 6;
+  const rawHourAngle = ((hour % 12) + minute / 60) * 30;
+  const previousMinute = parseFloat(container.dataset.minuteAngle || "0") || 0;
+  const previousHour = parseFloat(container.dataset.hourAngle || "0") || 0;
+  const minuteAngle = shortestAngleFrom(previousMinute, rawMinuteAngle);
+  const hourAngle = shortestAngleFrom(previousHour, rawHourAngle);
+
+  container.dataset.minuteAngle = String(minuteAngle);
+  container.dataset.hourAngle = String(hourAngle);
+  container.style.setProperty("--minute-angle", `${minuteAngle.toFixed(2)}deg`);
+  container.style.setProperty("--hour-angle", `${hourAngle.toFixed(2)}deg`);
+  container.dataset.period = period.key;
+
+  const glyph = container.querySelector("[data-clock-glyph]");
+  if (glyph) {
+    glyph.textContent = period.glyph;
+  }
+
+  const legend = container.querySelector("[data-clock-legend]");
+  if (legend) {
+    legend.textContent = formatGameTime(minutes);
+  }
+}
+
+/* ==========================================================================
+   Calendário
+   ========================================================================== */
+
+function buildCalendarGridMarkup(year, month, selectedMinutes, { interactive }) {
+  const firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const selected = gameMinutesParts(selectedMinutes);
+  const realToday = new Date();
+
+  let cells = "";
+  for (let blank = 0; blank < firstWeekday; blank += 1) {
+    cells += `<span class="calendar-day is-blank" aria-hidden="true"></span>`;
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const isSelected = selected.year === year && selected.month === month && selected.day === day;
+    const isRealToday = realToday.getFullYear() === year
+      && realToday.getMonth() === month
+      && realToday.getDate() === day;
+    const weekday = new Date(Date.UTC(year, month, day)).getUTCDay();
+    const isWeekend = weekday === 0 || weekday === 6;
+    const classes = [
+      "calendar-day",
+      isSelected ? "is-selected" : "",
+      isRealToday ? "is-real-today" : "",
+      isWeekend ? "is-weekend" : "",
+    ].filter(Boolean).join(" ");
+
+    const label = `${day} de ${GAME_MONTH_NAMES[month]} de ${year}`;
+
+    cells += interactive
+      ? `<button type="button" class="${classes}" data-calendar-day="${day}" aria-label="${escapeAttribute(label)}" aria-pressed="${isSelected}">${day}</button>`
+      : `<span class="${classes}" title="${escapeAttribute(label)}">${day}</span>`;
+  }
+
+  return cells;
+}
+
+function animateCalendarSlide(grid, direction) {
+  if (!grid || !direction) {
+    return;
+  }
+
+  grid.classList.remove("slide-from-left", "slide-from-right");
+  // Força o navegador a assumir a remoção antes da nova classe, senão a
+  // animação não reinicia quando o mês muda duas vezes seguidas.
+  void grid.offsetWidth;
+  grid.classList.add(direction > 0 ? "slide-from-right" : "slide-from-left");
+}
+
+function syncCalendarCursorToClock() {
+  const { year, month } = gameMinutesParts(state.gm.clock.minutes);
+  state.gm.clock.calendarYear = year;
+  state.gm.clock.calendarMonth = month;
+}
+
+function syncSheetCalendarCursor() {
+  const character = getActiveCharacter();
+  const { year, month } = gameMinutesParts(getCharacterGameMinutes(character));
+  state.sheetClock.calendarYear = year;
+  state.sheetClock.calendarMonth = month;
+}
+
+/* ==========================================================================
+   Escudo do Mestre: alternância de tela
+   ========================================================================== */
+
+function isGameMaster() {
+  return state.profile?.role === "gm" || isMasterUser();
+}
+
+function updateGmChrome() {
+  const master = isGameMaster();
+  const onGmScreen = state.gm.view === "escudo";
+
+  elements.appCard?.classList.toggle("is-gm-screen", master && onGmScreen);
+  elements.gmScreen?.classList.toggle("hidden", !(master && onGmScreen));
+  elements.gmHomeButton?.classList.toggle("hidden", !master || onGmScreen);
+}
+
+async function openGmScreen() {
+  if (!isGameMaster()) {
+    return;
+  }
+
+  await flushPendingChanges();
+  finishWizard({ silent: true });
+  closeAllDrawers();
+
+  state.gm.view = "escudo";
+  writeStorage(STORAGE_KEYS.gmView, "escudo");
+  updateGmChrome();
+  renderGmScreen();
+  startSessionTicker();
+
+  elements.gmScreen?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function openSheetView(characterId) {
+  await flushCharacterPatches();
+
+  if (characterId && state.charactersMap[characterId] && characterId !== state.selectedCharacterId) {
+    state.selectedCharacterId = characterId;
+    persistSelectedCharacter();
+  }
+
+  state.gm.view = "sheet";
+  writeStorage(STORAGE_KEYS.gmView, "sheet");
+  stopSessionTicker();
+  updateGmChrome();
+  renderCharacterWorkspace();
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ==========================================================================
+   Escudo do Mestre: cronômetro da sessão
+   ========================================================================== */
+
+function loadSessionTimer() {
+  const stored = readStorage(STORAGE_KEYS.gmSessionTimer);
+  state.gm.session = {
+    startedAtMs: Number(stored?.startedAtMs) || 0,
+    accumulatedMs: Number(stored?.accumulatedMs) || 0,
+    running: stored ? Boolean(stored.running) : true,
+  };
+
+  if (state.gm.session.running && !state.gm.session.startedAtMs) {
+    state.gm.session.startedAtMs = Date.now();
+    persistSessionTimer();
+  }
+}
+
+function persistSessionTimer() {
+  writeStorage(STORAGE_KEYS.gmSessionTimer, state.gm.session);
+}
+
+function sessionElapsedMs() {
+  const { startedAtMs, accumulatedMs, running } = state.gm.session;
+  return accumulatedMs + (running && startedAtMs ? Date.now() - startedAtMs : 0);
+}
+
+function formatElapsed(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
+function renderSessionTimer() {
+  if (!elements.gmSessionValue) {
+    return;
+  }
+
+  elements.gmSessionValue.textContent = formatElapsed(sessionElapsedMs());
+
+  if (elements.gmSessionToggle) {
+    const running = state.gm.session.running;
+    elements.gmSessionToggle.textContent = running ? "⏸" : "▶";
+    elements.gmSessionToggle.title = running ? "Pausar o cronômetro da sessão" : "Retomar o cronômetro da sessão";
+    elements.gmSessionToggle.setAttribute("aria-label", elements.gmSessionToggle.title);
+    elements.gmSessionValue.classList.toggle("is-paused", !running);
+  }
+}
+
+function startSessionTicker() {
+  stopSessionTicker();
+  renderSessionTimer();
+  state.gm.sessionTicker = setInterval(renderSessionTimer, 1000);
+}
+
+function stopSessionTicker() {
+  if (state.gm.sessionTicker) {
+    clearInterval(state.gm.sessionTicker);
+    state.gm.sessionTicker = 0;
+  }
+}
+
+function toggleSessionTimer() {
+  const session = state.gm.session;
+
+  if (session.running) {
+    session.accumulatedMs = sessionElapsedMs();
+    session.startedAtMs = 0;
+    session.running = false;
+  } else {
+    session.startedAtMs = Date.now();
+    session.running = true;
+  }
+
+  persistSessionTimer();
+  renderSessionTimer();
+}
+
+function resetSessionTimer() {
+  state.gm.session = {
+    startedAtMs: state.gm.session.running ? Date.now() : 0,
+    accumulatedMs: 0,
+    running: state.gm.session.running,
+  };
+
+  persistSessionTimer();
+  renderSessionTimer();
+  elements.gmSessionValue?.classList.add("is-bumped");
+  setTimeout(() => elements.gmSessionValue?.classList.remove("is-bumped"), 420);
+}
+
+/* ==========================================================================
+   Escudo do Mestre: relógio e calendário
+   ========================================================================== */
+
+function getClockTargetIds() {
+  return getOrderedCharacters()
+    .map((character) => character.id)
+    .filter((id) => !state.gm.clock.excluded.has(id));
+}
+
+function persistClockTargets() {
+  writeStorage(STORAGE_KEYS.gmClockExcluded, [...state.gm.clock.excluded]);
+}
+
+function setGmClockMinutes(minutes, { silent = false } = {}) {
+  const next = clampGameMinutes(minutes);
+  if (next === state.gm.clock.minutes) {
+    return;
+  }
+
+  const previous = state.gm.clock.minutes;
+  const previousMonth = state.gm.clock.calendarMonth;
+  const previousYear = state.gm.clock.calendarYear;
+  state.gm.clock.minutes = next;
+  syncCalendarCursorToClock();
+
+  // A grade só desliza quando o mês realmente vira, e no sentido em que o tempo
+  // andou — deslizar a cada minuto arrastado embrulharia a vista.
+  const monthChanged = previousMonth !== state.gm.clock.calendarMonth
+    || previousYear !== state.gm.clock.calendarYear;
+
+  renderGmClock({ slide: monthChanged ? (next > previous ? 1 : -1) : 0 });
+
+  if (!silent) {
+    scheduleClockAutoApply();
+  }
+}
+
+function shiftGmClock(deltaMinutes) {
+  setGmClockMinutes(state.gm.clock.minutes + Number(deltaMinutes || 0));
+}
+
+function setGmClockPreset(preset) {
+  const parts = gameMinutesParts(state.gm.clock.minutes);
+
+  if (preset === "real") {
+    const now = new Date();
+    setGmClockMinutes(gamePartsToMinutes({
+      year: now.getFullYear(),
+      month: now.getMonth(),
+      day: now.getDate(),
+      hour: now.getHours(),
+      minute: now.getMinutes(),
+    }));
+    return;
+  }
+
+  const targetHour = preset === "dawn" ? GAME_CLOCK_DAWN_HOUR : GAME_CLOCK_DUSK_HOUR;
+  const base = gamePartsToMinutes({ ...parts, hour: targetHour, minute: 0 });
+  // Amanhecer/anoitecer que já passaram valem para o dia seguinte: o tempo do
+  // mundo anda para a frente, nunca volta sozinho.
+  setGmClockMinutes(base <= state.gm.clock.minutes ? base + GAME_MINUTES_IN_DAY : base);
+}
+
+function renderGmClock({ slide = 0 } = {}) {
+  if (!elements.gmClockFace) {
+    return;
+  }
+
+  const minutes = state.gm.clock.minutes;
+  const { hour, minute } = gameMinutesParts(minutes);
+  const period = gamePeriodFor(minutes);
+
+  renderAnalogClock(elements.gmClockFace, minutes);
+  bumpClockDigit(elements.gmClockHours, String(hour).padStart(2, "0"));
+  bumpClockDigit(elements.gmClockMinutes, String(minute).padStart(2, "0"));
+
+  if (elements.gmClockPeriod) {
+    elements.gmClockPeriod.textContent = `${period.glyph} ${period.label}`;
+    elements.gmClockPeriod.dataset.period = period.key;
+  }
+
+  renderGmCalendar({ slide });
+  renderGmClockTargets();
+  renderGmClockStatus();
+}
+
+function bumpClockDigit(element, value) {
+  if (!element || element.textContent === value) {
+    return;
+  }
+
+  element.textContent = value;
+  element.classList.remove("is-flipping");
+  void element.offsetWidth;
+  element.classList.add("is-flipping");
+}
+
+function renderGmCalendar({ slide = 0 } = {}) {
+  if (!elements.gmCalendarGrid) {
+    return;
+  }
+
+  const { calendarYear, calendarMonth, minutes } = state.gm.clock;
+
+  elements.gmCalendarGrid.innerHTML = buildCalendarGridMarkup(
+    calendarYear,
+    calendarMonth,
+    minutes,
+    { interactive: true },
+  );
+
+  if (elements.gmCalendarMonth) {
+    elements.gmCalendarMonth.textContent = GAME_MONTH_NAMES[calendarMonth];
+  }
+  if (elements.gmCalendarYear) {
+    elements.gmCalendarYear.textContent = String(calendarYear);
+  }
+  if (elements.gmCalendarCaption) {
+    elements.gmCalendarCaption.textContent = formatGameDateLong(minutes);
+  }
+
+  animateCalendarSlide(elements.gmCalendarGrid, slide);
+}
+
+function renderGmClockTargets() {
+  if (!elements.gmClockTargets) {
+    return;
+  }
+
+  const characters = getOrderedCharacters();
+
+  if (!characters.length) {
+    elements.gmClockTargets.innerHTML = `<p class="gm-target-empty">Nenhuma ficha para sincronizar ainda.</p>`;
+    return;
+  }
+
+  elements.gmClockTargets.innerHTML = characters.map((character) => {
+    const active = !state.gm.clock.excluded.has(character.id);
+    const nome = String(character.nome || "").trim() || "Sem nome";
+    const characterMinutes = getCharacterGameMinutes(character);
+    const inSync = characterMinutes === state.gm.clock.minutes;
+
+    return `
+      <button type="button" class="gm-target-chip${active ? " is-active" : ""}${inSync ? " is-synced" : ""}"
+        data-clock-target="${escapeAttribute(character.id)}" aria-pressed="${active}"
+        title="${escapeAttribute(active ? `${nome} recebe as mudanças do relógio` : `${nome} está fora da sincronia`)}">
+        <span class="gm-target-check" aria-hidden="true">${active ? "✓" : "○"}</span>
+        <span class="gm-target-body">
+          <span class="gm-target-name">${escapeHtml(nome)}</span>
+          <span class="gm-target-time">${escapeHtml(formatGameTime(characterMinutes))} · ${escapeHtml(formatGameDateShort(characterMinutes))}</span>
+        </span>
+      </button>`;
+  }).join("");
+}
+
+function countOutOfSyncTargets() {
+  return getClockTargetIds().filter((id) => {
+    const character = state.charactersMap[id];
+    return character && getCharacterGameMinutes(character) !== state.gm.clock.minutes;
+  }).length;
+}
+
+function renderGmClockStatus() {
+  if (!elements.gmClockStatus) {
+    return;
+  }
+
+  const targets = getClockTargetIds().length;
+  const pending = countOutOfSyncTargets();
+
+  if (!targets) {
+    elements.gmClockStatus.textContent = "Nenhuma ficha selecionada — o relógio muda só aqui no Escudo.";
+    elements.gmClockStatus.dataset.tone = "muted";
+  } else if (pending) {
+    elements.gmClockStatus.textContent = `${pending} ${pending === 1 ? "ficha aguarda" : "fichas aguardam"} a nova hora · ${formatGameTime(state.gm.clock.minutes)} de ${formatGameDateShort(state.gm.clock.minutes)}`;
+    elements.gmClockStatus.dataset.tone = "pending";
+  } else {
+    elements.gmClockStatus.textContent = `${targets} ${targets === 1 ? "ficha sincronizada" : "fichas sincronizadas"} · ${formatGameTime(state.gm.clock.minutes)} de ${formatGameDateShort(state.gm.clock.minutes)}`;
+    elements.gmClockStatus.dataset.tone = "ok";
+  }
+
+  if (elements.gmClockApply) {
+    elements.gmClockApply.disabled = !targets;
+    elements.gmClockApply.classList.toggle("is-pending", pending > 0);
+    elements.gmClockApply.textContent = pending
+      ? `Aplicar a ${pending} ${pending === 1 ? "ficha" : "fichas"}`
+      : "Aplicar às fichas";
+  }
+}
+
+function scheduleClockAutoApply() {
+  clearTimeout(state.gm.clock.applyTimer);
+
+  if (!state.gm.clock.autoApply) {
+    renderGmClockStatus();
+    return;
+  }
+
+  state.gm.clock.applyTimer = setTimeout(() => {
+    applyGameClockToTargets({ silent: true });
+  }, GAME_CLOCK_AUTO_APPLY_DELAY);
+}
+
+function applyGameClockToTargets({ silent = false } = {}) {
+  clearTimeout(state.gm.clock.applyTimer);
+
+  const minutes = state.gm.clock.minutes;
+  const ids = getClockTargetIds();
+  let changed = 0;
+
+  ids.forEach((id) => {
+    const character = state.charactersMap[id];
+    if (!character || getCharacterGameMinutes(character) === minutes) {
+      return;
+    }
+
+    patchCharacterById(id, (target) => {
+      target.gameTime = createGameTime(minutes);
+      return { gameTime: { ...target.gameTime } };
+    });
+    changed += 1;
+  });
+
+  void saveMasterClockMinutes(minutes);
+
+  renderGmClockTargets();
+  renderGmClockStatus();
+  renderGmRoster();
+
+  if (state.selectedCharacterId && ids.includes(state.selectedCharacterId)) {
+    renderSheetClock();
+  }
+
+  if (changed) {
+    elements.gmClockApply?.classList.add("is-flashing");
+    setTimeout(() => elements.gmClockApply?.classList.remove("is-flashing"), 620);
+  }
+
+  if (!silent) {
+    showToast(
+      changed
+        ? `Relógio aplicado a ${changed} ${changed === 1 ? "ficha" : "fichas"}`
+        : "Todas as fichas já estavam nesta hora",
+      changed ? "success" : "",
+      "🕰️",
+    );
+  }
+}
+
+/* Arrasto dos ponteiros ------------------------------------------------- */
+
+function clockAngleFromEvent(event, rect) {
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const angle = Math.atan2(event.clientX - centerX, centerY - event.clientY);
+  return ((angle * 180) / Math.PI + 360) % 360;
+}
+
+function handleClockPointerDown(event) {
+  const grab = event.target.closest("[data-clock-grab]");
+  if (!grab) {
+    return;
+  }
+
+  const svg = elements.gmClockFace.querySelector(".clock-svg");
+  if (!svg) {
+    return;
+  }
+
+  event.preventDefault();
+  const rect = svg.getBoundingClientRect();
+
+  state.gm.clockDrag = {
+    hand: grab.dataset.clockGrab,
+    rect,
+    lastAngle: clockAngleFromEvent(event, rect),
+    carry: 0,
+    pointerId: event.pointerId,
+  };
+
+  elements.gmClockFace.setPointerCapture(event.pointerId);
+  elements.gmClockFace.classList.add("is-dragging");
+  elements.gmClockFace.dataset.dragging = grab.dataset.clockGrab;
+}
+
+function handleClockPointerMove(event) {
+  const drag = state.gm.clockDrag;
+  if (!drag || drag.pointerId !== event.pointerId) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const angle = clockAngleFromEvent(event, drag.rect);
+  let delta = angle - drag.lastAngle;
+  if (delta > 180) {
+    delta -= 360;
+  }
+  if (delta < -180) {
+    delta += 360;
+  }
+  drag.lastAngle = angle;
+
+  // Ponteiro dos minutos: a volta inteira são 60 min (6° por minuto).
+  // Ponteiro das horas: a volta inteira são 12 h (0,5° por minuto).
+  const minutesPerDegree = drag.hand === "minute" ? 1 / 6 : 2;
+  drag.carry += delta * minutesPerDegree;
+
+  const whole = Math.trunc(drag.carry);
+  if (!whole) {
+    return;
+  }
+
+  drag.carry -= whole;
+  setGmClockMinutes(state.gm.clock.minutes + whole);
+}
+
+function handleClockPointerUp(event) {
+  const drag = state.gm.clockDrag;
+  if (!drag || drag.pointerId !== event.pointerId) {
+    return;
+  }
+
+  state.gm.clockDrag = null;
+  elements.gmClockFace.classList.remove("is-dragging");
+  delete elements.gmClockFace.dataset.dragging;
+
+  try {
+    elements.gmClockFace.releasePointerCapture(event.pointerId);
+  } catch (error) {
+    // O ponteiro pode já ter sido liberado pelo navegador; nada a fazer.
+  }
+}
+
+function handleClockWheel(event) {
+  event.preventDefault();
+  const step = event.shiftKey ? 60 : 5;
+  shiftGmClock(event.deltaY < 0 ? step : -step);
+}
+
+/* ==========================================================================
+   Escudo do Mestre: painel das fichas
+   ========================================================================== */
+
+function renderGmScreen() {
+  if (!isGameMaster()) {
+    return;
+  }
+
+  renderGmClock();
+  renderGmRoster();
+  renderSessionTimer();
+}
+
+function renderGmRoster() {
+  if (!elements.gmCharacterGrid) {
+    return;
+  }
+
+  // Redesenhar a grade inteira com o Mestre digitando num card apagaria o campo
+  // no meio do número. Quem está com o foco lá dentro manda.
+  if (elements.gmCharacterGrid.contains(document.activeElement)
+    && document.activeElement?.matches("input")) {
+    return;
+  }
+
+  const characters = getOrderedCharacters();
+
+  elements.gmRosterEmpty?.classList.toggle("hidden", characters.length > 0);
+  if (elements.gmRosterCount) {
+    elements.gmRosterCount.textContent = characters.length
+      ? `${characters.length} ${characters.length === 1 ? "ficha" : "fichas"}`
+      : "";
+  }
+
+  elements.gmCharacterGrid.innerHTML = characters.map(buildGmCharacterCard).join("");
+  hydrateGmPortraits();
+}
+
+function buildGmCharacterCard(character) {
+  const nome = String(character.nome || "").trim() || "Sem nome";
+  const jogador = String(character.ownerDisplayName || "").trim() || "Sem jogador";
+  const nivel = String(character.nivel || "1");
+  const ip = String(character.ip ?? "0");
+  const pv = computeCharacterPv(character);
+  const pvAtual = computeCharacterPvAtual(character);
+  const pvRatio = pv > 0 ? Math.max(0, Math.min(1, pvAtual / pv)) : 0;
+  const pvTone = pvRatio > 0.6 ? "ok" : pvRatio > 0.3 ? "warn" : "danger";
+  const code = formatPortraitCode(character.portraitNumber);
+  const isActive = character.id === state.selectedCharacterId;
+  const gameMinutes = getCharacterGameMinutes(character);
+
+  return `
+    <article class="gm-card${isActive ? " is-active" : ""}" data-gm-character="${escapeAttribute(character.id)}">
+      <button type="button" class="gm-card-open" data-gm-action="open" data-gm-character="${escapeAttribute(character.id)}"
+        title="${escapeAttribute(`Abrir a ficha de ${nome}`)}" aria-label="${escapeAttribute(`Abrir a ficha de ${nome}`)}"></button>
+
+      <header class="gm-card-head">
+        <span class="gm-card-portrait" data-gm-portrait="${escapeAttribute(code)}">
+          <span class="gm-card-initial">${escapeHtml(nome.charAt(0).toUpperCase())}</span>
+        </span>
+
+        <span class="gm-card-identity">
+          <strong class="gm-card-name">${escapeHtml(nome)}</strong>
+          <span class="gm-card-player">${escapeHtml(jogador)}</span>
+          <span class="gm-card-clock">🕰️ ${escapeHtml(formatGameTime(gameMinutes))} · ${escapeHtml(formatGameDateShort(gameMinutes))}</span>
+        </span>
+
+        <span class="gm-card-level">
+          <span class="gm-card-level-label">Nível</span>
+          <input type="text" inputmode="numeric" class="gm-card-level-input" value="${escapeAttribute(nivel)}"
+            data-gm-field="nivel" data-gm-character="${escapeAttribute(character.id)}" aria-label="${escapeAttribute(`Nível de ${nome}`)}">
+        </span>
+      </header>
+
+      <div class="gm-card-vitals">
+        <div class="gm-vital gm-vital-pv" data-tone="${pvTone}">
+          <span class="gm-vital-label">PV</span>
+          <div class="gm-vital-control">
+            <button type="button" class="gm-mini-btn" data-gm-action="damage" data-gm-character="${escapeAttribute(character.id)}"
+              title="Tomar 1 de dano" aria-label="${escapeAttribute(`Tomar 1 de dano — ${nome}`)}">−</button>
+            <span class="gm-vital-value" data-gm-pv>${pv ? `${pvAtual}<em>/${pv}</em>` : "—"}</span>
+            <button type="button" class="gm-mini-btn" data-gm-action="heal" data-gm-character="${escapeAttribute(character.id)}"
+              title="Curar 1 ponto" aria-label="${escapeAttribute(`Curar 1 ponto — ${nome}`)}">+</button>
+          </div>
+          <span class="gm-vital-bar" aria-hidden="true"><span style="width:${(pvRatio * 100).toFixed(0)}%"></span></span>
+        </div>
+
+        <div class="gm-vital gm-vital-ip">
+          <span class="gm-vital-label">IP</span>
+          <div class="gm-vital-control">
+            <button type="button" class="gm-mini-btn" data-gm-action="ip-down" data-gm-character="${escapeAttribute(character.id)}"
+              title="Reduzir IP" aria-label="${escapeAttribute(`Reduzir IP — ${nome}`)}">−</button>
+            <input type="text" inputmode="numeric" class="gm-vital-input" value="${escapeAttribute(ip)}"
+              data-gm-field="ip" data-gm-character="${escapeAttribute(character.id)}" aria-label="${escapeAttribute(`IP de ${nome}`)}">
+            <button type="button" class="gm-mini-btn" data-gm-action="ip-up" data-gm-character="${escapeAttribute(character.id)}"
+              title="Aumentar IP" aria-label="${escapeAttribute(`Aumentar IP — ${nome}`)}">+</button>
+          </div>
+        </div>
+      </div>
+
+      ${buildGmWeaponBlock(character, nome)}
+
+      <div class="gm-card-supplies">
+        ${buildGmRationBlock(character, nome)}
+        ${buildGmWaterBlock(character, nome)}
+      </div>
+
+      ${buildGmVehicleBlock(character, nome)}
+    </article>`;
+}
+
+function buildGmWeaponBlock(character, nome) {
+  const slot = getEquipmentSlots(character).primary || createEquipmentSlot();
+  const icon = WEAPON_ICON_MAP.get(slot.iconId);
+
+  if (!icon) {
+    return `
+      <div class="gm-card-weapon is-empty">
+        <span class="gm-block-label">Arma principal</span>
+        <span class="gm-block-empty">Nenhuma arma equipada</span>
+      </div>`;
+  }
+
+  const isFirearm = icon.kind === "firearm";
+  const weaponName = String(slot.nome || "").trim() || icon.label;
+  const dano = String(slot.dano || "").trim();
+  const rof = String(slot.rof || "").trim();
+  const capacity = toPositiveInt(slot.carregador);
+  const loaded = toPositiveInt(slot.municao);
+  const reserve = toPositiveInt(slot.reserva);
+  const ratio = capacity ? Math.max(0, Math.min(1, loaded / capacity)) : 0;
+
+  const stats = [dano ? `💥 ${dano}` : "", rof ? `RoF ${rof}` : ""].filter(Boolean).join(" · ");
+
+  return `
+    <div class="gm-card-weapon">
+      <span class="gm-block-label">Arma principal</span>
+
+      <div class="gm-weapon-row">
+        <span class="gm-weapon-icon">${buildIconMarkup("weapon", slot.iconId, "gm-weapon-art")}</span>
+        <span class="gm-weapon-copy">
+          <strong class="gm-weapon-name">${escapeHtml(weaponName)}</strong>
+          <span class="gm-weapon-stats">${escapeHtml(stats || icon.label)}</span>
+        </span>
+      </div>
+
+      ${isFirearm ? `
+        <div class="gm-ammo">
+          <span class="gm-ammo-bar" aria-hidden="true"><span style="width:${(ratio * 100).toFixed(0)}%"></span></span>
+          <span class="gm-ammo-count"><strong>${loaded}</strong>/${capacity || "—"} <em>· reserva ${reserve}</em></span>
+          <div class="gm-ammo-actions">
+            <button type="button" class="gm-mini-btn" data-gm-action="fire" data-gm-character="${escapeAttribute(character.id)}"
+              title="Disparar" aria-label="${escapeAttribute(`Disparar — ${nome}`)}">−</button>
+            <button type="button" class="gm-mini-btn" data-gm-action="ammo-add" data-gm-character="${escapeAttribute(character.id)}"
+              title="Inserir munição" aria-label="${escapeAttribute(`Inserir munição — ${nome}`)}">+</button>
+            <button type="button" class="gm-mini-btn gm-mini-wide" data-gm-action="reload" data-gm-character="${escapeAttribute(character.id)}"
+              title="Recarregar da reserva" aria-label="${escapeAttribute(`Recarregar — ${nome}`)}">⟳</button>
+          </div>
+        </div>` : ""}
+    </div>`;
+}
+
+function buildGmRationBlock(character, nome) {
+  const count = getRations(character).length;
+  const free = countFreeBackpackSlots(character);
+
+  return `
+    <div class="gm-supply">
+      <span class="gm-block-label">Rações</span>
+      <div class="gm-vital-control">
+        <button type="button" class="gm-mini-btn" data-gm-action="ration-eat" data-gm-character="${escapeAttribute(character.id)}"
+          title="Consumir uma ração" aria-label="${escapeAttribute(`Consumir ração — ${nome}`)}">−</button>
+        <span class="gm-supply-value">${count}</span>
+        <button type="button" class="gm-mini-btn" data-gm-action="ration-add" data-gm-character="${escapeAttribute(character.id)}"
+          title="${escapeAttribute(`Guardar uma ração · ocupa ${RATION_SLOT_COST} slots`)}" aria-label="${escapeAttribute(`Guardar ração — ${nome}`)}">+</button>
+      </div>
+      <span class="gm-supply-hint">${free} ${free === 1 ? "slot livre" : "slots livres"}</span>
+    </div>`;
+}
+
+function buildGmWaterBlock(character, nome) {
+  const ml = getWaterMl(getWater(character));
+  const ratio = ml / WATER_CAPACITY_ML;
+
+  return `
+    <div class="gm-supply">
+      <span class="gm-block-label">Água</span>
+      <div class="gm-vital-control">
+        <button type="button" class="gm-mini-btn" data-gm-action="water-drink" data-gm-character="${escapeAttribute(character.id)}"
+          title="${escapeAttribute(`Um gole · −${WATER_SIP_ML} ml`)}" aria-label="${escapeAttribute(`Beber água — ${nome}`)}">−</button>
+        <span class="gm-supply-value gm-supply-water">${escapeHtml(formatWaterVolume(ml))}</span>
+        <button type="button" class="gm-mini-btn" data-gm-action="water-fill" data-gm-character="${escapeAttribute(character.id)}"
+          title="Encher o cantil" aria-label="${escapeAttribute(`Encher o cantil — ${nome}`)}">+</button>
+      </div>
+      <span class="gm-supply-bar" aria-hidden="true"><span style="width:${(ratio * 100).toFixed(0)}%"></span></span>
+    </div>`;
+}
+
+function buildGmVehicleBlock(character, nome) {
+  const vehicle = getVehicle(character);
+  const icon = VEHICLE_ICON_MAP.get(vehicle.iconId);
+
+  if (!icon) {
+    return `
+      <div class="gm-card-vehicle is-empty">
+        <span class="gm-block-label">Automóvel</span>
+        <span class="gm-block-empty">Sem veículo</span>
+      </div>`;
+  }
+
+  const vehicleName = String(vehicle.nome || "").trim() || icon.label;
+  const profile = getVehicleFuelProfile(vehicle.iconId);
+  const capacity = toPositiveInt(vehicle.tanque);
+  const fuel = toPositiveDecimal(vehicle.combustivel);
+  const ratio = getFuelRatio(vehicle);
+  const level = fuelLevelName(ratio);
+
+  return `
+    <div class="gm-card-vehicle">
+      <span class="gm-block-label">Automóvel</span>
+
+      <div class="gm-weapon-row">
+        <span class="gm-weapon-icon">${buildIconMarkup("vehicle", vehicle.iconId, "gm-weapon-art")}</span>
+        <span class="gm-weapon-copy">
+          <strong class="gm-weapon-name">${escapeHtml(vehicleName)}</strong>
+          <span class="gm-weapon-stats">${escapeHtml(icon.label)}${vehicle.pv ? ` · PV ${escapeHtml(String(vehicle.pv))}` : ""}${vehicle.ip ? ` · IP ${escapeHtml(String(vehicle.ip))}` : ""}</span>
+        </span>
+      </div>
+
+      ${profile.hasFuel ? `
+        <div class="gm-fuel" data-level="${escapeAttribute(level)}">
+          <span class="gm-fuel-bar" aria-hidden="true"><span style="width:${(ratio * 100).toFixed(0)}%"></span></span>
+          <span class="gm-fuel-count">⛽ <strong>${escapeHtml(String(Math.round(fuel * 10) / 10))}</strong>/${capacity || "—"} L <em>· ${escapeHtml(FUEL_LEVEL_WORDS[level])}</em></span>
+          <div class="gm-ammo-actions">
+            <button type="button" class="gm-mini-btn" data-gm-action="fuel-down" data-gm-character="${escapeAttribute(character.id)}"
+              title="Gastar 1 litro" aria-label="${escapeAttribute(`Gastar 1 litro — ${nome}`)}">−</button>
+            <button type="button" class="gm-mini-btn" data-gm-action="fuel-up" data-gm-character="${escapeAttribute(character.id)}"
+              title="Abastecer 5 litros" aria-label="${escapeAttribute(`Abastecer 5 litros — ${nome}`)}">+</button>
+            <button type="button" class="gm-mini-btn gm-mini-wide" data-gm-action="fuel-full" data-gm-character="${escapeAttribute(character.id)}"
+              title="Encher o tanque" aria-label="${escapeAttribute(`Encher o tanque — ${nome}`)}">⛽</button>
+          </div>
+        </div>` : `<span class="gm-block-empty">Não usa combustível</span>`}
+    </div>`;
+}
+
+// Mesmo critério do retrato da ficha: a miniatura só entra se o arquivo existir
+// na pasta; enquanto não existir, fica a inicial do nome.
+function hydrateGmPortraits() {
+  elements.gmCharacterGrid.querySelectorAll("[data-gm-portrait]").forEach((frame) => {
+    const code = frame.dataset.gmPortrait;
+    // Sem a marca, redesenhar um card sozinho mandaria procurar de novo os
+    // retratos dos outros e empilharia uma segunda <img> em cada moldura.
+    if (!code || frame.dataset.portraitHydrated === "true") {
+      return;
+    }
+
+    frame.dataset.portraitHydrated = "true";
+
+    const candidates = PORTRAIT_IMAGE_EXTENSIONS.map(
+      (extension) => `${PORTRAIT_IMAGE_DIR}/img_${code}.${extension}`,
+    );
+
+    let index = 0;
+    const probe = new Image();
+    probe.onload = () => {
+      const image = document.createElement("img");
+      image.src = probe.src;
+      image.alt = "";
+      frame.append(image);
+      frame.classList.add("has-image");
+    };
+    probe.onerror = () => {
+      index += 1;
+      if (index < candidates.length) {
+        probe.src = candidates[index];
+      }
+    };
+    probe.src = candidates[index];
+  });
+}
+
+/* Ações rápidas dos cards ------------------------------------------------ */
+
+function handleGmGridClick(event) {
+  const actionButton = event.target.closest("[data-gm-action]");
+  if (actionButton) {
+    event.preventDefault();
+    runGmCardAction(actionButton.dataset.gmCharacter, actionButton.dataset.gmAction);
+    return;
+  }
+
+  const card = event.target.closest("[data-gm-character]");
+  if (card && !event.target.closest("input")) {
+    void openSheetView(card.dataset.gmCharacter);
+  }
+}
+
+function handleGmGridInput(event) {
+  const field = event.target.closest("[data-gm-field]");
+  if (!field) {
+    return;
+  }
+
+  field.value = sanitizeIntegerInput(field.value).replace(/-/g, "");
+
+  const characterId = field.dataset.gmCharacter;
+  const key = field.dataset.gmField;
+
+  patchCharacterById(characterId, (character) => {
+    character[key] = field.value;
+
+    // Nível entra na conta dos PV: mudar o nível sem recalcular deixaria o
+    // card mostrando um total que a ficha não confirma.
+    if (key === "nivel") {
+      const damage = computeCharacterDamage(character);
+      const pv = computeCharacterPv(character);
+      character.pv = pv ? String(pv) : "";
+      character.pvAtual = pv ? String(pv - damage) : "";
+      return { nivel: character.nivel, pv: character.pv, pvAtual: character.pvAtual };
+    }
+
+    return { [key]: character[key] };
+  });
+
+  if (key === "nivel") {
+    refreshGmCard(characterId, { keepFocus: field });
+  }
+
+  if (characterId === state.selectedCharacterId) {
+    state.lastRenderedSignature = null;
+  }
+}
+
+function runGmCardAction(characterId, action) {
+  const character = state.charactersMap[characterId];
+  if (!character) {
+    return;
+  }
+
+  if (action === "open") {
+    void openSheetView(characterId);
+    return;
+  }
+
+  const nome = String(character.nome || "").trim() || "Sem nome";
+  let feedback = "";
+  let tone = "";
+  let icon = "";
+
+  const handlers = {
+    damage: () => {
+      const pv = computeCharacterPv(character);
+      if (!pv) {
+        feedback = "Defina CON, FR e nível antes de marcar dano";
+        tone = "danger";
+        icon = "🩸";
+        return null;
+      }
+      const next = computeCharacterDamage(character) + 1;
+      icon = "🩸";
+      feedback = `${nome} · ${pv - next}/${pv} PV`;
+      tone = pv - next <= 0 ? "danger" : "";
+      return buildDamagePatch(character, next);
+    },
+    heal: () => {
+      const damage = computeCharacterDamage(character);
+      if (!damage) {
+        feedback = `${nome} está sem dano`;
+        return null;
+      }
+      const pv = computeCharacterPv(character);
+      icon = "❤️";
+      feedback = `${nome} · ${pv - (damage - 1)}/${pv} PV`;
+      tone = "success";
+      return buildDamagePatch(character, damage - 1);
+    },
+    "ip-up": () => {
+      character.ip = String(readCharacterInt(character, "ip") + 1);
+      return { ip: character.ip };
+    },
+    "ip-down": () => {
+      character.ip = String(Math.max(0, readCharacterInt(character, "ip") - 1));
+      return { ip: character.ip };
+    },
+    fire: () => {
+      const slot = getEquipmentSlots(character).primary;
+      const loaded = toPositiveInt(slot?.municao);
+      if (!slot || !loaded) {
+        feedback = "Carregador vazio";
+        tone = "danger";
+        icon = "🔫";
+        return null;
+      }
+      slot.municao = String(loaded - 1);
+      icon = "🔫";
+      return { equipmentSlots: sanitizeEquipmentSlots(character.equipmentSlots) };
+    },
+    "ammo-add": () => {
+      const slot = getEquipmentSlots(character).primary;
+      if (!slot) {
+        return null;
+      }
+      const capacity = toPositiveInt(slot.carregador);
+      const loaded = toPositiveInt(slot.municao);
+      if (capacity && loaded >= capacity) {
+        feedback = "Carregador cheio";
+        icon = "🔫";
+        return null;
+      }
+      slot.municao = String(loaded + 1);
+      return { equipmentSlots: sanitizeEquipmentSlots(character.equipmentSlots) };
+    },
+    reload: () => {
+      const slot = getEquipmentSlots(character).primary;
+      if (!slot) {
+        return null;
+      }
+      const capacity = toPositiveInt(slot.carregador);
+      const loaded = toPositiveInt(slot.municao);
+      const reserve = toPositiveInt(slot.reserva);
+      icon = "🔫";
+
+      if (!capacity) {
+        feedback = "Defina a capacidade do carregador na ficha";
+        return null;
+      }
+      const needed = capacity - loaded;
+      if (needed <= 0) {
+        feedback = "Carregador cheio";
+        return null;
+      }
+      const taken = Math.min(needed, reserve);
+      if (!taken) {
+        feedback = "Sem munição na reserva";
+        tone = "danger";
+        return null;
+      }
+
+      slot.municao = String(loaded + taken);
+      slot.reserva = String(reserve - taken);
+      feedback = `${nome} · +${taken} no carregador`;
+      tone = "success";
+      return { equipmentSlots: sanitizeEquipmentSlots(character.equipmentSlots) };
+    },
+    "ration-add": () => {
+      if (countFreeBackpackSlots(character) < RATION_SLOT_COST) {
+        feedback = `Sem espaço: a ração precisa de ${RATION_SLOT_COST} slots livres`;
+        tone = "danger";
+        icon = "🥫";
+        return null;
+      }
+      getRations(character).push(createRation());
+      icon = "🥫";
+      return { rations: sanitizeRations(character.rations) };
+    },
+    "ration-eat": () => {
+      const rations = getRations(character);
+      if (!rations.length) {
+        feedback = "Nenhuma ração guardada";
+        icon = "🥫";
+        return null;
+      }
+      rations.pop();
+      icon = "🍽️";
+      feedback = `${nome} comeu uma ração`;
+      tone = "success";
+      return { rations: sanitizeRations(character.rations) };
+    },
+    "water-drink": () => {
+      const water = getWater(character);
+      const current = getWaterMl(water);
+      icon = "💧";
+      if (current <= 0) {
+        feedback = "Cantil vazio";
+        tone = "danger";
+        return null;
+      }
+      const sip = Math.min(WATER_SIP_ML, current);
+      water.ml = String(current - sip);
+      feedback = `${nome} · −${sip} ml`;
+      return { water: sanitizeWater(water) };
+    },
+    "water-fill": () => {
+      const water = getWater(character);
+      icon = "💧";
+      if (getWaterMl(water) >= WATER_CAPACITY_ML) {
+        feedback = "Cantil já está cheio";
+        return null;
+      }
+      water.ml = String(WATER_CAPACITY_ML);
+      feedback = `${nome} · cantil cheio`;
+      tone = "success";
+      return { water: sanitizeWater(water) };
+    },
+    "fuel-down": () => {
+      const vehicle = getVehicle(character);
+      const current = toPositiveDecimal(vehicle.combustivel);
+      icon = "⛽";
+      if (current <= 0) {
+        feedback = "Tanque vazio";
+        tone = "danger";
+        return null;
+      }
+      vehicle.combustivel = String(Math.round(Math.max(0, current - 1) * 10) / 10);
+      return { vehicle: sanitizeVehicle(vehicle) };
+    },
+    "fuel-up": () => {
+      const vehicle = getVehicle(character);
+      const capacity = toPositiveInt(vehicle.tanque);
+      icon = "⛽";
+      if (!capacity) {
+        feedback = "Este veículo não tem tanque";
+        return null;
+      }
+      const current = toPositiveDecimal(vehicle.combustivel);
+      if (current >= capacity) {
+        feedback = "Tanque cheio";
+        return null;
+      }
+      vehicle.combustivel = String(Math.round(Math.min(capacity, current + 5) * 10) / 10);
+      return { vehicle: sanitizeVehicle(vehicle) };
+    },
+    "fuel-full": () => {
+      const vehicle = getVehicle(character);
+      const capacity = toPositiveInt(vehicle.tanque);
+      icon = "⛽";
+      if (!capacity) {
+        feedback = "Este veículo não tem tanque";
+        return null;
+      }
+      if (toPositiveDecimal(vehicle.combustivel) >= capacity) {
+        feedback = "Tanque cheio";
+        return null;
+      }
+      vehicle.combustivel = String(capacity);
+      feedback = `${nome} · tanque cheio`;
+      tone = "success";
+      return { vehicle: sanitizeVehicle(vehicle) };
+    },
+  };
+
+  const handler = handlers[action];
+  if (!handler) {
+    return;
+  }
+
+  const patch = patchCharacterById(characterId, handler);
+
+  if (patch) {
+    refreshGmCard(characterId);
+    if (characterId === state.selectedCharacterId) {
+      // A ficha aberta atrás do Escudo precisa ser redesenhada quando o Mestre
+      // voltar para ela: invalidar a assinatura força a re-renderização.
+      state.lastRenderedSignature = null;
+    }
+  }
+
+  if (feedback) {
+    showToast(feedback, tone, icon);
+  }
+}
+
+/**
+ * Troca só o card mexido. Redesenhar a grade inteira cortaria a digitação em
+ * outro card e faria a lista piscar a cada clique.
+ */
+function refreshGmCard(characterId, { keepFocus = null } = {}) {
+  const character = state.charactersMap[characterId];
+  const card = elements.gmCharacterGrid?.querySelector(`.gm-card[data-gm-character="${CSS.escape(characterId)}"]`);
+  if (!character || !card) {
+    return;
+  }
+
+  const focusedField = keepFocus?.dataset?.gmField || null;
+  const selectionStart = keepFocus?.selectionStart ?? null;
+
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = buildGmCharacterCard(character);
+  const next = wrapper.firstElementChild;
+  if (!next) {
+    return;
+  }
+
+  card.replaceWith(next);
+  next.classList.add("is-updated");
+  setTimeout(() => next.classList.remove("is-updated"), 520);
+
+  hydrateGmPortraits();
+
+  if (focusedField) {
+    const field = next.querySelector(`[data-gm-field="${focusedField}"]`);
+    if (field) {
+      field.focus();
+      if (selectionStart !== null) {
+        field.setSelectionRange(selectionStart, selectionStart);
+      }
+    }
+  }
+}
+
+/* ==========================================================================
+   Gaveta de relógio da ficha do personagem
+   ========================================================================== */
+
+function openClockDrawer() {
+  if (!hasActiveCharacter()) {
+    return;
+  }
+
+  closeInventoryDrawer();
+  closeNotesDrawer();
+  closeHistoryDrawer();
+  closeContactsDrawer();
+
+  syncSheetCalendarCursor();
+  renderSheetClock();
+
+  elements.clockDrawer.classList.add("is-open");
+  elements.clockDrawer.setAttribute("aria-hidden", "false");
+}
+
+function closeClockDrawer() {
+  if (!elements.clockDrawer) {
+    return;
+  }
+
+  elements.clockDrawer.classList.remove("is-open");
+  elements.clockDrawer.setAttribute("aria-hidden", "true");
+}
+
+function renderSheetClock({ slide = 0 } = {}) {
+  if (!elements.sheetClockFace) {
+    return;
+  }
+
+  const character = getActiveCharacter();
+  const minutes = getCharacterGameMinutes(character);
+  const period = gamePeriodFor(minutes);
+  const parts = gameMinutesParts(minutes);
+
+  renderAnalogClock(elements.sheetClockFace, minutes);
+
+  if (elements.sheetSky) {
+    elements.sheetSky.dataset.period = period.key;
+    // O corpo celeste percorre o céu conforme a hora: 0% à esquerda (00h),
+    // 100% à direita (24h). É o que dá a sensação de dia passando.
+    elements.sheetSky.style.setProperty("--sky-progress", `${((parts.hour * 60 + parts.minute) / GAME_MINUTES_IN_DAY * 100).toFixed(2)}%`);
+  }
+
+  if (elements.sheetPeriodLabel) {
+    elements.sheetPeriodLabel.textContent = `${period.glyph} ${period.label}`;
+  }
+  if (elements.sheetClockTime) {
+    elements.sheetClockTime.textContent = formatGameTime(minutes);
+  }
+  if (elements.sheetClockWeekday) {
+    elements.sheetClockWeekday.textContent = GAME_WEEKDAY_NAMES[parts.weekday];
+  }
+  if (elements.sheetClockDate) {
+    elements.sheetClockDate.textContent = formatGameDateLong(minutes);
+  }
+
+  if (elements.sheetCalendarGrid) {
+    elements.sheetCalendarGrid.innerHTML = buildCalendarGridMarkup(
+      state.sheetClock.calendarYear,
+      state.sheetClock.calendarMonth,
+      minutes,
+      { interactive: false },
+    );
+    animateCalendarSlide(elements.sheetCalendarGrid, slide);
+  }
+  if (elements.sheetCalendarMonth) {
+    elements.sheetCalendarMonth.textContent = GAME_MONTH_NAMES[state.sheetClock.calendarMonth];
+  }
+  if (elements.sheetCalendarYear) {
+    elements.sheetCalendarYear.textContent = String(state.sheetClock.calendarYear);
+  }
+
+  if (elements.sheetClockFooter) {
+    elements.sheetClockFooter.textContent = hasOwnGameTime(character)
+      ? "O Mestre acerta este relógio pelo Escudo do Mestre."
+      : "O Mestre ainda não acertou o relógio desta ficha — a hora acima é a referência da mesa.";
+  }
+}
+
+function shiftSheetCalendar(direction) {
+  const month = state.sheetClock.calendarMonth + Number(direction || 0);
+  const cursor = new Date(Date.UTC(state.sheetClock.calendarYear, month, 1));
+  state.sheetClock.calendarYear = cursor.getUTCFullYear();
+  state.sheetClock.calendarMonth = cursor.getUTCMonth();
+  renderSheetClock({ slide: Number(direction || 0) });
+}
+
+/* ==========================================================================
+   Ligações de evento do Escudo e do relógio
+   ========================================================================== */
+
+function registerGameMasterEvents() {
+  elements.gmHomeButton?.addEventListener("click", () => {
+    void openGmScreen();
+  });
+  elements.gmNewSheetButton?.addEventListener("click", () => {
+    void handleCreateCharacterFromGmScreen();
+  });
+
+  elements.gmSessionToggle?.addEventListener("click", toggleSessionTimer);
+  elements.gmSessionReset?.addEventListener("click", resetSessionTimer);
+
+  elements.gmCharacterGrid?.addEventListener("click", handleGmGridClick);
+  elements.gmCharacterGrid?.addEventListener("input", handleGmGridInput);
+  elements.gmCharacterGrid?.addEventListener("focusout", () => {
+    void flushCharacterPatches();
+  });
+
+  if (elements.gmClockFace) {
+    elements.gmClockFace.addEventListener("pointerdown", handleClockPointerDown);
+    elements.gmClockFace.addEventListener("pointermove", handleClockPointerMove);
+    elements.gmClockFace.addEventListener("pointerup", handleClockPointerUp);
+    elements.gmClockFace.addEventListener("pointercancel", handleClockPointerUp);
+    elements.gmClockFace.addEventListener("wheel", handleClockWheel, { passive: false });
+  }
+
+  elements.gmClockPanel?.addEventListener("click", (event) => {
+    const stepper = event.target.closest("[data-clock-delta]");
+    if (stepper) {
+      shiftGmClock(stepper.dataset.clockDelta);
+      return;
+    }
+
+    const preset = event.target.closest("[data-clock-set]");
+    if (preset) {
+      setGmClockPreset(preset.dataset.clockSet);
+      return;
+    }
+
+    const nav = event.target.closest("[data-calendar-nav]");
+    if (nav) {
+      shiftGmCalendar(Number(nav.dataset.calendarNav));
+      return;
+    }
+
+    const day = event.target.closest("[data-calendar-day]");
+    if (day) {
+      pickGmCalendarDay(Number(day.dataset.calendarDay));
+      return;
+    }
+
+    const target = event.target.closest("[data-clock-target]");
+    if (target) {
+      toggleClockTarget(target.dataset.clockTarget);
+    }
+  });
+
+  elements.gmTargetsAll?.addEventListener("click", () => {
+    state.gm.clock.excluded.clear();
+    persistClockTargets();
+    renderGmClockTargets();
+    renderGmClockStatus();
+  });
+
+  elements.gmTargetsNone?.addEventListener("click", () => {
+    getOrderedCharacters().forEach((character) => state.gm.clock.excluded.add(character.id));
+    persistClockTargets();
+    renderGmClockTargets();
+    renderGmClockStatus();
+  });
+
+  elements.gmClockAutoApply?.addEventListener("change", (event) => {
+    state.gm.clock.autoApply = event.target.checked;
+    if (state.gm.clock.autoApply) {
+      scheduleClockAutoApply();
+    } else {
+      clearTimeout(state.gm.clock.applyTimer);
+    }
+  });
+
+  elements.gmClockApply?.addEventListener("click", () => applyGameClockToTargets());
+
+  elements.clockFab?.addEventListener("click", openClockDrawer);
+  elements.closeClockDrawer?.addEventListener("click", closeClockDrawer);
+  elements.clockDrawer?.addEventListener("click", (event) => {
+    const nav = event.target.closest("[data-sheet-calendar-nav]");
+    if (nav) {
+      shiftSheetCalendar(Number(nav.dataset.sheetCalendarNav));
+    }
+  });
+
+  // Sair da aba com uma alteração rápida ainda na fila perderia a alteração.
+  window.addEventListener("beforeunload", () => {
+    void flushCharacterPatches();
+  });
+}
+
+function shiftGmCalendar(direction) {
+  const month = state.gm.clock.calendarMonth + Number(direction || 0);
+  const cursor = new Date(Date.UTC(state.gm.clock.calendarYear, month, 1));
+  state.gm.clock.calendarYear = cursor.getUTCFullYear();
+  state.gm.clock.calendarMonth = cursor.getUTCMonth();
+  renderGmCalendar({ slide: Number(direction || 0) });
+}
+
+function pickGmCalendarDay(day) {
+  if (!Number.isFinite(day)) {
+    return;
+  }
+
+  const { hour, minute } = gameMinutesParts(state.gm.clock.minutes);
+  setGmClockMinutes(gamePartsToMinutes({
+    year: state.gm.clock.calendarYear,
+    month: state.gm.clock.calendarMonth,
+    day,
+    hour,
+    minute,
+  }));
+}
+
+function toggleClockTarget(characterId) {
+  if (!characterId) {
+    return;
+  }
+
+  if (state.gm.clock.excluded.has(characterId)) {
+    state.gm.clock.excluded.delete(characterId);
+  } else {
+    state.gm.clock.excluded.add(characterId);
+  }
+
+  persistClockTargets();
+  renderGmClockTargets();
+  renderGmClockStatus();
+}
+
+async function handleCreateCharacterFromGmScreen() {
+  // Ficha nova nasce em modo de criação e abre o passo a passo, que aponta para
+  // painéis da ficha: o Escudo sai de cena antes, não depois.
+  await flushCharacterPatches();
+  state.gm.view = "sheet";
+  writeStorage(STORAGE_KEYS.gmView, "sheet");
+  stopSessionTicker();
+  updateGmChrome();
+
+  await handleCreateCharacter();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }

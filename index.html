@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
   <!-- O ?v= força o navegador a baixar a versão nova em vez de reaproveitar a
        do cache do GitHub Pages. Suba o número sempre que mexer no CSS/JS. -->
-  <link rel="stylesheet" href="./styles.css?v=12">
+  <link rel="stylesheet" href="./styles.css?v=13">
 </head>
 <body>
   <div class="page-art page-art-top" aria-hidden="true"></div>
@@ -70,6 +70,12 @@
       <section id="appCard" class="hidden">
         <div class="toolbar card">
           <div id="gmTools" class="toolbar-group hidden">
+            <button type="button" id="gmHomeButton" class="btn btn-icon btn-home hidden" title="Voltar para o Escudo do Mestre" aria-label="Voltar para o Escudo do Mestre">
+              <svg class="btn-home-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3 2 12h3v8h6v-5h2v5h6v-8h3L12 3Z"/>
+              </svg>
+            </button>
+
             <label class="inline-field inline-select">
               <span>Selecionar ficha</span>
               <select id="sheetSelector"></select>
@@ -90,6 +96,141 @@
             <button type="button" id="logoutButton" class="btn btn-secondary">Sair</button>
           </div>
         </div>
+
+        <section id="gmScreen" class="gm-screen hidden" aria-label="Escudo do Mestre">
+          <header class="card gm-screen-head">
+            <div class="gm-screen-title">
+              <span class="gm-shield" aria-hidden="true">
+                <svg viewBox="0 0 64 64" role="presentation" focusable="false">
+                  <path d="M32 4 8 12v20c0 14 10 24 24 28 14-4 24-14 24-28V12L32 4Zm0 6.4 18 6v15.6c0 11-7.4 19.1-18 22.6-10.6-3.5-18-11.6-18-22.6V16.4l18-6Z"/>
+                  <path d="M32 17 20 21v11c0 7.4 5 12.8 12 15.4 7-2.6 12-8 12-15.4V21l-12-4Z" opacity="0.45"/>
+                </svg>
+              </span>
+              <div class="gm-screen-copy">
+                <h2>Escudo do Mestre</h2>
+                <p id="gmScreenSubtitle">Todas as fichas da mesa em um só lugar.</p>
+              </div>
+            </div>
+
+            <div class="gm-session-timer">
+              <span class="gm-session-label">Tempo de jogo</span>
+              <strong id="gmSessionValue" class="gm-session-value">00:00:00</strong>
+              <div class="gm-session-actions">
+                <button type="button" id="gmSessionToggle" class="gm-mini-btn" title="Pausar o cronômetro da sessão" aria-label="Pausar o cronômetro da sessão">⏸</button>
+                <button type="button" id="gmSessionReset" class="gm-mini-btn" title="Zerar o cronômetro da sessão" aria-label="Zerar o cronômetro da sessão">⟲</button>
+              </div>
+            </div>
+
+            <div class="gm-screen-actions">
+              <button type="button" id="gmNewSheetButton" class="btn btn-secondary">+ Nova Ficha</button>
+            </div>
+          </header>
+
+          <article class="card panel gm-clock-panel">
+            <div class="panel-header">
+              <div class="section-heading">
+                <h2>Relógio &amp; Calendário</h2>
+              </div>
+              <span id="gmClockPeriod" class="gm-clock-period"></span>
+            </div>
+
+            <div class="gm-clock-layout">
+              <div class="gm-clock-stage">
+                <div id="gmClockFace" class="game-clock" role="img" aria-label="Relógio do jogo"></div>
+                <p class="gm-clock-hint">Arraste os ponteiros, gire a rodinha do mouse ou use as setas abaixo.</p>
+
+                <div class="clock-digital" id="gmClockDigital">
+                  <div class="clock-digital-unit">
+                    <button type="button" class="clock-step" data-clock-step="hour" data-clock-delta="60" aria-label="Adiantar uma hora">▲</button>
+                    <span class="clock-digital-value" id="gmClockHours">00</span>
+                    <button type="button" class="clock-step" data-clock-step="hour" data-clock-delta="-60" aria-label="Atrasar uma hora">▼</button>
+                  </div>
+                  <span class="clock-digital-colon">:</span>
+                  <div class="clock-digital-unit">
+                    <button type="button" class="clock-step" data-clock-step="minute" data-clock-delta="5" aria-label="Adiantar cinco minutos">▲</button>
+                    <span class="clock-digital-value" id="gmClockMinutes">00</span>
+                    <button type="button" class="clock-step" data-clock-step="minute" data-clock-delta="-5" aria-label="Atrasar cinco minutos">▼</button>
+                  </div>
+                </div>
+
+                <div class="gm-clock-quick">
+                  <button type="button" class="gm-quick-btn" data-clock-delta="-60">−1 h</button>
+                  <button type="button" class="gm-quick-btn" data-clock-delta="-10">−10 min</button>
+                  <button type="button" class="gm-quick-btn" data-clock-delta="10">+10 min</button>
+                  <button type="button" class="gm-quick-btn" data-clock-delta="60">+1 h</button>
+                  <button type="button" class="gm-quick-btn" data-clock-delta="360">+6 h</button>
+                  <button type="button" class="gm-quick-btn" data-clock-delta="480">Dormir · +8 h</button>
+                  <button type="button" class="gm-quick-btn" data-clock-set="dawn">☀️ Amanhecer</button>
+                  <button type="button" class="gm-quick-btn" data-clock-set="dusk">🌙 Anoitecer</button>
+                  <button type="button" class="gm-quick-btn" data-clock-set="real">⟲ Hora real</button>
+                </div>
+              </div>
+
+              <div class="gm-calendar-stage">
+                <div class="gm-calendar-head">
+                  <button type="button" class="clock-step calendar-nav" data-calendar-nav="-1" aria-label="Mês anterior">◀</button>
+                  <div class="gm-calendar-title">
+                    <strong id="gmCalendarMonth">—</strong>
+                    <span id="gmCalendarYear">—</span>
+                  </div>
+                  <button type="button" class="clock-step calendar-nav" data-calendar-nav="1" aria-label="Próximo mês">▶</button>
+                </div>
+
+                <div class="gm-calendar-weekdays" aria-hidden="true">
+                  <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+                </div>
+
+                <div id="gmCalendarGrid" class="gm-calendar-grid" role="grid" aria-label="Calendário do jogo"></div>
+
+                <p id="gmCalendarCaption" class="gm-calendar-caption"></p>
+
+                <div class="gm-clock-quick gm-calendar-quick">
+                  <button type="button" class="gm-quick-btn" data-clock-delta="-1440">−1 dia</button>
+                  <button type="button" class="gm-quick-btn" data-clock-delta="1440">+1 dia</button>
+                  <button type="button" class="gm-quick-btn" data-clock-delta="10080">+1 semana</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="gm-clock-targets">
+              <div class="gear-section-title">
+                <span class="gear-section-label">Fichas afetadas</span>
+                <span class="gear-section-hint">Escolha quem sente a passagem do tempo</span>
+              </div>
+
+              <div id="gmClockTargets" class="gm-target-chips"></div>
+
+              <div class="gm-clock-apply">
+                <div class="gm-target-bulk">
+                  <button type="button" id="gmTargetsAll" class="gm-quick-btn">Todas</button>
+                  <button type="button" id="gmTargetsNone" class="gm-quick-btn">Nenhuma</button>
+                </div>
+
+                <label class="gm-switch">
+                  <input type="checkbox" id="gmClockAutoApply" checked>
+                  <span class="gm-switch-track" aria-hidden="true"><span class="gm-switch-thumb"></span></span>
+                  <span class="gm-switch-label">Aplicar automaticamente</span>
+                </label>
+
+                <button type="button" id="gmClockApply" class="btn btn-primary gm-apply-btn">Aplicar às fichas</button>
+              </div>
+
+              <p id="gmClockStatus" class="gm-clock-status" aria-live="polite"></p>
+            </div>
+          </article>
+
+          <article class="card panel gm-roster">
+            <div class="panel-header">
+              <div class="section-heading">
+                <h2>Fichas da mesa</h2>
+              </div>
+              <span id="gmRosterCount" class="gm-roster-count"></span>
+            </div>
+
+            <div id="gmCharacterGrid" class="gm-character-grid"></div>
+            <p id="gmRosterEmpty" class="gm-roster-empty hidden">Nenhuma ficha cadastrada ainda. Use “+ Nova Ficha” para começar.</p>
+          </article>
+        </section>
 
         <section class="sheet-layout">
           <div class="sheet-column left-column">
@@ -207,6 +348,15 @@
           </div>
         </section>
 
+        <button type="button" id="clockFab" class="inventory-fab clock-fab" aria-label="Abrir relógio e calendário do jogo">
+          <span class="inventory-fab-label">Relógio</span>
+          <span class="inventory-fab-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="presentation" focusable="false">
+              <path d="M32 6a26 26 0 1 0 0 52 26 26 0 0 0 0-52Zm0 6a20 20 0 1 1 0 40 20 20 0 0 1 0-40Zm-3 6v15.2l11.4 6.8 2.6-4.4-9-5.4V18h-5Z" />
+            </svg>
+          </span>
+        </button>
+
         <button type="button" id="inventoryFab" class="inventory-fab" aria-label="Abrir pertences">
           <span class="inventory-fab-label">Pertences</span>
           <span class="inventory-fab-icon" aria-hidden="true">
@@ -242,6 +392,55 @@
             </svg>
           </span>
         </button>
+
+        <aside id="clockDrawer" class="inventory-drawer clock-drawer" aria-hidden="true">
+          <div class="inventory-drawer-header">
+            <div class="section-heading">
+              <h2>Relógio do Jogo</h2>
+            </div>
+            <button type="button" id="closeClockDrawer" class="btn btn-secondary">Fechar</button>
+          </div>
+
+          <div class="clock-drawer-scroll">
+            <div id="sheetSky" class="clock-sky" data-period="">
+              <div class="clock-sky-stars" aria-hidden="true"></div>
+              <div class="clock-sky-body" aria-hidden="true"></div>
+              <div class="clock-sky-ground" aria-hidden="true"></div>
+              <div class="clock-sky-copy">
+                <span id="sheetPeriodLabel" class="clock-sky-period">—</span>
+                <strong id="sheetClockTime" class="clock-sky-time">--:--</strong>
+                <span id="sheetClockWeekday" class="clock-sky-weekday">—</span>
+              </div>
+            </div>
+
+            <div class="clock-drawer-body">
+              <div id="sheetClockFace" class="game-clock game-clock-sheet" role="img" aria-label="Relógio do jogo"></div>
+
+              <div class="clock-drawer-info">
+                <p id="sheetClockDate" class="clock-drawer-date">—</p>
+
+                <div class="sheet-calendar">
+                  <div class="gm-calendar-head">
+                    <button type="button" class="clock-step calendar-nav" data-sheet-calendar-nav="-1" aria-label="Mês anterior">◀</button>
+                    <div class="gm-calendar-title">
+                      <strong id="sheetCalendarMonth">—</strong>
+                      <span id="sheetCalendarYear">—</span>
+                    </div>
+                    <button type="button" class="clock-step calendar-nav" data-sheet-calendar-nav="1" aria-label="Próximo mês">▶</button>
+                  </div>
+
+                  <div class="gm-calendar-weekdays" aria-hidden="true">
+                    <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+                  </div>
+
+                  <div id="sheetCalendarGrid" class="gm-calendar-grid is-readonly" role="grid" aria-label="Calendário do jogo"></div>
+                </div>
+
+                <p id="sheetClockFooter" class="clock-drawer-footer"></p>
+              </div>
+            </div>
+          </div>
+        </aside>
 
         <aside id="inventoryDrawer" class="inventory-drawer" aria-hidden="true">
           <div class="inventory-drawer-header">
@@ -666,6 +865,6 @@
     <p class="vehicle-photo-tooltip-hint"></p>
   </div>
 
-  <script type="module" src="./script.js?v=14"></script>
+  <script type="module" src="./script.js?v=15"></script>
 </body>
 </html>
