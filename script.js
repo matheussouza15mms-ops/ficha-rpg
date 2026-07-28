@@ -3057,7 +3057,7 @@ function getFuelRatio(vehicle) {
     return 0;
   }
 
-  return Math.max(0, Math.min(1, toPositiveInt(vehicle.combustivel) / capacity));
+  return Math.max(0, Math.min(1, toPositiveDecimal(vehicle.combustivel) / capacity));
 }
 
 function fuelLevelName(ratio) {
@@ -3123,7 +3123,7 @@ function buildFuelGaugeMarkup(vehicle) {
 
 function buildFuelCountMarkup(vehicle) {
   const capacity = toPositiveInt(vehicle.tanque);
-  const current = toPositiveInt(vehicle.combustivel);
+  const current = toPositiveDecimal(vehicle.combustivel);
   return `<strong>${current}</strong>/${capacity || "—"} L`;
 }
 
@@ -3135,7 +3135,7 @@ function buildFuelBlockMarkup(vehicle) {
     return `<p class="fuel-none">Este veículo não usa combustível.</p>`;
   }
 
-  const current = toPositiveInt(vehicle.combustivel);
+  const current = toPositiveDecimal(vehicle.combustivel);
   const capacity = toPositiveInt(vehicle.tanque);
 
   const tripButtons = VEHICLE_TRIPS.map((trip) => {
@@ -3185,7 +3185,7 @@ function refreshFuelDisplay() {
   const ratio = getFuelRatio(vehicle);
   const level = fuelLevelName(ratio);
   const needle = fuelNeedlePoint(ratio);
-  const current = toPositiveInt(vehicle.combustivel);
+  const current = toPositiveDecimal(vehicle.combustivel);
   const capacity = toPositiveInt(vehicle.tanque);
 
   gauge.dataset.fuelLevel = level;
@@ -3290,7 +3290,7 @@ function handleFuelTrip(key) {
     }
 
     const cost = computeTripLiters(vehicle.consumo, trip.key);
-    const current = toPositiveInt(vehicle.combustivel);
+    const current = toPositiveDecimal(vehicle.combustivel);
 
     if (current < cost) {
       feedback = "Combustível insuficiente para o trajeto";
@@ -6332,7 +6332,7 @@ function applyVehicleFuelProfile(vehicle, resetFuel) {
   } else if (resetFuel) {
     vehicle.combustivel = String(profile.tanque);
   } else {
-    vehicle.combustivel = String(Math.min(toPositiveInt(vehicle.combustivel), profile.tanque));
+    vehicle.combustivel = String(Math.min(toPositiveDecimal(vehicle.combustivel), profile.tanque));
   }
 
   return profile;
@@ -6764,10 +6764,14 @@ function sanitizeIntegerInput(value) {
 }
 
 function sanitizeDecimalInput(value) {
-  return String(value || "")
+  const cleaned = String(value || "")
     .replace(/[^\d.,]/g, "")
-    .replace(",", ".")
-    .replace(/(?!^)./g, "");
+    .replace(",", ".");
+  const firstDotIndex = cleaned.indexOf(".");
+  if (firstDotIndex === -1) {
+    return cleaned;
+  }
+  return cleaned.slice(0, firstDotIndex + 1) + cleaned.slice(firstDotIndex + 1).replace(/\./g, "");
 }
 
 function toPositiveDecimal(value) {
@@ -7474,7 +7478,7 @@ function buildPrintVehicleSection(character) {
   }
 
   const capacity = toPositiveInt(vehicle.tanque);
-  const fuel = capacity ? `${toPositiveInt(vehicle.combustivel)}/${capacity} L` : "—";
+  const fuel = capacity ? `${toPositiveDecimal(vehicle.combustivel)}/${capacity} L` : "—";
   const consumo = formatVehicleConsumo(vehicle);
 
   return `
